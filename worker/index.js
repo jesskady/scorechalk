@@ -8,6 +8,7 @@
 import { authConfigured, startGoogle, callbackGoogle, logout, me } from './auth.js';
 import { saveGame, listGames, getGame, patchGame, deleteGame } from './games.js';
 import { getStats } from './stats.js';
+import { listCustomGames, putCustomGame, deleteCustomGame } from './custom-games.js';
 
 const CANONICAL = 'scorechalk.com';
 
@@ -52,6 +53,21 @@ export default {
       if (request.method === 'GET') return getGame(request, env, game[1]);
       if (request.method === 'PATCH') return patchGame(request, env, game[1]);
       if (request.method === 'DELETE') return deleteGame(request, env, game[1]);
+      return json({ error: 'Method not allowed' }, 405);
+    }
+
+    // My games: builder rule sets saved to the profile
+    if (url.pathname === '/api/custom-games') {
+      if (!authConfigured(env)) return json({ error: 'Sign-in is not configured.' }, 503);
+      if (request.method === 'GET') return listCustomGames(request, env);
+      return json({ error: 'Method not allowed' }, 405);
+    }
+
+    const custom = url.pathname.match(/^\/api\/custom-games\/([A-Za-z0-9_-]{1,64})$/);
+    if (custom) {
+      if (!authConfigured(env)) return json({ error: 'Sign-in is not configured.' }, 503);
+      if (request.method === 'PUT') return putCustomGame(request, env, custom[1]);
+      if (request.method === 'DELETE') return deleteCustomGame(request, env, custom[1]);
       return json({ error: 'Method not allowed' }, 405);
     }
 

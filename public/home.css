@@ -55,3 +55,13 @@
   .game{padding:13px 12px}
   .game-icon{font-size:26px}
 }
+
+/* ---------- My games ---------- */
+/* The same tiles a size down: this list is yours, and can run long. */
+.mine{display:flex;flex-direction:column;gap:10px}
+.game.small{padding:12px;gap:12px;border-radius:12px}
+.game.small .game-icon{font-size:22px;width:26px;text-align:center}
+.game.small .game-text b{font-size:16px}
+.game.small .game-text small{font-size:12px}
+.mine-empty{text-align:center;font-size:12.5px;color:var(--dim);line-height:1.5;padding:0 12px}
+.mine-empty a{color:var(--green)}

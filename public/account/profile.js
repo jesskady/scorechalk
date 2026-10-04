@@ -144,6 +144,108 @@
     return row;
   }
 
+  /* ---------- My custom games ----------
+     Builder games saved to the profile. A row opens the game in the builder;
+     its ⋯ opens rename and delete in place, under the row. Delete takes a
+     second tap rather than a dialog — it is one row, and Undo would need a
+     copy kept somewhere. Needs /builder/rules.js for describeRules. */
+
+  function putCustom(g, name) {
+    return fetch('/api/custom-games/' + encodeURIComponent(g.id), {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name, rules: g.rules }),
+    }).then((r) => r.json().then((d) => { if (!r.ok) throw new Error(d.error || 'Could not save'); return d.game; }));
+  }
+
+  function customRow(g, onGone) {
+    const row = el('li', 'game-row has-manage custom-row');
+
+    const inner = el('a', 'game-inner game-link');
+    inner.href = '/builder/#my/' + encodeURIComponent(g.id);
+    const main = el('div', 'game-main');
+    const title = el('b', null, g.name);
+    main.append(title, el('small', null, describeRules({ ...defaultRules(), ...g.rules })));
+    inner.append(main, chevron());
+
+    const manage = el('button', 'game-manage');
+    manage.type = 'button';
+    manage.setAttribute('aria-label', 'Rename or delete ' + g.name);
+    manage.setAttribute('aria-expanded', 'false');
+    manage.innerHTML =
+      '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">' +
+      '<circle cx="5" cy="12" r="1.8" fill="currentColor"/>' +
+      '<circle cx="12" cy="12" r="1.8" fill="currentColor"/>' +
+      '<circle cx="19" cy="12" r="1.8" fill="currentColor"/></svg>';
+
+    const panel = el('div', 'custom-panel hidden');
+    const name = el('input', 'custom-name');
+    name.type = 'text'; name.maxLength = 24; name.value = g.name;
+    name.setAttribute('aria-label', 'Name');
+    const save = el('button', 'custom-btn', 'Rename');
+    const del = el('button', 'custom-btn custom-del', 'Delete');
+    const note = el('small', 'custom-note');
+    const btns = el('div', 'custom-btns');
+    btns.append(save, del);
+    panel.append(name, btns, note);
+
+    manage.addEventListener('click', () => {
+      const open = panel.classList.toggle('hidden') === false;
+      manage.setAttribute('aria-expanded', String(open));
+      del.textContent = 'Delete';
+      note.textContent = '';
+      if (open) name.focus();
+    });
+
+    save.addEventListener('click', () => {
+      const v = name.value.trim();
+      if (!v || v === g.name) return;
+      save.disabled = true;
+      putCustom(g, v)
+        .then((saved) => { g.name = saved.name; title.textContent = saved.name; note.textContent = 'Renamed.'; })
+        .catch((e) => { note.textContent = e.message; })
+        .finally(() => { save.disabled = false; });
+    });
+
+    let armed = false;
+    del.addEventListener('click', () => {
+      if (!armed) { armed = true; del.textContent = 'Tap again to delete'; return; }
+      del.disabled = true;
+      fetch('/api/custom-games/' + encodeURIComponent(g.id), { method: 'DELETE' })
+        .then((r) => { if (!r.ok) throw new Error('Could not delete'); row.remove(); onGone(); })
+        .catch((e) => { note.textContent = e.message; del.disabled = false; });
+    });
+
+    const top = el('div', 'custom-top');
+    top.append(inner, manage);
+    row.append(top, panel);
+    return row;
+  }
+
+  function customCard() {
+    const body = el('p', 'prof-empty', 'Loading…');
+    const empty = () => {
+      const p = el('p', 'prof-empty');
+      p.append('Games you save in the ');
+      const a = el('a', null, 'ScoreChalk Builder');
+      a.href = '/builder/';
+      p.append(a, ' will be listed here.');
+      return p;
+    };
+    fetch('/api/custom-games', { headers: { accept: 'application/json' } })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        const games = (data && data.games) || [];
+        if (!games.length) { body.replaceWith(empty()); return; }
+        const list = el('ul', 'game-list');
+        const gone = () => { if (!list.children.length) list.replaceWith(empty()); };
+        games.forEach((g) => list.append(customRow(g, gone)));
+        body.replaceWith(list);
+      })
+      .catch(() => { body.textContent = 'Could not load your games.'; });
+    return card('My custom games', body);
+  }
+
   function showProfile(user) {
     const head = el('div', 'prof-head');
     const id = el('div', 'prof-id');
@@ -155,7 +257,7 @@
     const statsCard = card('Darts', statsBody);
 
     const loading = el('p', 'prof-empty', 'Loading your games…');
-    box.replaceChildren(head, statsCard, card('Your games', loading));
+    box.replaceChildren(head, statsCard, card('Your games', loading), customCard());
 
     fetch('/api/stats?game_type=darts', { headers: { accept: 'application/json' } })
       .then((r) => (r.ok ? r.json() : null))

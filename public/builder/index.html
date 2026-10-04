@@ -10,7 +10,7 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='15' fill='%23182029'/><circle cx='16' cy='16' r='11' fill='%232e7d4f'/><circle cx='16' cy='16' r='7' fill='%23182029'/><circle cx='16' cy='16' r='3.5' fill='%23c0392b'/></svg>">
 <!-- ?v= must be bumped whenever a stylesheet or app.js changes, as in darts -->
 <link rel="stylesheet" href="../shared.css?v=29">
-<link rel="stylesheet" href="style.css?v=12">
+<link rel="stylesheet" href="style.css?v=13">
 </head>
 <body>
 
@@ -135,11 +135,15 @@
     <p class="rules-text" id="rulesText"></p>
     <div class="rules-actions">
       <button class="ghost" id="rulesToggle">Edit rules</button>
+      <!-- My games only: puts tonight's changes on the profile -->
+      <button class="ghost save" id="rulesSave">Save changes</button>
       <button class="ghost reset" id="rulesReset">Reset</button>
     </div>
   </div>
 
   <button id="startBtn" class="primary big">Start Game</button>
+  <!-- signed in only; shown by renderRulesCard -->
+  <button id="saveMine" class="ghost hidden">Save to My games</button>
 </section>
 
 <!-- ============ GAME ============ -->
@@ -196,6 +200,18 @@
   </div>
 </div>
 
+<!-- ============ NAME ============ -->
+<!-- naming a game as it is saved to My games -->
+<div id="nameOverlay" class="overlay confirm hidden">
+  <div class="win-card">
+    <h2>Save to My games</h2>
+    <p>What should it be called?</p>
+    <input id="nameIn" type="text" maxlength="24" autocomplete="off" placeholder="Game name">
+    <button id="nameSave" class="primary big">Save</button>
+    <button id="nameCancel" class="ghost">Cancel</button>
+  </div>
+</div>
+
 <!-- ============ WIN ============ -->
 <div id="winOverlay" class="overlay hidden">
   <div class="win-card">
@@ -209,6 +225,7 @@
 </div>
 
 <script src="/account.js?v=29" defer></script>
-<script src="app.js?v=12"></script>
+<script src="rules.js?v=2"></script>
+<script src="app.js?v=14"></script>
 </body>
 </html>

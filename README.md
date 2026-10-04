@@ -4,6 +4,8 @@ Mobile-first scorekeeping for the games I play. The home page is a chooser; each
 
 **Darts** is the first one: countdown scoring (501, 301, or any starting score you like), head to head or solo for practice.
 
+**ScoreChalk Builder** covers everything else: pick how a game ends (keep score, first to a target, lowest wins, out at zero), which way it scores, a fixed number of rounds, and your own quick-score buttons. **Farkle** is a builder game with its rules filled in — a *template* — and has its own tile on the home page. Signed in, you can save your own builder games to your profile as **My games**.
+
 ## Use it
 
 Live: **https://scorechalk.com**
@@ -69,10 +71,11 @@ Because every turn is entered dart by dart, both rules are checked against the a
 public/
   index.html      game chooser
   home.css        chooser styles
+  home.js         the chooser's My games, when signed in
   shared.css      palette, reset and shared controls, used by every page
   account.js      account bubble, injected into every page
   account/
-    index.html    your profile: darts statistics and game history
+    index.html    your profile: darts statistics, game history, My games
     profile.js
     profile.css
     game/
@@ -83,11 +86,18 @@ public/
     app.js
     style.css
     sync.js       saving games to a profile
+  builder/
+    index.html    ScoreChalk Builder: setup and scoring
+    app.js
+    rules.js      the rules a builder game can have, and their one-line
+                  summary; also loaded by the home page and the profile
+    style.css
 worker/
   index.js        router: www redirect, /auth and /api
   auth.js         Google OIDC + signed session cookie
   games.js        /api/games: save, list, load, delete
   stats.js        /api/stats: lifetime darts figures, in SQL
+  custom-games.js /api/custom-games: My games, saved builder rules
 migrations/
   0001_init.sql   users, games, game_players, turns
 
@@ -97,6 +107,7 @@ darts, so a second game does not inherit a column named after the first.
   0002_...sql     games.updated_at
   0003_...sql     games.me_idx
   0004_...sql     turns.darts -> turns.detail
+  0005_...sql     custom_games: My games
 ```
 
 `public/` is what gets published and nothing outside it is, so
@@ -135,6 +146,22 @@ than one silently winning: they are usually different games.
 
 `localStorage` remains the live state throughout. Nothing on the scoring path
 waits on the network, so a game plays identically with no signal.
+
+### My games
+
+A builder game can be saved to your profile with **Save to My games** on the
+builder's setup screen. Saved games are listed on the home page under the
+site's own games, in the builder's *Start from* menu, and on your profile,
+where they can be renamed and deleted. Each opens at `/builder/#my/<id>`.
+
+Changing a saved game's rules before playing is a one-off: it lasts until you
+leave the screen, and **Save changes** is what writes it back. That way a quick
+"first to 5 tonight" doesn't quietly rewrite the saved game.
+
+These are rule sets, not plays — playing a builder game is not recorded on the
+profile yet. The Worker stores only the rule fields it knows
+(`RULE_FIELDS` in `worker/custom-games.js`), so a new builder rule needs adding
+there as well as to `defaultRules` in `public/builder/rules.js`.
 
 ### Statistics
 

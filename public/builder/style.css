@@ -18,6 +18,7 @@
 .rules-actions{display:flex;gap:6px}
 .rules-actions .ghost{flex:1}
 .reset{color:#e2857a;border-color:#5a302a}
+.save{color:var(--green);border-color:var(--green-d)}
 
 /* ---------- Setup ---------- */
 .brand{text-align:center;padding:8px 0 2px}

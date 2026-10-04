@@ -10,48 +10,8 @@ const $ = (id) => document.getElementById(id);
 const fmt = (n) => n.toLocaleString();
 const signed = (n) => n === 0 ? '0' : (n > 0 ? '+' : '−') + fmt(Math.abs(n));
 
-/* ---------------- configuration ---------------- */
-
-// How a game can end. Most endings only work one way round, so `mode` is the
-// scoring direction an ending needs: choosing it sets that direction and
-// disables the other. null works either way.
-//
-// `roundsHint` marks an ending that can instead finish after a fixed number of
-// rounds, and replaces `hint` when it does. Endings with a finish line of
-// their own — a target, or one player left — don't offer it.
-const WIN_OPTS = [
-  { id: 'none',   mode: null,   label: 'Just keep score', hint: 'No winner is declared. Stop whenever you like.',
-    roundsHint: 'After the last round, the highest score wins.' },
-  { id: 'target', mode: 'up',   label: 'First to target', hint: 'The first player to reach the target wins.', target: 'Target' },
-  { id: 'low',    mode: 'up',   label: 'Lowest wins',     hint: 'When anyone reaches the limit the game ends, and the lowest score wins — like Hearts.', target: 'Limit',
-    roundsHint: 'After the last round, the lowest score wins — like golf.' },
-  { id: 'zero',   mode: 'down', label: 'Out at zero',     hint: 'Scores count down. A player who reaches 0 is out; last one standing wins — like life in Magic.' },
-];
-
-const ending = (c) => WIN_OPTS.find(o => o.id === c.win) || WIN_OPTS[0];
-
-// A fixed round count, when the ending allows one and it is switched on.
-const roundsOn = (c) => !!(c.useRounds && ending(c).roundsHint);
-
-// The rules of a game: everything on the setup screen except who is playing.
-function defaultRules() {
-  return {
-    name: '', mode: 'up', start: 0, win: 'none', target: 100,
-    useRounds: false, rounds: 9,
-    quick: '1, 5, 10', typed: true, signs: true, turns: false,
-  };
-}
-
-// Ready-made games, offered under Start from and linked from the home page.
-// Opening one fills in the setup form and nothing is locked. `id` is also
-// its address: /builder/#farkle.
-const TEMPLATES = [
-  { id: 'farkle', label: 'Farkle',
-    rules: {
-      ...defaultRules(), name: 'Farkle', win: 'target', target: 10000,
-      quick: '50, 100, 500, 1000', typed: false, signs: false, turns: true,
-    } },
-];
+// WIN_OPTS, TEMPLATES, defaultRules, parseQuick and describeRules live in
+// rules.js, loaded first: the home page and the profile list games by them too.
 
 function setMode(mode) {
   if (mode === cfg.mode) return;
@@ -61,39 +21,51 @@ function setMode(mode) {
   if (mode === 'up' && cfg.start === 20) cfg.start = 0;
 }
 
-// Quick-score text → the numbers it names, plus whatever could not be read.
-function parseQuick(text) {
-  const vals = [], bad = [];
-  for (const tok of String(text).split(/[\s,]+/).filter(Boolean)) {
-    const n = Number(tok);
-    if (Number.isFinite(n) && n > 0) { if (!vals.includes(n)) vals.push(n); }
-    else bad.push(tok);
-  }
-  return { vals: vals.slice(0, 12), bad };
+/* Where a setup's rules come from — its source:
+     'custom'     your own, built here
+     'farkle'     a template (TEMPLATES)
+     'my:<id>'    one of My games, saved to your profile
+   Custom and templates remember changes on this device: Custom what you
+   built, a template only what you changed from it, so its own rules can still
+   be corrected underneath. My games don't: a change is for tonight, and Save
+   changes is how it reaches the profile. Players are shared by every game, so
+   the people at the table follow you from game to game. */
+
+let me = null;          // the signed-in user, or null
+let myGames = null;     // My games once loaded; null until then
+
+const RULE_KEYS = Object.keys(defaultRules());
+
+function myGame(src) {
+  return src.startsWith('my:') && myGames ? myGames.find(g => g.id === src.slice(3)) : null;
 }
 
-/* Each game remembers its own rules: Custom what you built, a template only
-   the rules you changed from it, so a template's own rules can still be
-   corrected underneath an edit. Players are shared, so the people at the
-   table follow you from game to game. */
-
-const baseRules = (id) => {
-  const t = TEMPLATES.find(t => t.id === id);
-  return t ? { ...t.rules } : defaultRules();
+const baseRules = (src) => {
+  const t = TEMPLATES.find(t => t.id === src);
+  if (t) return { ...t.rules };
+  const g = myGame(src);
+  if (g) return { ...defaultRules(), ...g.rules, name: g.name };
+  return defaultRules();
 };
+
+// the hash that opens a source's setup
+const sourceHash = (src) => src === 'custom' ? '' : src.startsWith('my:') ? 'my/' + src.slice(3) : src;
+
+// whether the rules on screen differ from where they came from
+const rulesChanged = () => RULE_KEYS.some(k => cfg[k] !== baseRules(source)[k]);
 
 function savedNames() {
   const n = loadJSON(PLAYERS_KEY) || (loadJSON(OLD_CFG_KEY) || {}).names;
   return Array.isArray(n) && n.length ? n : ['', ''];
 }
 
-function loadCfg(id) {
-  const mine = (loadJSON(RULES_KEY) || {})[id] || {};
-  return { ...baseRules(id), ...mine, names: savedNames() };
+function loadCfg(src) {
+  const mine = src.startsWith('my:') ? {} : (loadJSON(RULES_KEY) || {})[src] || {};
+  return { ...baseRules(src), ...mine, names: savedNames() };
 }
 
 let cfg = loadCfg('custom');
-let source = 'custom';   // 'custom', or the id of the template being set up
+let source = 'custom';   // see above
 
 /* ---------------- game state ---------------- */
 
@@ -166,14 +138,20 @@ function show(id) {
 }
 
 // The hash decides the screen, so back and forward move between them:
-// '' the custom setup, a template id that template's setup, 'play' the game.
+// '' the custom setup, a template id that template's setup, 'my/<id>' one of
+// My games, 'play' the game.
 function route() {
   const h = location.hash.slice(1);
   $('winOverlay').classList.add('hidden');
   $('confirmOverlay').classList.add('hidden');
+  $('nameOverlay').classList.add('hidden');
   if (h === 'play') {
     S = loadJSON(KEY);
     if (S) { showGame(); return; }
+  }
+  if (h.startsWith('my/')) {
+    if (myGames === null) return;        // loadMine() routes again when it lands
+    if (myGame('my:' + h.slice(3))) { openSetup('my:' + h.slice(3)); return; }
   }
   openSetup(TEMPLATES.some(t => t.id === h) ? h : 'custom');
 }
@@ -183,21 +161,12 @@ window.addEventListener('hashchange', route);
 
 let rulesOpen = false;   // a template's rules, expanded for editing
 
-function openSetup(id) {
-  source = id;
+function openSetup(src) {
+  source = src;
   rulesOpen = false;
-  const t = TEMPLATES.find(t => t.id === id);
-  cfg = loadCfg(id);
-
-  // titled as the game when it is one, since the home page links here too
-  $('setupTitle').textContent = t ? t.label : 'ScoreChalk Builder';
-  // not the template's rules: the Rules card shows those, as you've set them
-  $('setupSub').textContent = t ? 'Add the players and start' : 'Build a scorekeeper for any game';
-
-  const sel = $('templateSel');
-  sel.innerHTML = '<option value="custom">Custom</option>' +
-    TEMPLATES.map(t => `<option value="${t.id}">${esc(t.label)}</option>`).join('');
-  sel.value = id;
+  cfg = loadCfg(src);
+  renderTitle();
+  renderPicker();
 
   const saved = loadJSON(KEY);
   $('resumeBtn').classList.toggle('hidden', !saved);
@@ -207,8 +176,27 @@ function openSetup(id) {
   show('setup');
 }
 
+function renderTitle() {
+  // titled as the game when it is one, since the home page links here too
+  const t = TEMPLATES.find(t => t.id === source), g = myGame(source);
+  $('setupTitle').textContent = t ? t.label : g ? g.name : 'ScoreChalk Builder';
+  // not the rules: the Rules card shows those, as you've set them
+  $('setupSub').textContent = t || g ? 'Add the players and start' : 'Build a scorekeeper for any game';
+}
+
+function renderPicker() {
+  const opt = (value, label) => `<option value="${value}">${esc(label)}</option>`;
+  let html = opt('custom', 'Custom') +
+    `<optgroup label="Templates">${TEMPLATES.map(t => opt(t.id, t.label)).join('')}</optgroup>`;
+  if (myGames && myGames.length) {
+    html += `<optgroup label="My games">${myGames.map(g => opt('my:' + g.id, g.name)).join('')}</optgroup>`;
+  }
+  $('templateSel').innerHTML = html;
+  $('templateSel').value = source;
+}
+
 $('templateSel').addEventListener('change', (e) => {
-  location.hash = e.target.value === 'custom' ? '' : e.target.value;
+  location.hash = sourceHash(e.target.value);
 });
 
 function renderSetup() {
@@ -292,10 +280,11 @@ function setToggle(btn, on) {
   btn.setAttribute('aria-checked', on);
 }
 
-// Only Custom's rules are kept. Changes made to a template last until you
-// leave it, so opening Farkle tomorrow gives Farkle, and tweaking it never
-// overwrites your own custom game. The players are kept from either.
+// Keeps this device's copy of the rules (see the sources comment above) and
+// the players. My games keep no local copy: Save changes is their only save.
 function saveCfg() {
+  saveJSON(PLAYERS_KEY, cfg.names);
+  if (source.startsWith('my:')) { renderRulesCard(); return; }
   const base = baseRules(source), mine = {};
   for (const k of Object.keys(base)) if (cfg[k] !== base[k]) mine[k] = cfg[k];
   const all = loadJSON(RULES_KEY) || {};
@@ -305,45 +294,35 @@ function saveCfg() {
   renderRulesCard();
 }
 
-/* A template's rules fold away into one line, since most of the time you only
-   want to say who is playing. Custom always shows them: they are the point. */
-function describeRules(c) {
-  const parts = [];
-  const r = roundsOn(c);
-  if (c.win === 'none') parts.push(r ? `${c.rounds} rounds, highest wins` : 'Just keep score');
-  if (c.win === 'target') parts.push(`First to ${fmt(c.target)}`);
-  if (c.win === 'low') parts.push(r ? `${c.rounds} rounds, lowest wins` : `Ends at ${fmt(c.target)}, lowest wins`);
-  if (c.win === 'zero') parts.push(`Start at ${fmt(c.start)}, out at 0`);
-  else if (c.start !== 0) parts.push(`${c.mode === 'down' ? 'counts down from' : 'starts at'} ${fmt(c.start)}`);
-  const vals = parseQuick(c.quick).vals;
-  if (vals.length) parts.push(`keys ${vals.map(fmt).join(', ')}`);
-  if (c.typed) parts.push('any score typed');
-  if (c.signs) parts.push('can subtract');
-  parts.push(c.turns || r ? 'takes turns' : 'score anyone any time');
-  return parts.join(' · ');
-}
-
 function renderRulesCard() {
-  const t = TEMPLATES.find(t => t.id === source);
-  const folded = !!t && !rulesOpen;
+  const t = TEMPLATES.find(t => t.id === source), g = myGame(source);
+  const named = !!(t || g);              // custom is the one that isn't
+  const folded = named && !rulesOpen;
   document.querySelectorAll('#setup .rule').forEach(el => el.classList.toggle('hidden', folded));
   $('rulesText').textContent = describeRules(cfg);
-  $('rulesText').classList.toggle('hidden', !t);
-  $('rulesToggle').classList.toggle('hidden', !t);
+  $('rulesText').classList.toggle('hidden', !named);
+  $('rulesToggle').classList.toggle('hidden', !named);
   $('rulesToggle').textContent = rulesOpen ? 'Hide rules' : 'Edit rules';
-  $('rulesReset').textContent = t ? `Reset to standard ${t.label}` : 'Clear all rules';
-  // nothing to reset when the rules already are the starting ones
-  const changed = !!(loadJSON(RULES_KEY) || {})[source];
+
+  // nothing to reset or save when the rules already are the starting ones
+  const changed = g ? rulesChanged() : !!(loadJSON(RULES_KEY) || {})[source];
+  $('rulesReset').textContent = g ? 'Undo changes' : t ? `Reset to standard ${t.label}` : 'Clear all rules';
   $('rulesReset').classList.toggle('hidden', !changed);
+  $('rulesSave').classList.toggle('hidden', !(g && changed));
   // Custom with nothing to reset has nothing to show here at all
-  $('rulesCard').classList.toggle('hidden', !t && !changed);
+  $('rulesCard').classList.toggle('hidden', !named && !changed);
   // Custom's card is only a reset button, so its heading would be noise
-  $('rulesCard').querySelector('.field-label').classList.toggle('hidden', !t);
+  $('rulesCard').querySelector('.field-label').classList.toggle('hidden', !named);
+
+  // saving a new game is for rules that aren't one of yours already
+  $('saveMine').classList.toggle('hidden', !me || !!g);
 }
 
 $('rulesToggle').onclick = () => { rulesOpen = !rulesOpen; renderRulesCard(); };
 
 $('rulesReset').onclick = async () => {
+  // a My game's changes were never saved anywhere, so undoing them is free
+  if (myGame(source)) { cfg = loadCfg(source); renderSetup(); return; }
   const t = TEMPLATES.find(t => t.id === source);
   const ok = await askConfirm(t
     ? `Put ${t.label} back to its standard rules?`
@@ -391,6 +370,81 @@ $('startBtn').onclick = async () => {
   location.hash = 'play';
 };
 
+/* ---------------- My games ---------------- */
+
+async function loadMine() {
+  try {
+    const r = await fetch('/api/me', { headers: { accept: 'application/json' } });
+    const data = r.ok ? await r.json() : null;
+    me = (data && data.user) || null;
+    if (me) {
+      const g = await fetch('/api/custom-games', { headers: { accept: 'application/json' } });
+      myGames = g.ok ? (await g.json()).games : [];
+    }
+  } catch (e) { /* offline: no My games this time */ }
+  if (!myGames) myGames = [];
+
+  // a #my/ address was waiting on this; anything else just gains the list
+  if (location.hash.startsWith('#my/')) route();
+  else if (!$('setup').classList.contains('hidden')) { renderPicker(); renderRulesCard(); }
+}
+
+function rulesOnly(c) {
+  const r = {};
+  for (const k of RULE_KEYS) if (k !== 'name') r[k] = c[k];
+  return r;
+}
+
+async function putMine(id, name) {
+  const res = await fetch('/api/custom-games/' + encodeURIComponent(id), {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ name, rules: rulesOnly(cfg) }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'Could not save');
+  const saved = { ...data.game };
+  myGames = myGames.filter(g => g.id !== id).concat(saved)
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+  return saved;
+}
+
+function askName(initial) {
+  return new Promise((resolve) => {
+    $('nameIn').value = initial;
+    $('nameOverlay').classList.remove('hidden');
+    $('nameIn').focus();
+    const done = (v) => {
+      $('nameOverlay').classList.add('hidden');
+      $('nameSave').onclick = $('nameCancel').onclick = $('nameIn').onkeydown = null;
+      resolve(v);
+    };
+    const ok = () => { const v = $('nameIn').value.trim(); if (v) done(v); };
+    $('nameSave').onclick = ok;
+    $('nameIn').onkeydown = (e) => { if (e.key === 'Enter') ok(); };
+    $('nameCancel').onclick = () => done(null);
+  });
+}
+
+$('saveMine').onclick = async () => {
+  const t = TEMPLATES.find(t => t.id === source);
+  const name = await askName(cfg.name.trim() || (t ? t.label : ''));
+  if (!name) return;
+  try {
+    const g = await putMine(crypto.randomUUID(), name);
+    location.hash = sourceHash('my:' + g.id);
+  } catch (e) { flashSetup(e.message); }
+};
+
+$('rulesSave').onclick = async () => {
+  const g = myGame(source);
+  try {
+    // the Game box can rename it too; an emptied box keeps the old name
+    await putMine(g.id, cfg.name.trim() || g.name);
+    renderTitle(); renderPicker(); renderSetup();
+  } catch (e) { flashSetup(e.message); }
+};
+
 function flashSetup(text) {
   const btn = $('startBtn'), was = btn.textContent;
   btn.textContent = text;
@@ -404,7 +458,7 @@ function showGame() {
   show('game');
   // back to this game's own setup, template or custom
   // (a bare '#' rather than no hash, so leaving is a hash change, not a reload)
-  $('gameBack').setAttribute('href', '#' + (S.cfg.source && S.cfg.source !== 'custom' ? S.cfg.source : ''));
+  $('gameBack').setAttribute('href', '#' + sourceHash(S.cfg.source || 'custom'));
   buildBoard();
   buildPad();
   render();
@@ -638,3 +692,4 @@ function askConfirm(text, yesLabel) {
 /* ---------------- boot ---------------- */
 
 route();
+loadMine();

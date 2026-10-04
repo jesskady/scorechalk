@@ -10,7 +10,7 @@
 <meta name="description" content="Simple, mobile-first scorekeeping for the games you play.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='15' fill='%23182029'/><circle cx='16' cy='16' r='11' fill='%232e7d4f'/><circle cx='16' cy='16' r='7' fill='%23182029'/><circle cx='16' cy='16' r='3.5' fill='%23c0392b'/></svg>">
 <link rel="stylesheet" href="shared.css?v=29">
-<link rel="stylesheet" href="home.css?v=29">
+<link rel="stylesheet" href="home.css?v=30">
 </head>
 <body>
 
@@ -73,8 +73,17 @@
          without pretending there is something behind it yet. -->
     <p class="soon">More games as I build them.</p>
   </nav>
+
+  <!-- Signed in only: games built in the builder and saved to the profile.
+       Filled by home.js, and stays hidden for everyone else. -->
+  <section id="mine" class="mine hidden">
+    <h2 class="pick">My games</h2>
+    <nav class="games" id="mineList"></nav>
+  </section>
 </main>
 
 <script src="/account.js?v=29" defer></script>
+<script src="/builder/rules.js?v=2" defer></script>
+<script src="/home.js?v=1" defer></script>
 </body>
 </html>
