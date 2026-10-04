@@ -1,0 +1,275 @@
+/* ScoreChalk Builder. Setup and overlay rules mirror darts/style.css so the
+   two games feel like one site; they are repeated rather than shared because
+   games share shared.css and nothing else. */
+
+.screen{
+  max-width:520px;
+  margin:0 auto;
+  padding:10px 10px calc(10px + var(--pad));
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  min-height:100%;
+}
+
+.resume{display:block;text-align:center;text-decoration:none}
+
+.rules-text{font-size:14px;line-height:1.45}
+.rules-actions{display:flex;gap:6px}
+.rules-actions .ghost{flex:1}
+.reset{color:#e2857a;border-color:#5a302a}
+
+/* ---------- Setup ---------- */
+.brand{text-align:center;padding:8px 0 2px}
+.brand h1{font-size:26px;letter-spacing:-.5px}
+.brand p{color:var(--dim);font-size:13px;margin-top:2px}
+
+.brand.compact{padding:0}
+.brand.compact h1{
+  font-size:13px;font-weight:700;letter-spacing:1.6px;
+  text-transform:uppercase;color:var(--dim);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.brand.compact.gamebar{
+  display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;
+}
+.brand.compact.gamebar .backlink{justify-self:start;padding:2px}
+.brand.compact.gamebar h1{grid-column:2}
+
+.backlink{
+  align-self:flex-start;
+  color:var(--dim);font-size:13px;text-decoration:none;
+  padding:6px 2px;
+}
+.backlink:active{color:var(--txt)}
+
+.card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:11px;
+  display:flex;
+  flex-direction:column;
+  gap:9px;
+}
+
+.field{display:flex;align-items:center;gap:12px}
+.field>span{width:80px;flex:none;color:var(--dim);font-size:14px}
+.field-label{color:var(--dim);font-size:14px}
+.hint{color:var(--dim);font-size:12px;line-height:1.35}
+.hint:empty{display:none}
+
+input{
+  flex:1;
+  min-width:0;
+  background:var(--bg2);
+  border:1px solid var(--line);
+  border-radius:10px;
+  color:var(--txt);
+  padding:12px;
+  font-size:17px;
+  -webkit-user-select:text;
+  user-select:text;
+}
+input:focus{outline:none;border-color:var(--green)}
+
+select{
+  flex:1;min-width:0;
+  background:var(--bg2);border:1px solid var(--line);border-radius:10px;
+  color:var(--txt);padding:11px 12px;font:inherit;font-size:16px;
+}
+select:focus{outline:none;border-color:var(--green)}
+input[type=number]{-moz-appearance:textfield}
+input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+
+/* a group inside a card, set apart by a rule rather than its own card */
+.subsection{
+  display:flex;flex-direction:column;gap:9px;
+  border-top:1px solid var(--line);padding-top:10px;margin-top:2px;
+}
+/* a direction the chosen ending can't use */
+.seg:disabled{opacity:.35}
+
+/* four endings do not fit one row on a phone with their labels */
+.preset-row.wrap{flex-wrap:wrap}
+.preset-row.wrap .seg{flex:1 1 40%}
+
+.stepper{display:flex;align-items:center;gap:10px;margin-left:auto}
+.stepper b{min-width:28px;text-align:center;font-size:20px;font-variant-numeric:tabular-nums}
+.step{
+  width:44px;height:40px;border-radius:10px;font-size:22px;font-weight:700;
+  background:var(--bg2);border:1px solid var(--line);
+}
+.step:active{border-color:var(--green)}
+.step:disabled{opacity:.35}
+
+.names{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.names input{padding:10px;font-size:15px}
+.names.one{grid-template-columns:1fr}
+
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips:empty{display:none}
+.chips b{
+  font-size:13px;font-weight:700;color:var(--txt);
+  background:var(--bg2);border:1px solid var(--line);
+  padding:3px 10px;border-radius:999px;font-variant-numeric:tabular-nums;
+}
+.chips .bad{color:#e2857a;border-color:#5a302a}
+
+/* switch row */
+.toggle{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:2px}
+.tg-label{flex:1;display:flex;flex-direction:column;gap:2px}
+.tg-label b{font-size:16px;font-weight:600}
+.tg-label small{color:var(--dim);font-size:12px;line-height:1.3}
+.tg-switch{
+  flex:none;width:50px;height:30px;border-radius:15px;
+  background:var(--bg2);border:1px solid var(--line);
+  position:relative;transition:background .15s,border-color .15s;
+}
+.tg-switch::after{
+  content:'';position:absolute;top:3px;left:3px;
+  width:22px;height:22px;border-radius:50%;background:var(--dim);
+  transition:transform .15s,background .15s;
+}
+.toggle.is-on .tg-switch{background:var(--green-d);border-color:var(--green)}
+.toggle.is-on .tg-switch::after{transform:translateX(20px);background:#fff}
+
+/* ---------- Game ---------- */
+.badges{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+.badges:empty{display:none}
+.badge{
+  font-size:10px;font-weight:700;letter-spacing:.6px;
+  text-transform:uppercase;color:var(--gold);
+  border:1px solid #4a3c18;background:#241f11;
+  padding:2px 9px;border-radius:999px;
+}
+
+.scoreboard{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.scoreboard.solo{grid-template-columns:1fr}
+.scoreboard.solo .pscore{font-size:46px}
+/* five or more: three across, smaller numbers */
+.scoreboard.many{grid-template-columns:1fr 1fr 1fr;gap:6px}
+.scoreboard.many .pscore{font-size:24px}
+
+.player{
+  background:var(--card);
+  border:2px solid var(--line);
+  border-radius:12px;
+  padding:6px 6px 5px;
+  display:flex;flex-direction:column;align-items:center;
+  transition:border-color .15s,background .15s,opacity .15s;
+  min-width:0;
+}
+.player.active{border-color:var(--green);background:#1c2b23}
+.player.leader .pname::before{content:'★ ';color:var(--gold)}
+.player.out{opacity:.4}
+.player.out .pscore b{text-decoration:line-through}
+.pname{
+  font-size:12px;color:var(--dim);font-weight:600;line-height:1.25;
+  max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.player.active .pname{color:var(--green)}
+.pscore{
+  display:flex;align-items:baseline;justify-content:center;gap:5px;
+  font-size:34px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums;
+}
+.ppend{display:none;font-style:normal;font-size:16px;font-weight:700;color:var(--gold);white-space:nowrap}
+.player.pending .ppend{display:inline}
+.scoreboard.many .ppend{font-size:12px}
+.pmeta{font-size:10px;color:var(--dim);min-height:12px;line-height:1.2}
+
+/* entry bar: sign, the amount being built, clear */
+.entrybar{
+  display:flex;align-items:center;gap:8px;
+  background:var(--card);border:1px solid var(--line);
+  border-radius:12px;padding:6px;
+}
+.sign{display:flex;gap:4px}
+.sgn{
+  width:42px;height:40px;border-radius:9px;font-size:22px;font-weight:800;
+  background:var(--bg2);border:1px solid var(--line);color:var(--dim);
+}
+.sgn.is-on[data-sign="1"]{background:var(--green-d);border-color:var(--green);color:#fff}
+.sgn.is-on[data-sign="-1"]{background:var(--red);border-color:var(--red);color:#fff}
+.entrytotal{flex:1;text-align:center;display:flex;flex-direction:column;min-width:0}
+.entrytotal span{font-size:24px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}
+.entrytotal small{
+  color:var(--dim);font-size:11px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.clear{
+  padding:0 12px;height:40px;border-radius:9px;font-size:13px;font-weight:600;
+  color:var(--dim);border:1px solid var(--line);
+}
+.clear:active{background:var(--bg2)}
+
+.quickpad{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.quickpad.four{grid-template-columns:repeat(4,1fr)}
+.key{
+  background:var(--card);border:1px solid var(--line);border-radius:11px;
+  padding:16px 0;font-size:19px;font-weight:700;text-align:center;
+  font-variant-numeric:tabular-nums;
+}
+.key:active{background:var(--green-d);border-color:var(--green)}
+.quickpad.neg .key:active{background:#5a302a;border-color:var(--red)}
+
+.typedrow{display:flex;gap:6px}
+.typedrow .key{padding:0 20px;font-size:16px}
+
+/* sits straight under the pad; the history below grows downward, so it can
+   never push the button up the screen */
+.actions{display:flex;flex-direction:column;gap:22px;padding-top:4px}
+.mini-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.mini-row.two{grid-template-columns:1fr 1fr}
+
+.msg{
+  text-align:center;font-size:13px;font-weight:600;color:var(--gold);
+  min-height:16px;line-height:1.2;
+}
+
+/* the last few entries, newest first — settles "did I add that?" */
+.history{display:flex;flex-direction:column;gap:2px;font-size:12px;color:var(--dim)}
+.history:empty{display:none}
+.history div{display:grid;grid-template-columns:1fr auto 64px;gap:10px;align-items:baseline;padding:3px 4px;border-top:1px solid var(--line)}
+.history span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.history small{font-size:11px}
+.history b{text-align:right}
+.history b{font-variant-numeric:tabular-nums;color:var(--txt)}
+.history .neg{color:#e2857a}
+
+/* ---------- Overlays ---------- */
+.overlay{
+  position:fixed;inset:0;background:#0b0e12ee;
+  display:flex;align-items:center;justify-content:center;padding:24px;z-index:10;
+}
+.win-card{
+  background:var(--card);border:1px solid var(--line);border-radius:18px;
+  padding:26px 22px;text-align:center;width:100%;max-width:360px;
+  display:flex;flex-direction:column;gap:12px;
+}
+.trophy{font-size:52px}
+.win-card h2{font-size:26px;color:var(--gold)}
+.win-card p{color:var(--dim);font-size:14px}
+.overlay.confirm{z-index:20}
+.overlay.confirm h2{color:var(--txt);font-size:22px}
+.overlay.confirm p{font-size:15px;line-height:1.45}
+
+.standings{list-style:none;display:flex;flex-direction:column;gap:4px;text-align:left}
+.standings li{
+  display:flex;justify-content:space-between;gap:10px;
+  padding:6px 10px;border-radius:8px;background:var(--bg2);font-size:15px;
+}
+.standings li b{font-variant-numeric:tabular-nums}
+.standings li:first-child{color:var(--gold)}
+
+@media (max-height:600px){
+  .pscore{font-size:28px}
+  .key{padding:11px 0;font-size:17px}
+  .big{padding:11px;font-size:16px}
+  .brand{padding:2px 0 0}
+}
+
+/* the fixed-rounds switch and its count */
+#roundsBox{display:flex;flex-direction:column;gap:9px}
+/* locked on by a fixed round count */
+.toggle:disabled{opacity:.6;cursor:default}

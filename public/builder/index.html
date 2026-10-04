@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#12161c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Builder · Score Chalk</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='15' fill='%23182029'/><circle cx='16' cy='16' r='11' fill='%232e7d4f'/><circle cx='16' cy='16' r='7' fill='%23182029'/><circle cx='16' cy='16' r='3.5' fill='%23c0392b'/></svg>">
+<!-- ?v= must be bumped whenever a stylesheet or app.js changes, as in darts -->
+<link rel="stylesheet" href="../shared.css?v=29">
+<link rel="stylesheet" href="style.css?v=12">
+</head>
+<body>
+
+<!-- ============ SETUP ============ -->
+<!-- The hash picks the screen — '' custom setup, a template id (#farkle) its
+     setup, #play the game — so the phone's back button steps between them,
+     and the home page can link straight to a template. See route(). -->
+<section id="setup" class="screen hidden">
+  <a class="backlink" href="/">&lsaquo; All games</a>
+
+  <header class="brand">
+    <h1 id="setupTitle">ScoreChalk Builder</h1>
+    <p id="setupSub"></p>
+  </header>
+
+  <a id="resumeBtn" class="ghost resume hidden" href="#play">Resume saved game</a>
+
+  <div class="card">
+    <label class="field">
+      <span>Start from</span>
+      <!-- filled from TEMPLATES -->
+      <select id="templateSel"></select>
+    </label>
+  </div>
+
+  <div class="card rule">
+    <label class="field">
+      <span>Game</span>
+      <input id="gameName" type="text" placeholder="Name (optional)" autocomplete="off" maxlength="24">
+    </label>
+  </div>
+
+  <div class="card rule">
+    <span class="field-label">How it ends</span>
+    <div class="preset-row wrap" id="winRow"></div>
+    <!-- Only for endings without a finish line of their own; see roundsHint.
+         The switch sits directly under the endings, ahead of everything it
+         changes: switching rounds on swaps the Limit box for the Rounds box
+         and rewrites the hint, and anything below those would jump. -->
+    <div id="roundsBox" class="hidden">
+      <button id="useRounds" class="toggle" role="switch" aria-checked="false">
+        <span class="tg-label">
+          <b>Fixed number of rounds</b>
+          <small>The game ends once everyone has had that many turns.</small>
+        </span>
+        <span class="tg-switch"></span>
+      </button>
+      <label class="field hidden" id="roundsField">
+        <span>Rounds</span>
+        <input id="rounds" type="number" inputmode="numeric" value="9" min="1">
+      </label>
+    </div>
+
+    <label class="field hidden" id="targetField">
+      <span id="targetLabel">Target</span>
+      <input id="target" type="number" inputmode="numeric" value="100" min="1">
+    </label>
+    <small class="hint" id="winHint"></small>
+
+    <!-- Scoring belongs to the ending: most endings only work one way round,
+         and the direction they can't use is disabled. See WIN_OPTS. -->
+    <div class="subsection">
+      <span class="field-label">Scoring</span>
+      <div class="preset-row" id="modeRow">
+        <button class="seg is-on" data-mode="up">Count up</button>
+        <button class="seg" data-mode="down">Count down</button>
+      </div>
+      <label class="field">
+        <span>Start at</span>
+        <input id="startAt" type="number" inputmode="numeric" value="0">
+      </label>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="field">
+      <span>Players</span>
+      <div class="stepper">
+        <button type="button" class="step" id="pMinus" aria-label="Fewer players">&minus;</button>
+        <b id="pCount">2</b>
+        <button type="button" class="step" id="pPlus" aria-label="More players">+</button>
+      </div>
+    </div>
+    <div id="names" class="names"></div>
+  </div>
+
+  <div class="card rule">
+    <span class="field-label">Quick-score buttons</span>
+    <input id="quick" type="text" inputmode="text" autocomplete="off" value="1, 5, 10">
+    <small class="hint">Comma-separated. Each tap adds that much to the score being entered.</small>
+    <div class="chips" id="quickPreview"></div>
+    <button id="typed" class="toggle is-on" role="switch" aria-checked="true">
+      <span class="tg-label">
+        <b>Type any score</b>
+        <small>A number box beside the buttons, for amounts they don't cover.</small>
+      </span>
+      <span class="tg-switch"></span>
+    </button>
+    <button id="signs" class="toggle is-on" role="switch" aria-checked="true">
+      <span class="tg-label">
+        <b>Subtract scores</b>
+        <small>A + / − switch on the score screen, for games where points can be lost. Off: scores only go the game's way.</small>
+      </span>
+      <span class="tg-switch"></span>
+    </button>
+  </div>
+
+  <div class="card rule">
+    <button id="turns" class="toggle" role="switch" aria-checked="false">
+      <span class="tg-label">
+        <b>Take turns</b>
+        <small id="turnsNote">Entering a score passes play to the next player. Off: tap anyone and score them at any time.</small>
+      </span>
+      <span class="tg-switch"></span>
+    </button>
+  </div>
+
+  <!-- A template's rules (the .rule cards) fold into this one line; Custom
+       shows them always, and this card only for its reset. -->
+  <div class="card" id="rulesCard">
+    <span class="field-label">Rules</span>
+    <p class="rules-text" id="rulesText"></p>
+    <div class="rules-actions">
+      <button class="ghost" id="rulesToggle">Edit rules</button>
+      <button class="ghost reset" id="rulesReset">Reset</button>
+    </div>
+  </div>
+
+  <button id="startBtn" class="primary big">Start Game</button>
+</section>
+
+<!-- ============ GAME ============ -->
+<section id="game" class="screen hidden">
+  <header class="brand compact gamebar">
+    <a class="backlink" id="gameBack" href="#">&lsaquo; Setup</a>
+    <h1 id="gTitle">Scores</h1>
+  </header>
+
+  <div id="badges" class="badges"></div>
+
+  <div class="scoreboard" id="scoreboard"></div>
+
+  <!-- what is about to be entered, and for whom -->
+  <div class="entrybar">
+    <div class="sign" id="signRow">
+      <button class="sgn" data-sign="1">+</button>
+      <button class="sgn" data-sign="-1">&minus;</button>
+    </div>
+    <div class="entrytotal">
+      <span id="pendAmt">0</span>
+      <small id="pendFor"></small>
+    </div>
+    <button class="clear" id="clearBtn">Clear</button>
+  </div>
+
+  <div class="quickpad" id="quickpad"></div>
+
+  <div class="typedrow" id="typedRow">
+    <input id="typedIn" type="number" inputmode="numeric" placeholder="Type a score">
+    <button class="key" id="typedAdd">Add</button>
+  </div>
+
+  <div class="actions">
+    <button id="commitBtn" class="primary big">Enter score</button>
+    <div class="mini-row two">
+      <button id="undoBtn" class="ghost">Undo</button>
+      <button id="quitBtn" class="ghost">New game</button>
+    </div>
+  </div>
+
+  <p id="msg" class="msg"></p>
+
+  <div class="history" id="history"></div>
+</section>
+
+<!-- ============ CONFIRM ============ -->
+<div id="confirmOverlay" class="overlay confirm hidden">
+  <div class="win-card">
+    <h2>Are you sure?</h2>
+    <p id="confirmText"></p>
+    <button id="confirmYes" class="danger big">Yes</button>
+    <button id="confirmNo" class="ghost">Cancel</button>
+  </div>
+</div>
+
+<!-- ============ WIN ============ -->
+<div id="winOverlay" class="overlay hidden">
+  <div class="win-card">
+    <div class="trophy">🏆</div>
+    <h2 id="winName"></h2>
+    <ol id="winTable" class="standings"></ol>
+    <button id="rematchBtn" class="primary big">Rematch</button>
+    <button id="keepBtn" class="ghost">Back to the scores</button>
+    <button id="newBtn" class="ghost">New setup</button>
+  </div>
+</div>
+
+<script src="/account.js?v=29" defer></script>
+<script src="app.js?v=12"></script>
+</body>
+</html>
