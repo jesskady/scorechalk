@@ -4,6 +4,8 @@ Mobile-first scorekeeping for the games I play. The home page is a chooser; each
 
 **Darts** is the first one: countdown scoring (501, 301, or any starting score you like), head to head or solo for practice.
 
+**Cribbage** is for two or three players, first to 121, on a pegboard drawn at the top of the screen with a back peg showing each last move. A hand has two phases. In the **play**, every tap scores at once under the player who scored it: Go, 31, fifteens, pairs, runs, and Heels for the dealer. In the **count**, each hand is scored on its own in counting order (players left of the dealer, then the dealer's hand, then the crib), and submitted before the next. A hand is entered one of two ways, switched on the hand card and remembered on the device: **Cards** (the default), where you tap the five ranks and the app scores the hand itself, asking about suits only when a flush or knobs is actually possible; or **Buttons**, where you tap what the hand holds (fifteens, pairs, runs, and shortcuts for double, triple and double-double runs) or type the total. The game ends the instant anyone reaches 121, even mid-play or mid-count, so whoever is still to count never does. Impossible hand totals (19, 25, 26, 27, over 29) are refused. Skunks are called on the win screen, and the loser deals first in a rematch.
+
 **ScoreChalk Builder** covers everything else: pick how a game ends (keep score, first to a target, lowest wins, out at zero), which way it scores, a fixed number of rounds, and your own quick-score buttons. **Farkle** is a builder game with its rules filled in — a *template* — and has its own tile on the home page. Signed in, you can save your own builder games to your profile as **My games**.
 
 ## Use it
@@ -86,6 +88,11 @@ public/
     app.js
     style.css
     sync.js       saving games to a profile
+  cribbage/
+    index.html
+    app.js        board, play and count, saving to a profile
+    counter.js    scoring a hand from its cards (Cards mode)
+    style.css
   builder/
     index.html    ScoreChalk Builder: setup and scoring
     app.js

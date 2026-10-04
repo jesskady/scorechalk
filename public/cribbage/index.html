@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#12161c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Cribbage · Score Chalk</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='15' fill='%23182029'/><circle cx='16' cy='16' r='11' fill='%232e7d4f'/><circle cx='16' cy='16' r='7' fill='%23182029'/><circle cx='16' cy='16' r='3.5' fill='%23c0392b'/></svg>">
+<!-- ?v= must be bumped whenever a stylesheet or app.js changes, as in darts -->
+<link rel="stylesheet" href="../shared.css?v=29">
+<link rel="stylesheet" href="style.css?v=11">
+</head>
+<body>
+
+<!-- ============ SETUP ============ -->
+<section id="setup" class="screen">
+  <a class="backlink" href="/">&lsaquo; All games</a>
+
+  <header class="brand">
+    <h1>Cribbage</h1>
+    <p>Pegging, hands and crib, first to 121</p>
+  </header>
+
+  <div class="card">
+    <span class="field-label">Players</span>
+    <div class="preset-row" id="countRow">
+      <button class="seg is-on" data-n="2">2 players</button>
+      <button class="seg" data-n="3">3 players</button>
+    </div>
+    <div id="names" class="names"></div>
+  </div>
+
+  <div class="card">
+    <span class="field-label">First deal</span>
+    <!-- usually decided by cutting the deck; after this the deal rotates -->
+    <div class="preset-row" id="dealRow"></div>
+  </div>
+
+  <button id="startBtn" class="primary big">Start Game</button>
+  <button id="resumeBtn" class="ghost hidden">Resume saved game</button>
+</section>
+
+<!-- ============ GAME ============ -->
+<section id="game" class="screen hidden">
+  <header class="brand compact gamebar">
+    <a class="backlink" href="/cribbage/">&lsaquo; Back</a>
+    <h1>Cribbage</h1>
+  </header>
+
+  <!-- the board: drawn once per game by buildBoard(), pegs moved by render() -->
+  <div class="board-wrap"><svg id="board" class="board" role="img" aria-label="Cribbage board"></svg></div>
+
+  <div class="phasebar">
+    <span id="phaseHand"></span>
+    <div class="phase-steps">
+      <span class="step" id="stepPlay">Play</span>
+      <span class="step-sep">›</span>
+      <span class="step" id="stepCount">Count</span>
+    </div>
+  </div>
+
+  <!-- one column per player: header, then that player's play buttons -->
+  <div class="players" id="players"></div>
+
+  <!-- ===== count phase: one hand at a time, in counting order ===== -->
+  <div id="countBox" class="countbox hidden">
+    <div class="count-seq" id="countSeq"></div>
+    <div class="handcard" id="handCard">
+      <div class="hand-head">
+        <div class="hand-name">
+          <b id="handTitle"></b>
+          <!-- how this hand is scored: by its cards, or by tapping what it
+               holds. Remembered on the device; see handMode in app.js -->
+          <div class="mode-row" id="modeRow">
+            <button class="mode" data-mode="cards">Cards</button>
+            <button class="mode" data-mode="buttons">Buttons</button>
+          </div>
+        </div>
+        <span class="hand-total" id="handTotal">0</span>
+      </div>
+
+      <!-- Cards: filled by CribCounter (counter.js) -->
+      <div class="ct-box" id="cardsBox"></div>
+
+      <!-- Buttons: tap what the hand holds, or type its total -->
+      <div class="buttons-box" id="buttonsBox">
+        <div class="hand-taps" id="handTaps"></div>
+        <div class="hand-pad" id="handPad"></div>
+        <div class="psec">
+          <span class="psec-label">Runs with pairs <i class="psec-note">runs &amp; pairs only</i></span>
+          <div class="combo-pad" id="comboPad"></div>
+        </div>
+        <div class="typed-row">
+          <input id="typedTotal" type="number" inputmode="numeric" min="0" max="29" placeholder="Or type the total">
+          <button class="key small" id="tapBack" aria-label="Remove last">⌫</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button id="mainBtn" class="primary big"></button>
+    <div class="mini-row">
+      <button id="undoBtn" class="ghost">Undo</button>
+      <button id="quitBtn" class="ghost">New game</button>
+    </div>
+  </div>
+
+  <p id="msg" class="msg"></p>
+  <div class="history" id="history"></div>
+</section>
+
+<!-- ============ CONFIRM ============ -->
+<div id="confirmOverlay" class="overlay confirm hidden">
+  <div class="win-card">
+    <h2>Are you sure?</h2>
+    <p id="confirmText"></p>
+    <button id="confirmYes" class="danger big">Yes</button>
+    <button id="confirmNo" class="ghost">Cancel</button>
+  </div>
+</div>
+
+<!-- ============ WIN ============ -->
+<div id="winOverlay" class="overlay hidden">
+  <div class="win-card">
+    <div class="trophy">🏆</div>
+    <h2 id="winName"></h2>
+    <p id="winSkunk" class="win-skunk"></p>
+    <ol id="winTable" class="standings"></ol>
+    <p id="winSave" class="win-save"></p>
+    <button id="rematchBtn" class="primary big">Rematch</button>
+    <button id="winUndo" class="ghost">Undo the last score</button>
+    <button id="newBtn" class="ghost">New setup</button>
+  </div>
+</div>
+
+<script src="/account.js?v=29" defer></script>
+<script src="counter.js?v=4"></script>
+<script src="app.js?v=12"></script>
+</body>
+</html>

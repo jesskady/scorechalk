@@ -241,9 +241,113 @@
     box.replaceChildren(...parts);
   }
 
+  /* ---------- cribbage ----------
+     Each turn's detail says what it was — play (pegging), heels, hand or
+     crib — and which hand of the game, so the game is rebuilt hand by hand
+     from the turns alone. The dealer is not stored per hand: it follows from
+     the first dealer, since the deal passes left every hand. */
+
+  function showCribbage(g, names) {
+    const cfg = g.config || {};
+    const n = names.length;
+    const turns = g.turns.slice().sort((a, b) => a.created_at - b.created_at);
+    const info = (t) => (t.detail && t.detail[0]) || {};
+
+    const head = el('div', 'prof-head');
+    const idBox = el('div', 'prof-id');
+    idBox.append(el('h1', null, 'Cribbage'));
+    idBox.append(el('small', null, [
+      names.join(' vs '),
+      new Date(g.ended_at || g.updated_at || g.started_at)
+        .toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }),
+    ].join(' · ')));
+    head.append(idBox);
+
+    const final = names.map((_, i) => {
+      const mine = turns.filter((t) => t.player_idx === i);
+      return mine.length ? Math.min(mine[mine.length - 1].score_after, 121) : 0;
+    });
+    const standings = el('ol', 'standings-list');
+    for (const i of names.map((_, i) => i).sort((a, b) => final[b] - final[a])) {
+      const li = el('li', 'standing');
+      const who = el('span', 'standing-who');
+      who.append(el('b', null, names[i]));
+      if (i === g.me_idx) who.append(el('span', 'game-tag', 'You'));
+      if (i === g.winner_idx) who.append(el('span', 'game-tag live', 'Won'));
+      li.append(who, el('b', 'standing-score', String(final[i])));
+      standings.append(li);
+    }
+    const finalBody = el('div');
+    finalBody.append(standings);
+    if (cfg.skunk) finalBody.append(el('p', 'prof-note skunk-note', cfg.skunk === 'double' ? 'Double skunk.' : 'Skunk.'));
+
+    // per player: pegging, hands and crib across the game
+    const kindOf = (t) => info(t).kind;
+    const parts = [head, card('Final scores', finalBody)];
+    names.forEach((name, i) => {
+      const mine = turns.filter((t) => t.player_idx === i);
+      const sum = (k) => mine.filter((t) => kindOf(t) === k).reduce((a, t) => a + t.points, 0);
+      const hands = mine.filter((t) => kindOf(t) === 'hand');
+      const cribs = mine.filter((t) => kindOf(t) === 'crib');
+      const avg = (xs) => (xs.length ? Math.round((xs.reduce((a, t) => a + t.points, 0) / xs.length) * 10) / 10 : null);
+      const grid = el('div', 'stat-grid');
+      [
+        tile('Pegging', sum('play') + sum('heels')),
+        tile('Hands', sum('hand')),
+        tile('Cribs', cribs.length ? sum('crib') : null),
+        tile('Average hand', avg(hands)),
+        tile('Best hand', hands.length ? Math.max(...hands.map((t) => t.points)) : null),
+        tile('Average crib', avg(cribs)),
+      ].filter(Boolean).forEach((t) => grid.append(t));
+      const wrap = el('section', 'prof-card');
+      const ph = el('div', 'pl-head');
+      ph.append(el('b', null, name));
+      if (i === g.me_idx) ph.append(el('span', 'game-tag', 'You'));
+      if (i === g.winner_idx) ph.append(el('span', 'game-tag live', 'Won'));
+      wrap.append(ph, grid);
+      parts.push(wrap);
+    });
+
+    // hand by hand: what each player made of it
+    const handNos = [...new Set(turns.map((t) => info(t).hand))].filter((h) => h != null);
+    const table = el('div', 'crib-hands');
+    const headRow = el('div', 'crib-row crib-head');
+    headRow.style.gridTemplateColumns = `52px repeat(${n}, 1fr)`;
+    headRow.append(el('span', null, 'Hand'));
+    names.forEach((nm) => headRow.append(el('span', null, nm)));
+    table.append(headRow);
+    for (const h of handNos) {
+      const dealer = ((cfg.firstDealer || 0) + h - 1) % n;
+      const row = el('div', 'crib-row');
+      row.style.gridTemplateColumns = `52px repeat(${n}, 1fr)`;
+      row.append(el('span', 'crib-no', String(h)));
+      names.forEach((_, i) => {
+        const ts = turns.filter((t) => t.player_idx === i && info(t).hand === h);
+        const pick = (...ks) => ts.filter((t) => ks.includes(kindOf(t))).reduce((a, t) => a + t.points, 0);
+        const cell = el('span', 'crib-cell' + (i === dealer ? ' is-dealer' : ''));
+        const bits = [];
+        const peg = pick('play', 'heels');
+        if (peg) bits.push(`peg ${peg}`);
+        if (ts.some((t) => kindOf(t) === 'hand')) bits.push(`hand ${pick('hand')}`);
+        if (ts.some((t) => kindOf(t) === 'crib')) bits.push(`crib ${pick('crib')}`);
+        cell.append(el('b', null, String(ts.reduce((a, t) => a + t.points, 0))), el('small', null, bits.join(' · ') || '—'));
+        row.append(cell);
+      });
+      table.append(row);
+    }
+    const handsBody = el('div');
+    handsBody.append(table, el('p', 'prof-note', 'Highlighted: the dealer that hand.'));
+    if (handNos.length) parts.push(card('Hand by hand', handsBody));
+
+    parts.push(whoCard(g, names, 'Marks which player was you.'));
+    parts.push(dangerCard(g));
+    box.replaceChildren(...parts);
+  }
+
   function show(g) {
     const names = (g.players || []).map((p) => p.name);
     if (g.game_type === 'builder') { showBuilder(g, names); return; }
+    if (g.game_type === 'cribbage') { showCribbage(g, names); return; }
     const cfg = g.config || {};
 
     const head = el('div', 'prof-head');

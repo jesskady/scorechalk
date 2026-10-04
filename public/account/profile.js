@@ -111,7 +111,10 @@
     main.append(el('b', null, label));
 
     const bits = [];
-    if (g.game_type === 'builder') {
+    if (g.game_type === 'cribbage') {
+      bits.push('Cribbage');
+      if (g.config && g.config.skunk) bits.push(g.config.skunk === 'double' ? 'double skunk' : 'skunk');
+    } else if (g.game_type === 'builder') {
       // the game's name as it was played: renaming one of My games later
       // does not rewrite the games already played with it
       bits.push((g.config && g.config.name) || 'Custom game');
