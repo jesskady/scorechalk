@@ -94,6 +94,20 @@
   padding:8px 2px;border-top:1px solid var(--line);font-size:13px;
 }
 .turn-row:first-child{border-top:none}
+/* a builder turn is just points, so no darts column */
+.turn-row.builder-turn{grid-template-columns:22px 1fr 60px 64px}
+
+/* a builder game's final scores and the rules it was played with */
+.standings-list{list-style:none;display:flex;flex-direction:column}
+.standing{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:9px 2px;border-top:1px solid var(--line);
+}
+.standing:first-child{border-top:none}
+.standing-who{display:flex;align-items:center;gap:8px;min-width:0}
+.standing-who b{font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.standing-score{font-size:18px;font-variant-numeric:tabular-nums}
+.rules-played{font-size:14px;line-height:1.45}
 .turn-no{color:var(--dim);opacity:.6;font-size:11px;font-variant-numeric:tabular-nums}
 .turn-who{color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .turn-darts{color:var(--txt);font-size:12px;letter-spacing:.3px}
@@ -120,25 +134,21 @@
 #game .preset-row .seg:disabled{opacity:.5}
 
 /* ---------- My custom games ----------
-   A row is the link and its ⋯ side by side, with rename and delete opening
-   underneath — so the row stacks rather than being one flex line. */
-.custom-row.has-manage{display:block}
-.custom-top{display:flex;align-items:center;gap:4px}
-.custom-top .game-inner{flex:1;min-width:0}
-.custom-panel{display:flex;flex-direction:column;gap:8px;padding:2px 2px 12px}
-.custom-name{
-  background:var(--bg2);border:1px solid var(--line);border-radius:9px;
-  color:var(--txt);padding:9px 10px;font:inherit;font-size:15px;
-  -webkit-user-select:text;user-select:text;
+   The game, and its ⋯ menu floating under the dots. */
+.custom-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 2px}
+.row-menu-wrap{position:relative;flex:none}
+.row-menu{
+  position:absolute;top:calc(100% + 4px);right:0;z-index:4;min-width:140px;
+  background:var(--card);border:1px solid var(--line);border-radius:11px;
+  padding:5px;box-shadow:0 10px 24px #0008;
 }
-.custom-name:focus{outline:none;border-color:var(--green)}
-.custom-btns{display:flex;gap:6px}
-.custom-btn{
-  flex:1;padding:9px;border-radius:9px;font-size:13.5px;font-weight:600;
-  border:1px solid var(--line);color:var(--txt);
+.row-menu[hidden]{display:none}
+.row-menu-item{
+  display:block;padding:9px 11px;border-radius:8px;
+  color:var(--txt);text-decoration:none;font-size:14px;
 }
-.custom-btn:active{background:var(--bg2)}
-.custom-del{color:#e2857a;border-color:#5a302a}
-.custom-note{color:var(--dim);font-size:12px;min-height:0}
-.custom-note:empty{display:none}
+.row-menu-item:active{background:var(--bg2)}
+/* a button among links: match them, then mark it as the destructive one */
+button.row-menu-item{width:100%;text-align:left;font:inherit;font-size:14px}
+.row-menu-danger{color:#e2857a}
 .prof-empty a{color:var(--green)}

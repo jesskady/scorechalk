@@ -49,11 +49,13 @@ const TEMPLATES = [
 ];
 
 // Quick-score text → the numbers it names, plus whatever could not be read.
+// Whole numbers only: a game saved to the profile stores its scores as
+// integers, so 2.5 is shown as unreadable rather than quietly rounded.
 function parseQuick(text) {
   const vals = [], bad = [];
   for (const tok of String(text).split(/[\s,]+/).filter(Boolean)) {
     const n = Number(tok);
-    if (Number.isFinite(n) && n > 0) { if (!vals.includes(n)) vals.push(n); }
+    if (Number.isInteger(n) && n > 0) { if (!vals.includes(n)) vals.push(n); }
     else bad.push(tok);
   }
   return { vals: vals.slice(0, 12), bad };

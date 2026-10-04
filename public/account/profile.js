@@ -111,9 +111,15 @@
     main.append(el('b', null, label));
 
     const bits = [];
-    if (g.config && g.config.start) bits.push(String(g.config.start));
-    if (g.config && g.config.doubleIn) bits.push('double in');
-    if (g.config && g.config.doubleOut) bits.push('double out');
+    if (g.game_type === 'builder') {
+      // the game's name as it was played: renaming one of My games later
+      // does not rewrite the games already played with it
+      bits.push((g.config && g.config.name) || 'Custom game');
+    } else {
+      if (g.config && g.config.start) bits.push(String(g.config.start));
+      if (g.config && g.config.doubleIn) bits.push('double in');
+      if (g.config && g.config.doubleOut) bits.push('double out');
+    }
     bits.push(g.turn_count === 1 ? '1 turn' : `${g.turn_count} turns`);
     main.append(el('small', null, bits.join(' · ')));
 
@@ -145,80 +151,76 @@
   }
 
   /* ---------- My custom games ----------
-     Builder games saved to the profile. A row opens the game in the builder;
-     its ⋯ opens rename and delete in place, under the row. Delete takes a
-     second tap rather than a dialog — it is one row, and Undo would need a
-     copy kept somewhere. Needs /builder/rules.js for describeRules. */
+     Builder games saved to the profile. A row is just the game; its ⋯ opens
+     a small menu: Edit, which opens it in the builder, and Delete. Delete
+     takes a second tap in the menu rather than a dialog. Games already
+     played with it keep their own copy of its rules, so they stay in the
+     history. Needs /builder/rules.js for describeRules. */
 
-  function putCustom(g, name) {
-    return fetch('/api/custom-games/' + encodeURIComponent(g.id), {
-      method: 'PUT',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ name, rules: g.rules }),
-    }).then((r) => r.json().then((d) => { if (!r.ok) throw new Error(d.error || 'Could not save'); return d.game; }));
+  // one menu open at a time, closed by any tap outside it
+  let openMenu = null;
+  function closeMenu() {
+    if (!openMenu) return;
+    openMenu.menu.hidden = true;
+    if (openMenu.onClose) openMenu.onClose();
+    openMenu.btn.setAttribute('aria-expanded', 'false');
+    openMenu = null;
   }
+  document.addEventListener('click', (e) => {
+    if (openMenu && !openMenu.wrap.contains(e.target)) closeMenu();
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
 
   function customRow(g, onGone) {
-    const row = el('li', 'game-row has-manage custom-row');
+    const row = el('li', 'game-row custom-row');
 
-    const inner = el('a', 'game-inner game-link');
-    inner.href = '/builder/#my/' + encodeURIComponent(g.id);
     const main = el('div', 'game-main');
-    const title = el('b', null, g.name);
-    main.append(title, el('small', null, describeRules({ ...defaultRules(), ...g.rules })));
-    inner.append(main, chevron());
+    main.append(el('b', null, g.name), el('small', null, describeRules({ ...defaultRules(), ...g.rules })));
 
-    const manage = el('button', 'game-manage');
-    manage.type = 'button';
-    manage.setAttribute('aria-label', 'Rename or delete ' + g.name);
-    manage.setAttribute('aria-expanded', 'false');
-    manage.innerHTML =
+    const wrap = el('div', 'row-menu-wrap');
+    const btn = el('button', 'game-manage');
+    btn.type = 'button';
+    btn.setAttribute('aria-label', 'Options for ' + g.name);
+    btn.setAttribute('aria-haspopup', 'menu');
+    btn.setAttribute('aria-expanded', 'false');
+    btn.innerHTML =
       '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">' +
       '<circle cx="5" cy="12" r="1.8" fill="currentColor"/>' +
       '<circle cx="12" cy="12" r="1.8" fill="currentColor"/>' +
       '<circle cx="19" cy="12" r="1.8" fill="currentColor"/></svg>';
 
-    const panel = el('div', 'custom-panel hidden');
-    const name = el('input', 'custom-name');
-    name.type = 'text'; name.maxLength = 24; name.value = g.name;
-    name.setAttribute('aria-label', 'Name');
-    const save = el('button', 'custom-btn', 'Rename');
-    const del = el('button', 'custom-btn custom-del', 'Delete');
-    const note = el('small', 'custom-note');
-    const btns = el('div', 'custom-btns');
-    btns.append(save, del);
-    panel.append(name, btns, note);
-
-    manage.addEventListener('click', () => {
-      const open = panel.classList.toggle('hidden') === false;
-      manage.setAttribute('aria-expanded', String(open));
-      del.textContent = 'Delete';
-      note.textContent = '';
-      if (open) name.focus();
-    });
-
-    save.addEventListener('click', () => {
-      const v = name.value.trim();
-      if (!v || v === g.name) return;
-      save.disabled = true;
-      putCustom(g, v)
-        .then((saved) => { g.name = saved.name; title.textContent = saved.name; note.textContent = 'Renamed.'; })
-        .catch((e) => { note.textContent = e.message; })
-        .finally(() => { save.disabled = false; });
-    });
-
+    const menu = el('div', 'row-menu');
+    menu.setAttribute('role', 'menu');
+    menu.hidden = true;
+    const edit = el('a', 'row-menu-item', 'Edit');
+    edit.setAttribute('role', 'menuitem');
+    edit.href = '/builder/#my/' + encodeURIComponent(g.id);
+    const del = el('button', 'row-menu-item row-menu-danger', 'Delete');
+    del.type = 'button';
+    del.setAttribute('role', 'menuitem');
     let armed = false;
+    const disarm = () => { armed = false; del.disabled = false; del.textContent = 'Delete'; };
     del.addEventListener('click', () => {
       if (!armed) { armed = true; del.textContent = 'Tap again to delete'; return; }
       del.disabled = true;
+      del.textContent = 'Deleting…';
       fetch('/api/custom-games/' + encodeURIComponent(g.id), { method: 'DELETE' })
-        .then((r) => { if (!r.ok) throw new Error('Could not delete'); row.remove(); onGone(); })
-        .catch((e) => { note.textContent = e.message; del.disabled = false; });
+        .then((r) => { if (!r.ok) throw new Error(); openMenu = null; row.remove(); onGone(); })
+        .catch(() => { armed = false; del.disabled = false; del.textContent = 'Could not delete. Try again'; });
+    });
+    menu.append(edit, del);
+
+    btn.addEventListener('click', () => {
+      const wasOpen = openMenu && openMenu.menu === menu;
+      closeMenu();
+      if (wasOpen) return;
+      menu.hidden = false;
+      btn.setAttribute('aria-expanded', 'true');
+      openMenu = { menu, btn, wrap, onClose: disarm };
     });
 
-    const top = el('div', 'custom-top');
-    top.append(inner, manage);
-    row.append(top, panel);
+    wrap.append(btn, menu);
+    row.append(main, wrap);
     return row;
   }
 

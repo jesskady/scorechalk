@@ -78,6 +78,10 @@ function newGame(c) {
   const names = c.names.map((n, i) => n.trim() || `Player ${i + 1}`);
   const rounds = roundsOn(c);
   return {
+    // Chosen here, as darts does, so saving the same game twice updates one
+    // row on the profile rather than adding a second.
+    id: crypto.randomUUID(),
+    startedAt: Date.now(),
     // Rounds are counted in turns, so a game with them always takes turns.
     cfg: { ...c, names, quickVals: parseQuick(c.quick).vals,
            useRounds: rounds, turns: c.turns || rounds },
@@ -349,8 +353,8 @@ $('modeRow').addEventListener('click', (e) => {
   renderSetup();
 });
 
-$('startAt').addEventListener('input', (e) => { cfg.start = Number(e.target.value) || 0; saveCfg(); });
-$('target').addEventListener('input', (e) => { cfg.target = Math.max(1, Number(e.target.value) || 1); saveCfg(); });
+$('startAt').addEventListener('input', (e) => { cfg.start = Math.round(Number(e.target.value)) || 0; saveCfg(); });
+$('target').addEventListener('input', (e) => { cfg.target = Math.max(1, Math.round(Number(e.target.value)) || 1); saveCfg(); });
 $('useRounds').onclick = () => { cfg.useRounds = !cfg.useRounds; saveCfg(); renderSetup(); };
 $('rounds').addEventListener('input', (e) => { cfg.rounds = Math.max(1, Math.round(Number(e.target.value)) || 1); saveCfg(); });
 $('quick').addEventListener('input', (e) => { cfg.quick = e.target.value; saveCfg(); renderQuickPreview(); });
@@ -369,6 +373,69 @@ $('startBtn').onclick = async () => {
   save();
   location.hash = 'play';
 };
+
+/* ---------------- game history ----------------
+
+   A finished game goes to the profile's history when signed in, through the
+   same /api/games darts uses. Its config is a copy of the rules as they were
+   played, not a pointer to them: editing, renaming or deleting one of My
+   games later leaves the games already played with it exactly as they were.
+   `origin` still says where the rules came from — 'custom', a template id,
+   or 'my:<id>' — so games of one kind can be grouped later. */
+
+function toPayload(r) {
+  const c = S.cfg;
+  // old in-progress games predate ids; give them one on their first save
+  if (!S.id) { S.id = crypto.randomUUID(); S.startedAt = S.startedAt || Date.now(); save(); }
+
+  const counts = [], running = c.names.map(() => c.start);
+  const turns = S.log.map((e, i) => {
+    const n = counts[e.p] || 0;
+    counts[e.p] = n + 1;
+    running[e.p] += e.d;
+    return {
+      player_idx: e.p,
+      turn_no: n,              // each player's own count, as darts records it
+      detail: [],              // a builder turn is just its points
+      points: e.d,
+      bust: false,
+      score_after: running[e.p],
+      created_at: S.startedAt + i,   // ordering only, as in darts
+    };
+  });
+
+  return {
+    id: S.id,
+    game_type: 'builder',
+    config: { name: c.name.trim(), rules: rulesOnly(c), origin: c.source || 'custom' },
+    started_at: S.startedAt,
+    me_idx: 0,
+    ended_at: Date.now(),
+    winner_idx: r.winners && r.winners.length === 1 ? r.winners[0] : null,
+    players: c.names.map((name, idx) => ({ idx, name })),
+    turns,
+  };
+}
+
+async function saveToProfile(r) {
+  const note = $('winSave');
+  note.textContent = '';
+  note.onclick = null;
+  if (!me) return;                    // signed out: nothing to save to
+  note.textContent = 'Saving to your profile…';
+  try {
+    const res = await fetch('/api/games', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(toPayload(r)),
+    });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'save failed');
+    note.textContent = 'Saved to your profile';
+  } catch (e) {
+    note.textContent = 'Could not save to your profile. Tap to try again.';
+    note.onclick = () => saveToProfile(r);
+  }
+}
 
 /* ---------------- My games ---------------- */
 
@@ -459,6 +526,10 @@ function showGame() {
   // back to this game's own setup, template or custom
   // (a bare '#' rather than no hash, so leaving is a hash change, not a reload)
   $('gameBack').setAttribute('href', '#' + sourceHash(S.cfg.source || 'custom'));
+  // only a game with no ending of its own needs telling when it is over
+  const open = S.cfg.win === 'none' && !S.cfg.useRounds;
+  $('finishBtn').classList.toggle('hidden', !open);
+  document.querySelector('.mini-row').classList.toggle('two', !open);
   buildBoard();
   buildPad();
   render();
@@ -603,7 +674,8 @@ $('signRow').addEventListener('click', (e) => {
 $('clearBtn').onclick = () => { S.pend = 0; $('typedIn').value = ''; save(); render(); };
 
 function addTyped() {
-  const v = Math.abs(Number($('typedIn').value));
+  // whole numbers, as everywhere a score is entered; see parseQuick
+  const v = Math.round(Math.abs(Number($('typedIn').value)));
   if (!v) return;
   S.pend += S.sign * v;
   $('typedIn').value = '';
@@ -633,6 +705,16 @@ $('undoBtn').onclick = () => {
   flash(`Undid ${S.cfg.names[e.p]} ${signed(e.d)}`);
 };
 
+// A game that only keeps score never ends by itself, so Finish ends it: the
+// standings go up, and a signed-in game is saved to the profile like any
+// other. The highest score is credited as the winner, unless it is shared.
+$('finishBtn').onclick = async () => {
+  if (!S.log.length) { flash('Nothing scored yet'); return; }
+  if (!(await askConfirm('End the game here and show the final scores?', 'Finish'))) return;
+  const top = best(Math.max);
+  showWin({ ...top, final: true });
+};
+
 $('quitBtn').onclick = async () => {
   if (S.log.length && !(await askConfirm('This ends the current game and its scores.', 'New game'))) return;
   endGame();
@@ -643,6 +725,7 @@ $('quitBtn').onclick = async () => {
 function showWin(r) {
   const c = S.cfg;
   $('winName').textContent =
+    r.final ? 'Final scores' :
     r.solo ? `${c.names[0]} is out` :
     r.winners.length === 0 ? 'Nobody left standing' :
     r.winners.length === 1 ? `${c.names[r.winners[0]]} wins!` :
@@ -655,6 +738,7 @@ function showWin(r) {
     `<li><span>${esc(c.names[i])}</span><b>${fmt(S.scores[i])}</b></li>`).join('');
   $('winTable').classList.toggle('hidden', c.names.length === 1);
   $('winOverlay').classList.remove('hidden');
+  saveToProfile(r);
 }
 
 $('rematchBtn').onclick = () => {

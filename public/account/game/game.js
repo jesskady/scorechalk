@@ -103,7 +103,7 @@
   /* Correcting who the account holder was. The darts are a record of what
      happened and stay put; this only relabels whose statistics they land in,
      so the page re-renders from the server afterwards rather than guessing. */
-  function whoCard(g, names) {
+  function whoCard(g, names, why) {
     const row = el('div', 'preset-row');
 
     names.forEach((name, i) => {
@@ -129,7 +129,7 @@
     });
 
     const wrap = el('section', 'prof-card');
-    const note = el('p', 'prof-note', 'Statistics on this game count only this player’s darts.');
+    const note = el('p', 'prof-note', why || 'Statistics on this game count only this player’s darts.');
     wrap.append(el('h2', null, 'You were'), row, note);
     return wrap;
   }
@@ -173,8 +173,77 @@
     return wrap;
   }
 
+  /* ---------- builder games ----------
+     A builder game carries its rules with it (config.rules), copied when it
+     was played, so this page shows the game as it was even if the game it
+     came from has since been edited, renamed or deleted. Needs
+     /builder/rules.js for describeRules. */
+
+  const signed = (n) => (n > 0 ? '+' : n < 0 ? '−' : '') + Math.abs(n).toLocaleString();
+
+  function showBuilder(g, names) {
+    const cfg = g.config || {};
+    const rules = { ...defaultRules(), ...(cfg.rules || {}) };
+
+    const head = el('div', 'prof-head');
+    const idBox = el('div', 'prof-id');
+    idBox.append(el('h1', null, cfg.name || 'Custom game'));
+    idBox.append(el('small', null, [
+      names.join(' vs ') || 'Solo',
+      new Date(g.ended_at || g.updated_at || g.started_at)
+        .toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }),
+    ].join(' · ')));
+    head.append(idBox);
+
+    // In the order played. The API sorts by each player's own turn count,
+    // which in a game without turns is not the order anything happened in.
+    const turns = g.turns.slice().sort((a, b) => a.created_at - b.created_at);
+
+    // a player's score is their last turn's, or the start if they never scored
+    const final = names.map((_, i) => {
+      const mine = turns.filter((t) => t.player_idx === i);
+      return mine.length ? mine[mine.length - 1].score_after : rules.start;
+    });
+    const order = names.map((_, i) => i)
+      .sort((a, b) => (rules.win === 'low' ? final[a] - final[b] : final[b] - final[a]));
+
+    const standings = el('ol', 'standings-list');
+    for (const i of order) {
+      const li = el('li', 'standing');
+      const who = el('span', 'standing-who');
+      who.append(el('b', null, names[i]));
+      if (i === g.me_idx && names.length > 1) who.append(el('span', 'game-tag', 'You'));
+      if (i === g.winner_idx) who.append(el('span', 'game-tag live', 'Won'));
+      li.append(who, el('b', 'standing-score', final[i].toLocaleString()));
+      standings.append(li);
+    }
+
+    const rulesBody = el('div');
+    rulesBody.append(
+      el('p', 'rules-played', describeRules(rules)),
+      el('p', 'prof-note', 'As they were when this game was played.')
+    );
+
+    const list = el('ol', 'turn-list');
+    for (const t of turns) {
+      const row = el('li', 'turn-row builder-turn');
+      row.append(el('span', 'turn-no', String(t.turn_no + 1)));
+      row.append(el('span', 'turn-who', names[t.player_idx] || '?'));
+      row.append(el('span', 'turn-pts', t.points === 0 ? '0' : signed(t.points)));
+      row.append(el('span', 'turn-left', t.score_after.toLocaleString()));
+      list.append(row);
+    }
+
+    const parts = [head, card('Final scores', standings), card('Rules', rulesBody)];
+    if (names.length > 1) parts.push(whoCard(g, names, 'Marks which player was you.'));
+    if (turns.length) parts.push(card('Every turn', list));
+    parts.push(dangerCard(g));
+    box.replaceChildren(...parts);
+  }
+
   function show(g) {
     const names = (g.players || []).map((p) => p.name);
+    if (g.game_type === 'builder') { showBuilder(g, names); return; }
     const cfg = g.config || {};
 
     const head = el('div', 'prof-head');

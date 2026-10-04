@@ -158,8 +158,16 @@ Changing a saved game's rules before playing is a one-off: it lasts until you
 leave the screen, and **Save changes** is what writes it back. That way a quick
 "first to 5 tonight" doesn't quietly rewrite the saved game.
 
-These are rule sets, not plays — playing a builder game is not recorded on the
-profile yet. The Worker stores only the rule fields it knows
+My games are rule sets, not plays. Playing a builder game is recorded
+separately: when one ends, a signed-in game is saved to the profile's history
+through `/api/games` like a darts game, as `game_type: 'builder'`. Its config
+holds a **copy** of the rules and name it was played with, plus where they came
+from (`origin`: `custom`, a template id, or `my:<id>`) — so editing, renaming
+or deleting one of My games never changes the games already played with it.
+A game that only keeps score has no ending of its own, so it has a **Finish**
+button; that is what puts it in the history.
+
+The Worker stores only the My games rule fields it knows
 (`RULE_FIELDS` in `worker/custom-games.js`), so a new builder rule needs adding
 there as well as to `defaultRules` in `public/builder/rules.js`.
 
