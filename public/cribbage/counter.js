@@ -137,17 +137,31 @@ window.CribCounter = (function () {
   let root = null, st = null, onChange = null;
   const q = (sel) => root.querySelector(sel);
 
-  function build(el, changed) {
+  let onClear = null;
+
+  // changed: after any card or answer. cleared: the Clear button; the game
+  // decides what clearing keeps (a starter carried from an earlier hand).
+  function build(el, changed, cleared) {
     root = el;
     onChange = changed;
+    onClear = cleared;
     root.innerHTML = `
       <div class="ct-slots"></div>
       <div class="ct-labels"><span>Hand</span><span>Starter</span></div>
-      <div class="ct-hintrow"><p class="ct-hint"></p><button class="ct-clear hidden" type="button">Clear</button></div>
+      <p class="ct-hint"></p>
       <div class="ct-ranks">${RANKS.map((n, k) => `<button class="ct-rank" data-r="${k + 1}">${n}</button>`).join('')}</div>
-      <div class="ct-q hidden">
-        <p class="ct-qtext"></p>
-        <div class="ct-yn"><button class="seg" data-yes="1">Yes</button><button class="seg" data-yes="0">No</button></div>
+      <!-- Straight under the ranks, and always the same place: a suit
+           question while one is open, otherwise the game's submit button
+           (put in .ct-main by app.js). Clear beside it. The breakdown goes
+           below, so it grows downward and never moves the button. -->
+      <div class="ct-action">
+        <div class="ct-main">
+          <div class="ct-q hidden">
+            <p class="ct-qtext"></p>
+            <div class="ct-yn"><button class="seg" data-yes="1">Yes</button><button class="seg" data-yes="0">No</button></div>
+          </div>
+        </div>
+        <button class="ct-clear hidden" type="button">Clear</button>
       </div>
       <ol class="ct-items hidden"></ol>`;
 
@@ -156,8 +170,8 @@ window.CribCounter = (function () {
       const rank = e.target.closest('[data-r]');
       const yes = e.target.closest('[data-yes]');
       const clear = e.target.closest('.ct-clear');
-      if (clear) Object.assign(st, fresh());
-      else if (slot) st.at = Number(slot.dataset.i);
+      if (clear) { onClear(); return; }
+      if (slot) st.at = Number(slot.dataset.i);
       else if (rank && !rank.disabled) {
         const i = st.at;
         st.slots[i] = Number(rank.dataset.r);
@@ -171,7 +185,8 @@ window.CribCounter = (function () {
     });
   }
 
-  // Undo for the cards: takes back the card entered last.
+  // Undo for the cards: takes back the card entered last. A carried
+  // starter was never entered here, so it is not in `order` and stays.
   function undo(s) {
     const i = s.order.pop();
     if (i == null) return false;
@@ -198,7 +213,9 @@ window.CribCounter = (function () {
     });
 
     const full = slots.every((s) => s != null);
-    q('.ct-clear').classList.toggle('hidden', !slots.some((s) => s != null));
+    // a starter carried from an earlier hand is not something to clear
+    const entered = slots.some((s, i) => s != null && !(i === 4 && st.carried));
+    q('.ct-clear').classList.toggle('hidden', !entered);
     const qBox = q('.ct-q'), list = q('.ct-items');
     qBox.classList.add('hidden');
     list.classList.add('hidden');
@@ -217,6 +234,19 @@ window.CribCounter = (function () {
       }[s.ask];
       qBox.dataset.ask = s.ask;
       qBox.classList.remove('hidden');
+
+      // Light up the cards the question is about, and dim the rest, until
+      // it is answered. Gold, to match the question's own border.
+      const about = {
+        flush: (i) => crib || i < 4,
+        starter: (i) => i === 4,
+        knobs: (i) => i === 4 || slots[i] === JACK,
+      }[s.ask];
+      root.querySelectorAll('.ct-card').forEach((c, i) => {
+        c.classList.remove('is-at');           // no slot is being filled now
+        c.classList.toggle('asked', about(i));
+        c.classList.toggle('muted', !about(i));
+      });
       return { state: 'asking' };
     }
 
@@ -233,5 +263,8 @@ window.CribCounter = (function () {
     return { state: 'scored', total, keys: items.flatMap((i) => i[2]) };
   }
 
-  return { build, draw, fresh, undo, scoreHand, settle, RANKS };
+  // where the game puts its submit button, under the ranks
+  const mainSlot = () => q('.ct-main');
+
+  return { build, draw, fresh, undo, mainSlot, scoreHand, settle, RANKS };
 })();

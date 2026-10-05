@@ -101,10 +101,33 @@ function newGame(names, dealer) {
 }
 
 // The hand being counted: buttons tapped or a total typed (Buttons mode),
-// and the cards entered so far (Cards mode). Both are kept whichever mode is
-// showing, so switching mode mid-hand loses nothing.
-function freshPend() {
-  return { taps: [], typed: null, cards: CribCounter.fresh() };
+// and the cards entered so far (Cards mode). The two are kept apart — what
+// is entered on one never shows up on the other — and the hand submitted is
+// whichever is on screen. Switching back and forth changes neither.
+// A starter passed in is carried from the hand counted before: the same
+// card is cut for every hand and the crib of a deal, so it is entered once.
+function freshPend(starter) {
+  const cards = CribCounter.fresh();
+  if (starter) { cards.slots[4] = starter; cards.carried = true; }
+  return { taps: [], typed: null, cards };
+}
+
+// The starter this deal, if it has been entered.
+const knownStarter = () => (S.pend.cards && S.pend.cards.slots[4]) || null;
+
+/* Each mode's Clear clears its own entry and nothing else. Clearing the
+   cards keeps a carried starter: it belongs to the deal, not this hand. */
+function clearCards() {
+  const c = S.pend.cards;
+  S.pend.cards = freshPend(c && c.carried ? c.slots[4] : null).cards;
+  save(); render();
+}
+
+function clearButtons() {
+  S.pend.taps = [];
+  S.pend.typed = null;
+  $('typedTotal').value = '';
+  save(); render();
 }
 
 /* Cards or Buttons: how the hand card scores a hand. A preference of the
@@ -491,26 +514,40 @@ function render() {
   cardResult = counting && handMode === 'cards' ? CribCounter.draw(S.pend.cards, up.kind === 'crib') : null;
   if (counting) renderCount(seq, up);
 
+  // The big button below is the play's alone; a hand is submitted from
+  // inside the hand card (see renderSubmit).
   const main = $('mainBtn');
-  if (!counting) {
-    main.textContent = 'Done with the play — count hands';
-    main.disabled = false;
-  } else {
-    const t = pendTotal();
-    const who = up.kind === 'crib' ? `${S.names[up.p]}'s crib` : S.names[up.p];
-    if (t == null) {
-      main.textContent = cardResult && cardResult.state === 'asking' ? 'Answer the question above' : 'Enter all five cards';
-      main.disabled = true;
-    } else {
-      // A hand worth nothing is a "nineteen": the joke being that no hand can
-      // actually score 19, so it is what you call a hand that scores nothing.
-      main.textContent = t ? `Add ${t} to ${who}` : `Nineteen — ${who} scores 0`;
-      main.disabled = t > MAX_HAND || IMPOSSIBLE.has(t);
-    }
-  }
-  main.style.opacity = main.disabled ? 0.5 : 1;
+  main.classList.toggle('hidden', counting);
+  main.textContent = 'Done with the play — count hands';
 
   renderHistory();
+}
+
+/* The hand's submit button. It lives inside the hand card, right under
+   what you tap — the ranks in Cards mode, the typed total in Buttons — so
+   it stays put while the breakdown grows below it. In Cards mode it gives
+   its place to a suit question while one is open. */
+const handSubmit = document.createElement('button');
+handSubmit.className = 'primary big hand-submit';
+handSubmit.onclick = () => { if (!S.over && !handSubmit.disabled) submitHand(); };
+
+function renderSubmit(up) {
+  const cards = handMode === 'cards';
+  const home = cards ? CribCounter.mainSlot() : $('buttonsBox');
+  if (handSubmit.parentNode !== home) home.appendChild(handSubmit);
+  handSubmit.classList.toggle('hidden', cards && cardResult && cardResult.state === 'asking');
+
+  const t = pendTotal();
+  const who = up.kind === 'crib' ? `${S.names[up.p]}'s crib` : S.names[up.p];
+  if (t == null) {
+    handSubmit.textContent = 'Enter all five cards';
+    handSubmit.disabled = true;
+  } else {
+    // A hand worth nothing is a "nineteen": the joke being that no hand can
+    // actually score 19, so it is what you call a hand that scores nothing.
+    handSubmit.textContent = t ? `Add ${t} to ${who}` : `Nineteen — ${who} scores 0`;
+    handSubmit.disabled = t > MAX_HAND || IMPOSSIBLE.has(t);
+  }
 }
 
 function renderCount(seq, up) {
@@ -535,6 +572,8 @@ function renderCount(seq, up) {
   // a crib flush needs all five cards
   $('handPad').querySelector('[data-id="flush4"]').classList.toggle('hidden', crib);
 
+  $('handClear').classList.toggle('hidden', !(S.pend.taps.length || S.pend.typed != null));
+
   const counts = {};
   for (const id of S.pend.taps) counts[id] = (counts[id] || 0) + 1;
   $('handTaps').innerHTML = S.pend.typed != null
@@ -543,6 +582,8 @@ function renderCount(seq, up) {
         `<span class="tap">${esc(COUNT_KEYS[id].label)}${c > 1 ? ` ×${c}` : ''}</span>`).join('')
       || '<span class="tap-none">Tap what the hand scores</span>';
   if (document.activeElement !== $('typedTotal')) $('typedTotal').value = S.pend.typed != null ? S.pend.typed : '';
+
+  renderSubmit(up);
 }
 
 function renderPlayMode(counting) {
@@ -575,17 +616,12 @@ function flash(text) {
 
 /* ---------------- Cards or Buttons ---------------- */
 
-CribCounter.build($('cardsBox'), () => { save(); render(); });
+CribCounter.build($('cardsBox'), () => { save(); render(); }, clearCards);
+$('handClear').onclick = clearButtons;
 
 $('modeRow').addEventListener('click', (e) => {
   const b = e.target.closest('[data-mode]');
   if (!b || b.dataset.mode === handMode) return;
-  // Leaving Cards with a scored hand hands its score to the buttons as
-  // chips, so nothing entered is lost and it can be adjusted there.
-  if (handMode === 'cards' && cardResult && cardResult.state === 'scored') {
-    S.pend.taps = cardResult.keys.slice();
-    S.pend.typed = null;
-  }
   handMode = b.dataset.mode;
   try { localStorage.setItem(MODE_KEY, handMode); } catch (err) {}
   save(); render();
@@ -594,17 +630,13 @@ $('modeRow').addEventListener('click', (e) => {
 /* ---------------- actions ---------------- */
 
 $('mainBtn').onclick = () => {
-  if (S.over) return;
-  if (S.phase === 'play') {
-    snapshot();
-    S.phase = 'count';
-    S.step = 0;
-    S.pend = freshPend();
-    save(); render();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    return;
-  }
-  submitHand();
+  if (S.over || S.phase !== 'play') return;
+  snapshot();
+  S.phase = 'count';
+  S.step = 0;
+  S.pend = freshPend();
+  save(); render();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
 /* One hand onto the board. If it reaches 121 the game is over there and
@@ -617,7 +649,7 @@ function submitHand() {
   score(up.p, t, up.kind, label, byCards
     ? { taps: cardResult.keys.slice(), typed: null, cards: S.pend.cards.slots.slice() }
     : { taps: S.pend.taps.slice(), typed: S.pend.typed });
-  S.pend = freshPend();
+  S.pend = freshPend(knownStarter());
   $('typedTotal').value = '';
   if (S.over) { save(); render(); showWin(); return; }
 
@@ -629,6 +661,7 @@ function submitHand() {
     S.phase = 'play';
     S.step = 0;
     S.heels = true;
+    S.pend = freshPend();             // a new deal, a new starter
     flash(`Hand ${S.hand}: ${S.names[S.dealer]} deals`);
   }
   save(); render();
@@ -641,17 +674,16 @@ $('typedTotal').addEventListener('input', (e) => {
   save(); render();
 });
 
-$('tapBack').onclick = () => {
-  if (S.pend.typed != null) S.pend.typed = null;
-  else S.pend.taps.pop();
-  $('typedTotal').value = '';
-  save(); render();
-};
 
 $('undoBtn').onclick = () => {
   // a hand being built is undone tap by tap before anything on the board
   if (S.phase === 'count' && handMode === 'cards' && CribCounter.undo(S.pend.cards)) { save(); render(); return; }
-  if (S.phase === 'count' && handMode === 'buttons' && (S.pend.taps.length || S.pend.typed != null)) { $('tapBack').onclick(); return; }
+  if (S.phase === 'count' && handMode === 'buttons' && (S.pend.taps.length || S.pend.typed != null)) {
+    if (S.pend.typed != null) { S.pend.typed = null; $('typedTotal').value = ''; }
+    else S.pend.taps.pop();
+    save(); render();
+    return;
+  }
   const last = S.log[S.log.length - 1], before = S.log.length;
   if (!restore()) { flash('Nothing to undo'); return; }
   save(); render();

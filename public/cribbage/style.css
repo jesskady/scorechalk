@@ -254,14 +254,26 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 .ct-card.empty{background:var(--bg2);border:2px dashed var(--line);box-shadow:none}
 .ct-card.is-at{border-color:var(--green);box-shadow:0 0 0 3px #2e9e6355}
 .ct-card.empty.is-at{border-style:solid}
+/* while a question is open: the cards it asks about, and the rest */
+.ct-card.asked{border-color:var(--gold);box-shadow:0 0 0 3px #e0b34166,0 2px 10px #e0b34155}
+.ct-card.muted{opacity:.4}
+.ct-card{transition:opacity .15s,box-shadow .15s,border-color .15s}
 /* under the four hand cards and the starter, matching the gap above */
 .ct-labels{display:grid;grid-template-columns:218px 50px;gap:16px;justify-content:center;
   font-size:10.5px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:var(--dim);text-align:center;margin-top:-4px}
 .ct-hint{text-align:center;font-size:12.5px;color:var(--dim);min-height:16px}
-/* the hint centred under the cards, Clear at the right end of the same line */
-.ct-hintrow{position:relative;display:flex;justify-content:center;align-items:center;min-height:24px}
-.ct-clear{position:absolute;right:0;font-size:12.5px;font-weight:600;color:var(--dim);border:1px solid var(--line);border-radius:999px;padding:3px 11px}
-.ct-clear:active{background:var(--bg2);color:var(--txt)}
+/* under the ranks: the submit button or a question, and Clear beside it */
+.ct-action{display:flex;gap:6px;align-items:flex-start}
+.ct-main{flex:1;min-width:0;display:flex;flex-direction:column}
+.ct-main .ct-q{flex:1}
+.hand-submit{width:100%}
+.hand-submit:disabled{opacity:.45;cursor:default}
+/* the same boxed Clear as the Buttons screen */
+.ct-clear{
+  flex:none;background:var(--bg2);border:1px solid var(--line);border-radius:10px;
+  padding:0 14px;min-height:50px;font-size:13.5px;font-weight:600;color:var(--dim);
+}
+.ct-clear:active{color:var(--txt)}
 
 .ct-ranks{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
 .ct-rank{
@@ -303,3 +315,9 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 .play-legend dt{font-weight:800;min-width:24px;font-variant-numeric:tabular-nums}
 .play-legend dd{color:var(--txt);font-size:14px}
 .play-legend p{color:var(--dim);font-size:12px;line-height:1.4;margin-top:3px}
+
+/* Buttons' Clear, beside the typed total */
+.key.small.clear-btn{font-size:13.5px;font-weight:600;padding:0 14px;color:var(--dim)}
+
+/* Buttons' submit, under the typed total */
+.buttons-box{display:flex;flex-direction:column;gap:8px}
