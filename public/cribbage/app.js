@@ -112,6 +112,13 @@ function freshPend() {
 const MODE_KEY = 'cribbage-hand-mode';
 let handMode = (() => { try { return localStorage.getItem(MODE_KEY) || 'cards'; } catch (e) { return 'cards'; } })();
 
+/* Simple or Detailed: how the play is scored. Detailed has a key for every
+   kind of score; Simple is +1, +2 and +3, since nearly everything pegged is
+   one of those, and bigger scores are a few taps. Also a preference of the
+   person holding the phone. */
+const PLAY_MODE_KEY = 'cribbage-play-mode';
+let playMode = (() => { try { return localStorage.getItem(PLAY_MODE_KEY) || 'detailed'; } catch (e) { return 'detailed'; } })();
+
 function save() {
   try { S ? localStorage.setItem(KEY, JSON.stringify(S)) : localStorage.removeItem(KEY); }
   catch (e) { /* private mode, ignore */ }
@@ -376,6 +383,19 @@ function buildPlayers() {
       section('Of a kind', grid(PLAY.kind, 'g3 sm')),
       section('Run of', grid(PLAY.runs, 'g2'), grid(PLAY.longRuns, 'g3 sm')),
     );
+
+    // Simple: three big keys. The history can only say "+2", not whether
+    // it was a fifteen or a pair, so that is what it records.
+    const simple = document.createElement('div');
+    simple.className = 'psimple';
+    for (const pts of [1, 2, 3]) {
+      const b = document.createElement('button');
+      b.className = 'skey';
+      b.textContent = '+' + pts;
+      b.onclick = () => peg(p, 'peg' + pts, 'Peg', pts);
+      simple.appendChild(b);
+    }
+    col.appendChild(simple);
     box.appendChild(col);
   });
 }
@@ -458,12 +478,14 @@ function render() {
     if (p === lead && !(p === S.dealer && S.heels && !counting)) meta.push(`<span class="lead">+${top - Math.max(...S.scores.filter((_, i) => i !== p))}</span>`);
     col.querySelector('.pmeta').innerHTML = meta.join('');
     col.classList.toggle('counting', !!up && up.p === p);
-    col.querySelector('.ppad').classList.toggle('hidden', counting);
+    col.querySelector('.ppad').classList.toggle('hidden', counting || playMode !== 'detailed');
+    col.querySelector('.psimple').classList.toggle('hidden', counting || playMode !== 'simple');
     // heels is claimed during the play; once counting starts the chance has gone
     const heelsLive = p === S.dealer && S.heels && !counting;
     col.querySelector('.heels').classList.toggle('hidden', !heelsLive);
   });
 
+  renderPlayMode(counting);
   $('countBox').classList.toggle('hidden', !counting);
   // Cards first: its verdict is what the total and the main button read
   cardResult = counting && handMode === 'cards' ? CribCounter.draw(S.pend.cards, up.kind === 'crib') : null;
@@ -522,6 +544,20 @@ function renderCount(seq, up) {
       || '<span class="tap-none">Tap what the hand scores</span>';
   if (document.activeElement !== $('typedTotal')) $('typedTotal').value = S.pend.typed != null ? S.pend.typed : '';
 }
+
+function renderPlayMode(counting) {
+  $('playModeRow').classList.toggle('hidden', counting);
+  document.querySelectorAll('#playModeRow .mode').forEach((b) => b.classList.toggle('is-on', b.dataset.mode === playMode));
+  $('playLegend').classList.toggle('hidden', counting || playMode !== 'simple');
+}
+
+$('playModeRow').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-mode]');
+  if (!b || b.dataset.mode === playMode) return;
+  playMode = b.dataset.mode;
+  try { localStorage.setItem(PLAY_MODE_KEY, playMode); } catch (err) {}
+  render();
+});
 
 function renderHistory() {
   const kinds = { play: '', heels: '', hand: 'hand', crib: 'crib' };

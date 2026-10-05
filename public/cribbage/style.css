@@ -284,3 +284,22 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 .ct-items i{font-style:normal;color:var(--dim);text-align:right}
 .ct-items b{text-align:right;font-variant-numeric:tabular-nums}
 .ct-none span{color:var(--dim)}
+
+/* ---------- Simple play ---------- */
+.play-mode{align-self:center}
+.psimple{display:flex;flex-direction:column;gap:6px}
+.skey{
+  background:var(--card);border:1px solid var(--line);border-radius:12px;
+  padding:16px 0;font-size:24px;font-weight:800;font-variant-numeric:tabular-nums;
+}
+.skey:active{background:color-mix(in srgb, var(--pc) 35%, var(--card));border-color:var(--pc)}
+
+/* what +1, +2 and +3 each cover */
+.play-legend{
+  background:var(--card);border:1px solid var(--line);border-radius:12px;
+  padding:10px 12px;display:flex;flex-direction:column;gap:5px;
+}
+.play-legend div{display:flex;gap:10px;align-items:baseline}
+.play-legend dt{font-weight:800;min-width:24px;font-variant-numeric:tabular-nums}
+.play-legend dd{color:var(--txt);font-size:14px}
+.play-legend p{color:var(--dim);font-size:12px;line-height:1.4;margin-top:3px}

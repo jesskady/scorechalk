@@ -10,7 +10,7 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='15' fill='%23182029'/><circle cx='16' cy='16' r='11' fill='%232e7d4f'/><circle cx='16' cy='16' r='7' fill='%23182029'/><circle cx='16' cy='16' r='3.5' fill='%23c0392b'/></svg>">
 <!-- ?v= must be bumped whenever a stylesheet or app.js changes, as in darts -->
 <link rel="stylesheet" href="../shared.css?v=29">
-<link rel="stylesheet" href="style.css?v=11">
+<link rel="stylesheet" href="style.css?v=12">
 </head>
 <body>
 
@@ -61,8 +61,24 @@
     </div>
   </div>
 
+  <!-- how the play is scored: Detailed names every kind of score, Simple is
+       just +1 +2 +3 with a reminder of what each covers. Remembered on the
+       device; see playMode in app.js -->
+  <div class="mode-row play-mode" id="playModeRow">
+    <button class="mode" data-mode="simple">Simple</button>
+    <button class="mode" data-mode="detailed">Detailed</button>
+  </div>
+
   <!-- one column per player: header, then that player's play buttons -->
   <div class="players" id="players"></div>
+
+  <!-- Simple mode's reminder, once for everyone -->
+  <dl class="play-legend hidden" id="playLegend">
+    <div><dt>+1</dt><dd>Go · Last card</dd></div>
+    <div><dt>+2</dt><dd>15 · 31 · Pair · Heels</dd></div>
+    <div><dt>+3</dt><dd>Run of 3</dd></div>
+    <p>Bigger scores: tap more than once. 3 of a kind is 6 (+3 +3), 4 of a kind 12, a run of 4 is +3 +1.</p>
+  </dl>
 
   <!-- ===== count phase: one hand at a time, in counting order ===== -->
   <div id="countBox" class="countbox hidden">
@@ -138,6 +154,6 @@
 
 <script src="/account.js?v=29" defer></script>
 <script src="counter.js?v=4"></script>
-<script src="app.js?v=12"></script>
+<script src="app.js?v=13"></script>
 </body>
 </html>
