@@ -2,144 +2,159 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
-<meta name="theme-color" content="#12161c">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1c2723">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Score Chalk</title>
-<meta name="description" content="Simple, mobile-first scorekeeping for the games you play.">
+<meta name="description" content="Scorekeeping for the games you play — at the bar, or at the kitchen table.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='15' fill='%23182029'/><circle cx='16' cy='16' r='11' fill='%232e7d4f'/><circle cx='16' cy='16' r='7' fill='%23182029'/><circle cx='16' cy='16' r='3.5' fill='%23c0392b'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredericka+the+Great&family=Josefin+Sans:wght@400;600;700&family=Bree+Serif&family=Kalam:wght@400;700&family=Karla:wght@400;500;700&display=swap">
 <link rel="stylesheet" href="shared.css?v=29">
-<link rel="stylesheet" href="home.css?v=30">
+<!-- the home page's own: home.css still serves the account pages -->
+<link rel="stylesheet" href="rooms.css?v=3">
 </head>
-<body>
+<body class="home-rooms">
 
-<main class="screen home">
-  <header class="brand">
-    <h1>Score Chalk</h1>
-    <p>Scorekeeping for the games you play</p>
-  </header>
+<!-- roughened strokes for the game drawings: chalk drags, a pen wobbles a little -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="chalk"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="3"/><feDisplacementMap in="SourceGraphic" scale="2.6"/></filter>
+  <filter id="pen"><feTurbulence type="fractalNoise" baseFrequency=".05" numOctaves="1" seed="8"/><feDisplacementMap in="SourceGraphic" scale="1.6"/></filter>
+</svg>
 
-  <h2 class="pick">Pick a game</h2>
+<!-- ============ The board on the wall ============ -->
+<header class="board">
+  <div class="board-in">
+    <div class="logo">
+      <h1>Score Chalk</h1>
+      <svg class="tally" viewBox="0 0 54 40" aria-hidden="true"><path class="chalk-line" d="M8 6v30M18 5v31M28 6v30M38 5v31M2 30 48 10"/></svg>
+      <p>Scorekeeping for the games you play — at the bar, or at the kitchen table.</p>
+    </div>
 
-  <nav class="games">
-    <!-- Each game is one anchor to its own directory. Adding a game means
-         adding a folder under public/ and a link here — nothing else. -->
-    <a class="game" href="/darts/">
-      <span class="game-icon" aria-hidden="true">🎯</span>
-      <span class="game-text">
+    <!-- games in progress on this device, filled by home.js; hidden when none -->
+    <section class="resume" id="resume" aria-label="Games in progress" hidden>
+      <h2>Pick up where you left off</h2>
+      <div class="resume-row" id="resumeRow"></div>
+    </section>
+  </div>
+</header>
+
+<!-- ============ The two rooms ============
+     Adding a game means a folder under public/ and a card in the room it
+     belongs to: the Parlor for party and pub games, the Living Room for
+     family and tabletop ones. -->
+<main class="rooms">
+  <section class="room parlor" id="parlor" aria-labelledby="parlor-h">
+    <div class="room-head">
+      <span class="kicker">The Parlor</span>
+      <h2 id="parlor-h">Party &amp; pub games</h2>
+      <p>For a crowd, a round of drinks, and a scoreboard on the wall.</p>
+    </div>
+    <div class="shelf">
+      <a class="chalk-card" href="/darts/">
+        <svg viewBox="0 0 70 70" aria-hidden="true">
+          <circle class="chalk-line" cx="35" cy="35" r="27"/><circle class="chalk-line" cx="35" cy="35" r="18"/>
+          <circle class="chalk-line" cx="35" cy="35" r="9"/><circle class="chalk-fill" cx="35" cy="35" r="3"/>
+          <path class="chalk-line" d="M35 8v54M8 35h54M16 16l38 38M54 16 16 54"/>
+          <path class="chalk-brass" d="M52 10 39 30m13-20 3 6m-3-6-6 1"/>
+        </svg>
         <b>Darts</b>
-        <small>501, 301 or your own number. Head to head or solo practice, with checkout suggestions.</small>
-      </span>
-      <span class="game-go" aria-hidden="true">
-        <svg viewBox="0 0 24 24" width="14" height="14">
-          <path d="M9 5.5 L15 12 L9 18.5" fill="none" stroke="currentColor"
-                stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+        <small>501, 301 or your own number. One to four players, with checkout help.</small>
+      </a>
+      <a class="chalk-card" href="/builder/#canasta">
+        <svg viewBox="0 0 70 70" aria-hidden="true">
+          <rect class="chalk-line" x="12" y="14" width="26" height="38" rx="3" transform="rotate(-14 25 33)"/>
+          <rect class="chalk-line" x="24" y="12" width="26" height="38" rx="3"/>
+          <rect class="chalk-line" x="34" y="15" width="26" height="38" rx="3" transform="rotate(13 47 34)"/>
+          <path class="chalk-brass" d="M37 24l3 6 6 1-4.5 4 1 6-5.5-3-5.5 3 1-6-4.5-4 6-1z"/>
         </svg>
-      </span>
-    </a>
-
-    <a class="game" href="/cribbage/">
-      <span class="game-icon" aria-hidden="true">🃏</span>
-      <span class="game-text">
-        <b>Cribbage</b>
-        <small>Two or three players to 121, on a pegboard. Pegging, hands and crib, with skunks.</small>
-      </span>
-      <span class="game-go" aria-hidden="true">
-        <svg viewBox="0 0 24 24" width="14" height="14">
-          <path d="M9 5.5 L15 12 L9 18.5" fill="none" stroke="currentColor"
-                stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </span>
-    </a>
-
-    <a class="game" href="/yahtzee/">
-      <span class="game-icon" aria-hidden="true">📝</span>
-      <span class="game-text">
-        <b>Yahtzee</b>
-        <small>The paper scoresheet for up to ten, showing whose boxes are still open. Bonuses added up for you.</small>
-      </span>
-      <span class="game-go" aria-hidden="true">
-        <svg viewBox="0 0 24 24" width="14" height="14">
-          <path d="M9 5.5 L15 12 L9 18.5" fill="none" stroke="currentColor"
-                stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </span>
-    </a>
-
-    <a class="game" href="/magic/">
-      <span class="game-icon" aria-hidden="true">🧙</span>
-      <span class="game-text">
-        <b>Magic: The Gathering</b>
-        <small>Life totals for the table, Constructed or Commander. Poison and commander damage too.</small>
-      </span>
-      <span class="game-go" aria-hidden="true">
-        <svg viewBox="0 0 24 24" width="14" height="14">
-          <path d="M9 5.5 L15 12 L9 18.5" fill="none" stroke="currentColor"
-                stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </span>
-    </a>
-
-    <!-- Templates are builder games with their rules filled in; each links
-         straight to its setup by id (TEMPLATES in builder/app.js). -->
-    <a class="game" href="/builder/#farkle">
-      <span class="game-icon" aria-hidden="true">🎲</span>
-      <span class="game-text">
-        <b>Farkle</b>
-        <small>First to 10,000, taking turns. Quick keys for 50 to 1,000 and one tap for a farkle.</small>
-      </span>
-      <span class="game-go" aria-hidden="true">
-        <svg viewBox="0 0 24 24" width="14" height="14">
-          <path d="M9 5.5 L15 12 L9 18.5" fill="none" stroke="currentColor"
-                stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </span>
-    </a>
-
-    <a class="game" href="/builder/#canasta">
-      <span class="game-icon" aria-hidden="true">♦️</span>
-      <span class="game-text">
         <b>Canasta</b>
         <small>Two teams of two, first to 5,000. Buttons for canastas, red threes and going out.</small>
-      </span>
-      <span class="game-go" aria-hidden="true">
-        <svg viewBox="0 0 24 24" width="14" height="14">
-          <path d="M9 5.5 L15 12 L9 18.5" fill="none" stroke="currentColor"
-                stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+        <span class="tag">Teams</span>
+      </a>
+      <div class="chalk-card empty">
+        <b>More on the board soon</b>
+        <small>Room for more party games.</small>
+      </div>
+    </div>
+  </section>
+
+  <section class="room living" id="living" aria-labelledby="living-h">
+    <div class="room-head">
+      <span class="kicker">The Living Room</span>
+      <h2 id="living-h">Family &amp; tabletop</h2>
+      <p>For the coffee table: dice, cards and a pencil that's always going missing.</p>
+    </div>
+    <div class="shelf">
+      <a class="pad-card" href="/yahtzee/">
+        <svg viewBox="0 0 70 70" aria-hidden="true">
+          <rect class="pen-line" x="10" y="20" width="30" height="30" rx="6" transform="rotate(-10 25 35)"/>
+          <rect class="pen-line" x="32" y="14" width="28" height="28" rx="6" transform="rotate(12 46 28)"/>
+          <circle class="pen-fill" cx="18" cy="29" r="2.6"/><circle class="pen-fill" cx="25" cy="35" r="2.6"/><circle class="pen-fill" cx="32" cy="41" r="2.6"/>
+          <circle class="pen-redfill" cx="41" cy="22" r="2.6"/><circle class="pen-redfill" cx="52" cy="34" r="2.6"/>
         </svg>
-      </span>
-    </a>
-
-    <a class="game" href="/builder/">
-      <span class="game-icon" aria-hidden="true">🧮</span>
-      <span class="game-text">
-        <b>ScoreChalk Builder</b>
-        <small>Any game: count up or down, pick how it's won, and set your own quick-score buttons.</small>
-      </span>
-      <span class="game-go" aria-hidden="true">
-        <svg viewBox="0 0 24 24" width="14" height="14">
-          <path d="M9 5.5 L15 12 L9 18.5" fill="none" stroke="currentColor"
-                stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+        <b>Yahtzee</b>
+        <small>The paper scoresheet, for up to ten.</small>
+      </a>
+      <a class="pad-card" href="/cribbage/">
+        <svg viewBox="0 0 70 70" aria-hidden="true">
+          <path class="pen-line" d="M10 22h50a8 8 0 0 1 0 16H10z"/>
+          <g class="pen-fill"><circle cx="18" cy="26" r="1.6"/><circle cx="24" cy="26" r="1.6"/><circle cx="30" cy="26" r="1.6"/><circle cx="36" cy="26" r="1.6"/><circle cx="42" cy="26" r="1.6"/><circle cx="48" cy="26" r="1.6"/>
+          <circle cx="18" cy="33" r="1.6"/><circle cx="24" cy="33" r="1.6"/><circle cx="30" cy="33" r="1.6"/><circle cx="36" cy="33" r="1.6"/><circle cx="42" cy="33" r="1.6"/><circle cx="48" cy="33" r="1.6"/></g>
+          <path class="pen-red" d="M30 26v-12M42 33v-12"/><circle class="pen-redfill" cx="30" cy="12" r="3"/><circle class="pen-redfill" cx="42" cy="19" r="3"/>
+          <path class="pen-line" d="M12 50h46" stroke-dasharray="3 5"/>
         </svg>
-      </span>
-    </a>
-
-    <!-- Deliberately not a link: it sets the expectation that the list grows
-         without pretending there is something behind it yet. -->
-    <p class="soon">More games as I build them.</p>
-  </nav>
-
-  <!-- Signed in only: games built in the builder and saved to the profile.
-       Filled by home.js, and stays hidden for everyone else. -->
-  <section id="mine" class="mine hidden">
-    <h2 class="pick">My games</h2>
-    <nav class="games" id="mineList"></nav>
+        <b>Cribbage</b>
+        <small>Two or three to 121, on a pegboard.</small>
+      </a>
+      <a class="pad-card" href="/builder/#farkle">
+        <svg viewBox="0 0 70 70" aria-hidden="true">
+          <rect class="pen-line" x="12" y="18" width="24" height="24" rx="5"/>
+          <rect class="pen-line" x="34" y="28" width="24" height="24" rx="5" transform="rotate(18 46 40)"/>
+          <circle class="pen-fill" cx="24" cy="30" r="2.6"/>
+          <circle class="pen-fill" cx="40" cy="36" r="2.2"/><circle class="pen-fill" cx="47" cy="40" r="2.2"/><circle class="pen-fill" cx="53" cy="44" r="2.2"/>
+          <path class="pen-red" d="M14 58c8-4 22 4 34-2s8-3 12-1"/>
+        </svg>
+        <b>Farkle</b>
+        <small>First to 10,000. One tap for a farkle.</small>
+      </a>
+      <a class="pad-card" href="/magic/">
+        <svg viewBox="0 0 70 70" aria-hidden="true">
+          <rect class="pen-line" x="16" y="10" width="34" height="48" rx="4" transform="rotate(-6 33 34)"/>
+          <rect class="pen-line" x="22" y="12" width="34" height="48" rx="4"/>
+          <circle class="pen-line" cx="39" cy="32" r="9"/>
+          <path class="pen-red" d="M39 23v18M30 32h18"/>
+          <path class="pen-line" d="M28 50h22"/>
+        </svg>
+        <b>Magic</b>
+        <small>Life, poison and commander damage.</small>
+        <span class="tag">20 · 40</span>
+      </a>
+    </div>
   </section>
 </main>
 
+<!-- ============ The Workshop ============ -->
+<footer class="workshop">
+  <div class="workshop-in">
+    <div>
+      <span class="kicker">The Workshop</span>
+      <h2>Build your own scorekeeper</h2>
+      <p>For a game that isn't here yet: choose how it ends, which way it scores, teams or no teams, and name your own scoring buttons.</p>
+      <a class="build" href="/builder/">Open the Builder</a>
+    </div>
+    <!-- games saved from the Builder, filled by home.js -->
+    <div class="mine" id="mine" aria-label="My games">
+      <h3>My games</h3>
+      <div id="mineList"><p class="mine-note">Sign in and save a game from the Builder, and it will be listed here.</p></div>
+    </div>
+  </div>
+</footer>
+
 <script src="/account.js?v=29" defer></script>
 <script src="/builder/rules.js?v=5" defer></script>
-<script src="/home.js?v=1" defer></script>
+<script src="/home.js?v=4" defer></script>
 </body>
 </html>

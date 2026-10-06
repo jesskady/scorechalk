@@ -1,0 +1,225 @@
+/* The home page: a chalkboard masthead with the games in progress, then two
+   rooms — the Parlor (chalk over card-room felt) and the Living Room (a
+   yellow legal-pad scorepad) — side by side on wide screens and stacked on a
+   phone, and the Workshop below on graph paper. Each room keeps one look
+   whatever the system theme: they are places, not themes.
+
+   Names here avoid shared.css's: its --pad is the safe-area inset, so the
+   legal pad is --legal. */
+
+.home-rooms{
+  --slate:#1c2723; --slate-2:#24312c; --chalk:#ecebe3; --chalk-dim:#a7b0a9; --brass:#c9a35a; --felt:#1f4a39;
+  --legal:#fbf1bd; --legal-2:#f6e6a3; --ink:#22324d; --pencil:#5f5b4c; --rule:#9fbedc; --margin:#d4544c;
+  --graph:#eef1ec; --graph-line:#c9d6cf; --graph-ink:#1e2b2a;
+  --f-chalk:"Fredericka the Great", "Chalkduster", Georgia, serif;
+  --f-deco:"Josefin Sans", "Avenir Next", "Futura", sans-serif;
+  --f-slab:"Bree Serif", "Rockwell", Georgia, serif;
+  --f-hand:"Kalam", "Bradley Hand", "Segoe Print", cursive;
+  --f-body:"Karla", system-ui, -apple-system, "Segoe UI", sans-serif;
+  background:var(--slate);color:var(--chalk);font-family:var(--f-body);
+  -webkit-user-select:auto;user-select:auto;
+}
+html:has(body.home-rooms){background:var(--slate)}
+.home-rooms *{box-sizing:border-box}
+/* no weight of its own, so a card's own colour always wins */
+:where(.home-rooms) a{color:inherit}
+.home-rooms :focus-visible{outline:2px solid var(--brass);outline-offset:3px}
+@media (prefers-reduced-motion: reduce){.home-rooms *{transition:none!important}}
+
+/* ---------- the board on the wall ---------- */
+.board{
+  position:relative;overflow:hidden;
+  padding:clamp(28px,5vw,52px) max(16px,4vw) clamp(22px,4vw,36px);
+  padding-top:calc(clamp(28px,5vw,52px) + env(safe-area-inset-top, 0px));
+  background:
+    radial-gradient(120% 90% at 20% 0%, #2b3a34 0%, transparent 60%),
+    radial-gradient(90% 70% at 90% 100%, #22302b 0%, transparent 70%),
+    var(--slate);
+  border-bottom:10px solid #6b4a2b; /* the board's wooden frame */
+  box-shadow:inset 0 -2px 0 #8a6236;
+}
+.board::before{ /* chalk dust left by the last wipe */
+  content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background:
+    radial-gradient(40% 12% at 30% 40%, #ffffff10, transparent 70%),
+    radial-gradient(30% 10% at 70% 25%, #ffffff0c, transparent 70%),
+    radial-gradient(50% 14% at 55% 75%, #ffffff09, transparent 70%);
+}
+.board-in{position:relative;max-width:1180px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr);gap:22px}
+.logo{display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap;padding-right:44px} /* clear of the account bubble */
+.logo h1{
+  margin:0;font-family:var(--f-chalk);font-weight:400;font-size:clamp(44px,8vw,84px);
+  line-height:.95;letter-spacing:.01em;color:var(--chalk);text-wrap:balance;
+  text-shadow:0 0 1px #fff6, 0 0 14px #ffffff14;
+}
+/* a five-bar gate in chalk: the mark every scorekeeper makes */
+.tally{width:54px;height:40px;margin-bottom:12px;flex:none}
+.logo p{margin:0 0 12px;font:500 15px/1.4 var(--f-body);color:var(--chalk-dim);max-width:34ch;flex:1 1 220px;min-width:0}
+
+/* the resume row scrolls on its own rather than widening the board */
+.resume{min-width:0}
+.resume h2{margin:0 0 10px;font:700 12px/1 var(--f-deco);letter-spacing:.18em;text-transform:uppercase;color:var(--brass)}
+.resume-row{display:flex;gap:12px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.resume-row::-webkit-scrollbar{display:none}
+/* A game in progress is a card in its own room's look, pinned to the board:
+   a little framed chalkboard for the parlor, a taped slip of legal pad for
+   the living room, a scrap of graph paper for the workshop. */
+.resume-row{padding:10px 4px 8px}
+.rc{
+  flex:0 0 auto;min-width:200px;max-width:270px;text-decoration:none;
+  display:grid;gap:4px;padding:11px 14px 12px;position:relative;
+  transition:transform .2s ease, box-shadow .2s ease;
+}
+.rc span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums}
+.rc:hover{transform:translateY(-2px)}
+.rc-parlor{
+  background:var(--slate-2);border:5px solid #5d4128;border-radius:3px;color:var(--chalk);
+  box-shadow:0 8px 16px #0008, inset 0 0 0 1px #0006;
+}
+.rc-parlor b{font:400 23px/1.05 var(--f-chalk)}
+.rc-parlor span{font-size:13px;color:var(--chalk-dim)}
+.rc-living{
+  color:var(--ink);border-radius:2px;transform:rotate(-1.2deg);padding-left:24px;
+  background:
+    linear-gradient(90deg, transparent 15px, var(--margin) 15px 16px, transparent 16px),
+    repeating-linear-gradient(180deg, transparent 0 21px, #9fbedc 21px 22px) 0 6px,
+    var(--legal);
+  box-shadow:0 8px 16px #0007;
+}
+.rc-living:nth-child(even){transform:rotate(1deg)}
+.rc-living:hover{transform:translateY(-2px) rotate(0)}
+.rc-living::before{ /* tape */
+  content:"";position:absolute;top:-8px;left:50%;width:46px;height:15px;transform:translateX(-50%) rotate(-4deg);
+  background:#f3e7b8d9;border:1px solid #e0d39c;
+}
+.rc-living b{font:700 23px/1.05 var(--f-hand);color:var(--ink)}
+.rc-living span{font-size:13px;color:var(--pencil)}
+.rc-workshop{
+  color:var(--graph-ink);border:1.5px solid var(--graph-ink);border-radius:2px;
+  background:
+    linear-gradient(var(--graph-line) 1px, transparent 1px) 0 0/14px 14px,
+    linear-gradient(90deg, var(--graph-line) 1px, transparent 1px) 0 0/14px 14px,
+    var(--graph);
+  box-shadow:0 8px 16px #0007;
+}
+.rc-workshop b{font:700 16px/1.2 var(--f-deco);letter-spacing:.06em;text-transform:uppercase}
+.rc-workshop span{font-size:13px;color:#3b4a48}
+
+/* ---------- the two rooms ---------- */
+.rooms{display:grid;grid-template-columns:1fr}
+@media (min-width:900px){.rooms{grid-template-columns:1fr 1fr}}
+.room{padding:clamp(26px,4vw,44px) max(16px,3.5vw) clamp(30px,4vw,48px);min-width:0}
+.room-head{display:grid;gap:6px;margin-bottom:22px;max-width:560px}
+.room-head .kicker{font:700 11px/1 var(--f-deco);letter-spacing:.2em;text-transform:uppercase}
+.room-head h2{margin:0;text-wrap:balance}
+.room-head p{margin:0;font-size:15px;line-height:1.5;max-width:46ch}
+.shelf{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+
+/* the parlor: chalk drawings framed on card-room felt */
+.parlor{
+  background:
+    linear-gradient(180deg, #00000030, transparent 30%),
+    radial-gradient(70% 60% at 50% 30%, #245540 0%, var(--felt) 70%);
+  color:var(--chalk);border-right:1px solid #0e2219;
+}
+.parlor .kicker{color:var(--brass)}
+.parlor h2{font:400 clamp(34px,4.6vw,48px)/1 var(--f-chalk)}
+.parlor .room-head p{color:#cfd8cf}
+.chalk-card{
+  position:relative;text-decoration:none;color:var(--chalk);
+  background:var(--slate-2);border:6px solid #5d4128;border-radius:4px;
+  box-shadow:0 10px 22px #0007, inset 0 0 0 1px #00000060;
+  padding:14px 14px 16px;display:grid;gap:8px;align-content:start;
+  transition:transform .2s ease, box-shadow .2s ease;
+}
+a.chalk-card:hover{transform:translateY(-3px) rotate(-.4deg);box-shadow:0 16px 28px #0009}
+a.chalk-card:active{transform:translateY(-1px)}
+.chalk-card svg{width:68px;height:68px}
+.chalk-card b{font:400 25px/1 var(--f-chalk)}
+.chalk-card small{font:500 13px/1.35 var(--f-body);color:var(--chalk-dim)}
+.chalk-card .tag{
+  justify-self:start;font:700 10.5px/1 var(--f-deco);letter-spacing:.14em;text-transform:uppercase;
+  color:#1c1405;background:var(--brass);padding:5px 7px 4px;border-radius:2px;
+}
+.chalk-card.empty{background:transparent;border:2px dashed #ecebe355;box-shadow:none;place-content:center;text-align:center;min-height:170px}
+.chalk-card.empty b{font-size:20px;color:var(--chalk-dim)}
+
+/* the living room: a scorepad on the coffee table */
+.living{
+  background:
+    linear-gradient(90deg, transparent 52px, var(--margin) 52px 54px, transparent 54px),
+    repeating-linear-gradient(180deg, transparent 0 31px, var(--rule) 31px 32px),
+    linear-gradient(180deg, var(--legal-2) 0 64px, var(--legal) 64px);
+  background-color:var(--legal);color:var(--ink);padding-left:max(66px,3.5vw);
+}
+@media (min-width:900px){.living{padding-left:72px}}
+.living .kicker{color:var(--margin)}
+.living h2{font:400 clamp(34px,4.4vw,46px)/1.05 var(--f-slab);color:var(--ink)}
+.living .room-head p{color:var(--pencil)}
+/* the scorepad holds four across on a wide screen and two on a phone, so none sits alone */
+.living .shelf{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media (min-width:1100px){.living .shelf{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.pad-card{
+  position:relative;text-decoration:none;color:var(--ink);
+  background:#fffdf2;border:1px solid #d8cfa3;border-radius:2px;
+  box-shadow:0 1px 0 #d8cfa3, 0 8px 18px #6b5b2a22;
+  padding:12px 14px 14px;display:grid;gap:6px;align-content:start;
+  background-image:repeating-linear-gradient(180deg, transparent 0 23px, #cfdcec 23px 24px);
+  background-position:0 34px;transition:transform .2s ease, box-shadow .2s ease;
+}
+.pad-card:nth-child(odd){transform:rotate(-.6deg)}
+.pad-card:nth-child(even){transform:rotate(.5deg)}
+.pad-card:hover{transform:translateY(-3px) rotate(0);box-shadow:0 14px 24px #6b5b2a33}
+.pad-card::before{ /* a strip of tape holding it to the pad */
+  content:"";position:absolute;top:-9px;left:50%;width:54px;height:18px;transform:translateX(-50%) rotate(-3deg);
+  background:#f3e7b8cc;border:1px solid #e0d39c;
+}
+.pad-card svg{width:62px;height:62px}
+.pad-card b{font:700 26px/1 var(--f-hand);color:var(--ink)}
+.pad-card small{font:500 13px/1.35 var(--f-body);color:var(--pencil)}
+.pad-card .tag{
+  justify-self:start;font:700 14px/1 var(--f-hand);color:var(--margin);
+  border:1.5px solid var(--margin);border-radius:50% 46% 52% 48%;padding:3px 8px 1px;transform:rotate(-3deg);
+}
+
+/* ---------- the workshop ---------- */
+.workshop{
+  background:
+    linear-gradient(var(--graph-line) 1px, transparent 1px) 0 0/22px 22px,
+    linear-gradient(90deg, var(--graph-line) 1px, transparent 1px) 0 0/22px 22px,
+    var(--graph);
+  color:var(--graph-ink);
+  padding:clamp(24px,4vw,40px) max(16px,4vw) calc(clamp(34px,5vw,56px) + var(--pad));
+  border-top:4px solid var(--graph-ink);
+}
+.workshop-in{max-width:1180px;margin:0 auto;display:grid;gap:18px}
+@media (min-width:760px){.workshop-in{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);align-items:start}}
+.workshop .kicker{font:700 11px/1 var(--f-deco);letter-spacing:.2em;text-transform:uppercase;color:#2f6d5c}
+.workshop h2{margin:6px 0 8px;font:700 clamp(26px,3.4vw,34px)/1.05 var(--f-deco);letter-spacing:.02em;text-transform:uppercase}
+.workshop p{margin:0;font-size:15px;line-height:1.5;max-width:52ch;color:#3b4a48}
+.build{
+  display:inline-flex;align-items:center;gap:10px;margin-top:14px;text-decoration:none;
+  font:700 13px/1 var(--f-deco);letter-spacing:.14em;text-transform:uppercase;
+  background:var(--graph-ink);color:var(--graph)!important;padding:13px 16px 11px;border-radius:2px;
+}
+.build:hover{background:#2f6d5c}
+.mine{background:#ffffffcc;border:1.5px solid var(--graph-ink);border-radius:2px;padding:12px 14px;display:grid;gap:2px}
+.mine h3{margin:0 0 6px;font:700 11px/1 var(--f-deco);letter-spacing:.18em;text-transform:uppercase;color:#2f6d5c}
+.mine a{display:flex;justify-content:space-between;gap:12px;align-items:baseline;text-decoration:none;padding:9px 0;border-top:1px dashed var(--graph-line)}
+.mine a:first-of-type{border-top:none}
+.mine a b{font:700 16px/1.2 var(--f-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.mine a span{font-size:12.5px;color:#5b6a67;text-align:right}
+.mine a:hover b{color:#2f6d5c}
+.mine-note{margin:0;font-size:13.5px;line-height:1.45;color:#5b6a67}
+
+/* the drawings' strokes */
+.chalk-line{fill:none;stroke:var(--chalk);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;filter:url(#chalk)}
+.chalk-fill{fill:var(--chalk);filter:url(#chalk)}
+.chalk-brass{fill:none;stroke:var(--brass);stroke-width:2.4;stroke-linecap:round;filter:url(#chalk)}
+.pen-line{fill:none;stroke:var(--ink);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;filter:url(#pen)}
+.pen-fill{fill:var(--ink);filter:url(#pen)}
+.pen-red{fill:none;stroke:var(--margin);stroke-width:2.2;stroke-linecap:round;filter:url(#pen)}
+.pen-redfill{fill:var(--margin);filter:url(#pen)}
+
+/* on a phone the placeholder would sit alone on its own row: leave it out */
+@media (max-width:599px){.chalk-card.empty{display:none}}

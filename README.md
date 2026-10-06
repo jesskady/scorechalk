@@ -76,8 +76,9 @@ Because every turn is entered dart by dart, both rules are checked against the a
 ```
 public/
   index.html      game chooser
-  home.css        chooser styles
-  home.js         the chooser's My games, when signed in
+  rooms.css       the home page: the board, the two rooms, the Workshop
+  home.js         the home page's games in progress, and My games
+  home.css        styles the account pages still share
   shared.css      palette, reset and shared controls, used by every page
   account.js      account bubble, injected into every page
   account/
@@ -133,8 +134,11 @@ darts, so a second game does not inherit a column named after the first.
 `wrangler.jsonc`, `worker/` and this README stay unpublished by virtue of
 living above it.
 
-**Adding a game** means adding a folder under `public/` and one `<a>` to the
-chooser. Games share `shared.css` — the palette and the reset — and nothing
+**Adding a game** means adding a folder under `public/` and a card in the room
+it belongs to on the home page: the **Parlor** (chalk on felt) for party and pub
+games, the **Living Room** (a legal pad) for family and tabletop ones. A game
+that saves a game in progress can also be listed under *Pick up where you left
+off* by adding its storage key to `GAMES` in `home.js`. Games share `shared.css` — the palette and the reset — and nothing
 else, so one game's layout can never break another's. Keep game-specific rules
 in that game's own stylesheet.
 
