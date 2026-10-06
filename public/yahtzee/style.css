@@ -1,0 +1,159 @@
+/* Yahtzee. Setup, overlay and action rules follow darts/style.css so the
+   games feel like one site; repeated rather than shared, as games share
+   shared.css and nothing else. */
+
+.screen{
+  max-width:560px;margin:0 auto;
+  padding:10px 10px calc(10px + var(--pad));
+  display:flex;flex-direction:column;gap:8px;min-height:100%;
+}
+
+/* ---------- Setup ---------- */
+.brand{text-align:center;padding:8px 0 2px}
+.brand h1{font-size:26px;letter-spacing:-.5px}
+.brand p{color:var(--dim);font-size:13px;margin-top:2px}
+.brand.compact{padding:0}
+.brand.compact h1{font-size:13px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:var(--dim)}
+.brand.compact.gamebar{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px}
+.brand.compact.gamebar .backlink{justify-self:start;padding:2px}
+.brand.compact.gamebar h1{grid-column:2}
+
+.backlink{align-self:flex-start;color:var(--dim);font-size:13px;text-decoration:none;padding:6px 2px}
+.backlink:active{color:var(--txt)}
+
+.card{
+  background:var(--card);border:1px solid var(--line);border-radius:12px;
+  padding:11px;display:flex;flex-direction:column;gap:9px;
+}
+.field{display:flex;align-items:center;gap:12px}
+.field>span{width:80px;flex:none;color:var(--dim);font-size:14px}
+
+input{
+  flex:1;min-width:0;background:var(--bg2);border:1px solid var(--line);border-radius:10px;
+  color:var(--txt);padding:12px;font-size:17px;-webkit-user-select:text;user-select:text;
+}
+input:focus{outline:none;border-color:var(--green)}
+input[type=number]{-moz-appearance:textfield}
+input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+
+.stepper{display:flex;align-items:center;gap:10px;margin-left:auto}
+.stepper b{min-width:28px;text-align:center;font-size:20px;font-variant-numeric:tabular-nums}
+.step{width:44px;height:40px;border-radius:10px;font-size:22px;font-weight:700;background:var(--bg2);border:1px solid var(--line)}
+.step:active{border-color:var(--green)}
+.step:disabled{opacity:.35}
+.names{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.names input{padding:10px;font-size:15px}
+.names.one{grid-template-columns:1fr}
+
+/* ---------- The sheet ----------
+   A grid like the paper one: box names down the left, a column per player.
+   The player tiles stay at the top while the sheet scrolls. */
+.sheet-wrap{overflow-x:auto;margin:0 -2px}
+.sheet{
+  display:grid;grid-template-columns:minmax(104px,1.4fr) repeat(var(--cols),minmax(46px,1fr));
+  border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--card);
+  min-width:min-content;
+}
+.sheet>*{border-top:1px solid var(--line);border-left:1px solid var(--line);min-width:0}
+.corner,.ptile{position:sticky;top:0;z-index:2;border-top:none}
+.corner{background:var(--card);border-left:none}
+
+.ptile{
+  background:var(--bg2);padding:7px 3px 6px;display:flex;flex-direction:column;align-items:center;gap:1px;
+  border-bottom:3px solid transparent;
+}
+.ptile .pname{font-size:11.5px;font-weight:700;color:var(--dim);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ptile .ptotal{font-size:18px;font-weight:800;font-variant-numeric:tabular-nums}
+.ptile.sel{background:#1c2b23;border-bottom-color:var(--green)}
+.ptile.sel .pname{color:var(--txt)}
+/* whose turn: a dot before the name */
+.ptile.turn .pname::before{content:'● ';color:var(--gold)}
+
+.sect{
+  font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);
+  padding:6px 8px 4px;background:var(--bg);border-left:none;
+}
+.lab{padding:0 8px;display:flex;align-items:center;font-size:13.5px;min-height:36px;border-left:none;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lab.tot{font-size:12.5px;color:var(--dim);font-weight:700;background:var(--bg2)}
+.lab.grand{color:var(--txt);font-size:14px}
+
+.cell{
+  display:flex;align-items:center;justify-content:center;min-height:36px;
+  font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;background:none;
+}
+button.cell:active{background:var(--line)}
+.cell.scratch{color:var(--dim);font-weight:400}
+.cell.tot{background:var(--bg2);font-size:13.5px;color:var(--dim)}
+.cell.tot.grand{color:var(--txt);font-size:16px;font-weight:800}
+.cell.tot.earned{color:var(--green)}
+/* the bonus row: its value, and how far off it is underneath */
+.cell.tot small{display:block;font-size:9.5px;font-weight:500;color:var(--dim);line-height:1.1;white-space:nowrap}
+.cell.tot:has(small){flex-direction:column;gap:1px}
+.sheet.many .cell{font-size:13.5px}
+.sheet.many .lab{font-size:12.5px;padding:0 6px}
+
+/* The highlight, for the selected player: green where they have scored,
+   yellow where they still can, on their cells and the box names alike. */
+.cell.filled,.lab.filled{background:#17301f}
+.cell.open,.lab.open{background:#2d2712}
+.lab.open{color:#f0d77a}
+.lab.filled{color:#8fd4aa}
+
+.sheet-hint{text-align:center;font-size:12px;color:var(--dim)}
+.mini-row{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.ghost{color:var(--dim);border:1px solid var(--line);border-radius:11px;padding:9px;width:100%;font-size:14px}
+.msg{text-align:center;font-size:13px;font-weight:600;color:var(--gold);min-height:16px}
+
+/* ---------- Scoring a box ---------- */
+.overlay{
+  position:fixed;inset:0;background:#0b0e12ee;
+  display:flex;align-items:center;justify-content:center;padding:24px;z-index:10;
+}
+.overlay.sheet-entry{align-items:flex-end;padding:0;background:#0b0e12aa}
+.entry-card{
+  background:var(--card);border:1px solid var(--line);border-bottom:none;border-radius:18px 18px 0 0;
+  width:100%;max-width:560px;padding:14px 14px calc(16px + var(--pad));
+  display:flex;flex-direction:column;gap:10px;
+}
+.entry-top{display:flex;justify-content:space-between;align-items:flex-start}
+.entry-top b{display:block;font-size:19px}
+.entry-top small{color:var(--dim);font-size:12.5px}
+.entry-x{font-size:26px;line-height:1;color:var(--dim);padding:0 6px}
+.entry-hint{font-size:13px;color:var(--dim)}
+.entry-hint:empty{display:none}
+.entry-body{display:flex;flex-direction:column;gap:8px}
+.face-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.choice{
+  background:var(--bg2);border:1px solid var(--line);border-radius:11px;
+  padding:14px 0;font-size:19px;font-weight:800;font-variant-numeric:tabular-nums;
+}
+.choice:active{background:var(--green-d);border-color:var(--green)}
+.choice.on{border-color:var(--green);color:var(--green)}
+.choice.big{padding:16px 0}
+.choice.scratch-btn{font-size:14px;font-weight:600;color:var(--dim);padding:11px 0}
+.choice.quiet{font-size:13px;font-weight:600;color:var(--dim);padding:9px 0}
+.typed-row{display:flex;gap:6px}
+.choice.enter{padding:0 22px;font-size:16px;background:var(--green);border-color:var(--green);color:#fff}
+.entry-empty{color:#e2857a;border-color:#5a302a}
+
+/* ---------- Overlays ---------- */
+.win-card{
+  background:var(--card);border:1px solid var(--line);border-radius:18px;
+  padding:26px 22px;text-align:center;width:100%;max-width:360px;
+  display:flex;flex-direction:column;gap:12px;
+}
+.trophy{font-size:52px}
+.win-card h2{font-size:26px;color:var(--gold)}
+.win-card p{color:var(--dim);font-size:14px}
+.win-save{font-size:12.5px !important}
+.win-save:empty{display:none}
+.overlay.confirm{z-index:20}
+.overlay.confirm h2{color:var(--txt);font-size:22px}
+.overlay.confirm p{font-size:15px;line-height:1.45}
+.standings{list-style:none;display:flex;flex-direction:column;gap:4px;text-align:left}
+.standings li{display:flex;justify-content:space-between;gap:10px;padding:6px 10px;border-radius:8px;background:var(--bg2);font-size:15px}
+.standings li b{font-variant-numeric:tabular-nums}
+
+/* five or six players: the bonus note has to fit a narrow column */
+.sheet.many .cell.tot small{font-size:8.5px;letter-spacing:-.1px}

@@ -344,8 +344,73 @@
     box.replaceChildren(...parts);
   }
 
+  /* ---------- yahtzee ----------
+     Each filled box is a turn whose detail names the box, and the upper
+     bonus and Yahtzee bonuses are turns too, so the sheet is redrawn from
+     the turns alone, box by box. */
+
+  const YZ_BOXES = [
+    ['ones', 'Aces'], ['twos', 'Twos'], ['threes', 'Threes'], ['fours', 'Fours'], ['fives', 'Fives'], ['sixes', 'Sixes'],
+    ['bonus', 'Bonus'],
+    ['three', '3 of a kind'], ['four', '4 of a kind'], ['full', 'Full house'], ['small', 'Sm. straight'],
+    ['large', 'Lg. straight'], ['yahtzee', 'Yahtzee'], ['chance', 'Chance'], ['ybonus', 'Yahtzee bonus'],
+  ];
+
+  function showYahtzee(g, names) {
+    const n = names.length;
+    const at = names.map(() => ({}));
+    for (const t of g.turns) {
+      const b = t.detail && t.detail[0] && t.detail[0].box;
+      if (b && at[t.player_idx]) at[t.player_idx][b] = t.points;
+    }
+    const total = (i) => Object.values(at[i]).reduce((a, v) => a + v, 0);
+
+    const head = el('div', 'prof-head');
+    const idBox = el('div', 'prof-id');
+    idBox.append(el('h1', null, 'Yahtzee'));
+    idBox.append(el('small', null, [
+      names.join(' vs ') || 'Solo',
+      new Date(g.ended_at || g.updated_at || g.started_at)
+        .toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }),
+    ].join(' · ')));
+    head.append(idBox);
+
+    const standings = el('ol', 'standings-list');
+    for (const i of names.map((_, i) => i).sort((a, b) => total(b) - total(a))) {
+      const li = el('li', 'standing');
+      const who = el('span', 'standing-who');
+      who.append(el('b', null, names[i]));
+      if (i === g.me_idx && n > 1) who.append(el('span', 'game-tag', 'You'));
+      if (i === g.winner_idx) who.append(el('span', 'game-tag live', 'Won'));
+      li.append(who, el('b', 'standing-score', String(total(i))));
+      standings.append(li);
+    }
+
+    // the sheet, as it ended: a dash for a scratched box
+    const sheet = el('div', 'yz-sheet');
+    sheet.style.gridTemplateColumns = `minmax(96px, 1.4fr) repeat(${n}, minmax(40px, 1fr))`;
+    sheet.append(el('span', 'yz-h'));
+    names.forEach((nm) => sheet.append(el('span', 'yz-h', nm)));
+    for (const [id, label] of YZ_BOXES) {
+      const sum = id === 'bonus' || id === 'ybonus';
+      sheet.append(el('span', 'yz-l' + (sum ? ' yz-sum' : ''), label));
+      names.forEach((_, i) => {
+        const v = at[i][id];
+        sheet.append(el('span', 'yz-v' + (sum ? ' yz-sum' : ''), v == null ? (sum ? '' : '·') : v === 0 ? '—' : String(v)));
+      });
+    }
+    sheet.append(el('span', 'yz-l yz-grand', 'Grand total'));
+    names.forEach((_, i) => sheet.append(el('span', 'yz-v yz-grand', String(total(i)))));
+
+    const parts = [head, card('Final scores', standings), card('Scoresheet', sheet)];
+    if (n > 1) parts.push(whoCard(g, names, 'Marks which player was you.'));
+    parts.push(dangerCard(g));
+    box.replaceChildren(...parts);
+  }
+
   function show(g) {
     const names = (g.players || []).map((p) => p.name);
+    if (g.game_type === 'yahtzee') { showYahtzee(g, names); return; }
     if (g.game_type === 'builder') { showBuilder(g, names); return; }
     if (g.game_type === 'cribbage') { showCribbage(g, names); return; }
     const cfg = g.config || {};

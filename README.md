@@ -6,6 +6,8 @@ Mobile-first scorekeeping for the games I play. The home page is a chooser; each
 
 **Cribbage** is for two or three players, first to 121, on a pegboard drawn at the top of the screen with a back peg showing each last move. A hand has two phases. In the **play**, every tap scores at once under the player who scored it: Go, 31, fifteens, pairs, runs, and Heels for the dealer. In the **count**, each hand is scored on its own in counting order (players left of the dealer, then the dealer's hand, then the crib), and submitted before the next. A hand is entered one of two ways, switched on the hand card and remembered on the device: **Cards** (the default), where you tap the five ranks and the app scores the hand itself, asking about suits only when a flush or knobs is actually possible; or **Buttons**, where you tap what the hand holds (fifteens, pairs, runs, and shortcuts for double, triple and double-double runs) or type the total. The game ends the instant anyone reaches 121, even mid-play or mid-count, so whoever is still to count never does. Impossible hand totals (19, 25, 26, 27, over 29) are refused. Skunks are called on the win screen, and the loser deals first in a rematch.
 
+**Yahtzee** is the pen-and-paper scoresheet for one to six players: players across the top, boxes down the side, totals and the 35 upper bonus worked out as you go. Tapping a player highlights their column — green where they have scored, yellow where they still can — and the box names to match. Tapping a box offers only what it can take: the five possible scores for Aces to Sixes, a typed dice total for the of-a-kinds and Chance, the fixed value for the rest, or a scratch. Filling a box passes the turn; the game ends when the sheet is full.
+
 **ScoreChalk Builder** covers everything else: pick how a game ends (keep score, first to a target, lowest wins, out at zero), which way it scores, a fixed number of rounds, and your own quick-score buttons. Quick-score buttons can be **named** (`Red three 100, Going out 100`): the button shows the name, and what was tapped is spelled out before it is entered and in the history. With four or more players a game can be **played in teams**: players are split into 2–4 sides (alternate seats by default, tap a player's team chip to move them), and each side is scored as one, named for its players. **Farkle** and **Canasta** are builder games with their rules filled in — *templates* — and have their own tiles on the home page. Canasta uses both: two teams of two, first to 5,000, with named buttons for canastas, red threes and going out. Signed in, you can save your own builder games to your profile as **My games**.
 
 ## Use it
@@ -88,6 +90,10 @@ public/
     app.js
     style.css
     sync.js       saving games to a profile
+  yahtzee/
+    index.html
+    app.js        the scoresheet, scoring a box, saving to a profile
+    style.css
   cribbage/
     index.html
     app.js        board, play and count, saving to a profile

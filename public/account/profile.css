@@ -120,6 +120,16 @@
 .crib-cell b{font-size:15px;font-variant-numeric:tabular-nums}
 .crib-cell small{font-size:10.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .crib-cell.is-dealer{background:#241f11;box-shadow:inset 0 0 0 1px #4a3c18}
+
+/* a finished yahtzee scoresheet */
+.yz-sheet{display:grid;font-size:13px}
+.yz-sheet>span{padding:6px 4px;border-top:1px solid var(--line)}
+.yz-h{border-top:none !important;font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--dim);
+  text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.yz-l{color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.yz-v{text-align:center;font-weight:700;font-variant-numeric:tabular-nums}
+.yz-sum{font-size:12px;color:var(--dim)}
+.yz-grand{font-weight:800;color:var(--txt);font-size:14px;border-top:2px solid var(--line) !important}
 .turn-no{color:var(--dim);opacity:.6;font-size:11px;font-variant-numeric:tabular-nums}
 .turn-who{color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .turn-darts{color:var(--txt);font-size:12px;letter-spacing:.3px}

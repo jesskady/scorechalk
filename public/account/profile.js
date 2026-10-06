@@ -111,7 +111,9 @@
     main.append(el('b', null, label));
 
     const bits = [];
-    if (g.game_type === 'cribbage') {
+    if (g.game_type === 'yahtzee') {
+      bits.push('Yahtzee');
+    } else if (g.game_type === 'cribbage') {
       bits.push('Cribbage');
       if (g.config && g.config.skunk) bits.push(g.config.skunk === 'double' ? 'double skunk' : 'skunk');
     } else if (g.game_type === 'builder') {
