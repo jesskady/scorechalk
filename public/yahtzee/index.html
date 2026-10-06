@@ -10,7 +10,7 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='15' fill='%23182029'/><circle cx='16' cy='16' r='11' fill='%232e7d4f'/><circle cx='16' cy='16' r='7' fill='%23182029'/><circle cx='16' cy='16' r='3.5' fill='%23c0392b'/></svg>">
 <!-- ?v= must be bumped whenever a stylesheet or app.js changes, as in darts -->
 <link rel="stylesheet" href="../shared.css?v=29">
-<link rel="stylesheet" href="style.css?v=3">
+<link rel="stylesheet" href="style.css?v=11">
 </head>
 <body>
 
@@ -20,7 +20,7 @@
 
   <header class="brand">
     <h1>Yahtzee</h1>
-    <p>A scoresheet for one to six players</p>
+    <p>A scoresheet for one to ten players</p>
   </header>
 
   <div class="card">
@@ -41,28 +41,27 @@
 
 <!-- ============ GAME ============ -->
 <section id="game" class="screen hidden">
-  <header class="brand compact gamebar">
+  <!-- Everything has to fit one phone screen, so the game's own buttons
+       share the top bar rather than taking a row of their own. -->
+  <header class="topbar">
     <a class="backlink" href="/yahtzee/">&lsaquo; Back</a>
     <h1>Yahtzee</h1>
+    <div class="topbtns">
+      <button id="undoBtn" class="tbtn">Undo</button>
+      <button id="quitBtn" class="tbtn">New game</button>
+    </div>
   </header>
 
-  <!-- the scoresheet: built by buildSheet(), filled by render() -->
+  <!-- the scoresheet: built by buildSheet(), filled by render(); it fills
+       the rest of the screen, the box rows sharing whatever height is left -->
   <div class="sheet-wrap"><div class="sheet" id="sheet"></div></div>
 
-  <p class="sheet-hint">Tap a player to see their open boxes. Tap a box to score it.</p>
-
-  <div class="mini-row">
-    <button id="undoBtn" class="ghost">Undo</button>
-    <button id="quitBtn" class="ghost">New game</button>
-  </div>
-
-  <p id="msg" class="msg"></p>
 </section>
 
 <!-- ============ ENTRY ============ -->
 <!-- scoring one box: what it offers depends on the box; see openEntry() -->
 <div id="entryOverlay" class="overlay sheet-entry hidden">
-  <div class="entry-card">
+  <div class="entry-card" id="entryCard">
     <div class="entry-top">
       <div>
         <b id="entryTitle"></b>
@@ -100,6 +99,6 @@
 </div>
 
 <script src="/account.js?v=29" defer></script>
-<script src="app.js?v=2"></script>
+<script src="app.js?v=12"></script>
 </body>
 </html>

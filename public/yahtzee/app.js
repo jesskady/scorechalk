@@ -8,7 +8,7 @@
 
 const KEY = 'yahtzee-v1';
 const NAMES_KEY = 'yahtzee-names-v1';
-const MAX_PLAYERS = 6;
+const MAX_PLAYERS = 10;   // past four, the player columns scroll sideways
 const BONUS_AT = 63, BONUS = 35, YAHTZEE_BONUS = 100;
 
 /* The boxes, top to bottom. kind says how a box is scored:
@@ -113,7 +113,13 @@ function setYBonus(p, n) {
 let setupNames = (() => {
   try { return JSON.parse(localStorage.getItem(NAMES_KEY)) || ['', '']; } catch (e) { return ['', '']; }
 })();
-let setupN = Math.min(Math.max(setupNames.length, 1), MAX_PLAYERS);
+// How many played last time, not how many names have ever been typed: the
+// names are kept for all ten places, whatever tonight's count.
+const COUNT_KEY = 'yahtzee-count-v1';
+let setupN = (() => {
+  try { return Math.min(Math.max(Number(localStorage.getItem(COUNT_KEY)) || 2, 1), MAX_PLAYERS); }
+  catch (e) { return 2; }
+})();
 
 function renderSetup() {
   $('pCount').textContent = setupN;
@@ -143,6 +149,7 @@ $('startBtn').onclick = async () => {
   if (load() && !(await askConfirm('This replaces the saved game.', 'Start new game'))) return;
   const names = Array.from({ length: setupN }, (_, i) => (setupNames[i] || '').trim() || `Player ${i + 1}`);
   S = newGame(names);
+  try { localStorage.setItem(COUNT_KEY, String(setupN)); } catch (e) {}
   save();
   showGame();
 };
@@ -153,13 +160,13 @@ $('resumeBtn').onclick = () => { S = load(); if (S) showGame(); };
    A grid: the box names in the first column, a column per player. Rows are
    built once; render() fills the numbers and the highlighting. */
 
+// The lower section starts after a thicker line rather than a heading row:
+// the sheet has to fit one phone screen, and the line says as much.
 const ROWS = [
-  { head: 'Upper section' },
   ...UPPER.map((b) => ({ box: b })),
   { total: 'upper', label: 'Upper total' },
   { total: 'bonus', label: 'Bonus' },
-  { head: 'Lower section' },
-  ...LOWER.map((b) => ({ box: b })),
+  ...LOWER.map((b, i) => ({ box: b, split: i === 0 })),
   { ybonus: true, label: 'Yahtzee bonus' },
   { total: 'lower', label: 'Lower total' },
   { total: 'grand', label: 'Grand total', grand: true },
@@ -168,6 +175,8 @@ const ROWS = [
 function showGame() {
   $('setup').classList.add('hidden');
   $('game').classList.remove('hidden');
+  // the sign-in bubble would sit on the top bar's buttons
+  document.body.classList.add('playing');
   buildSheet();
   render();
   if (S.over) showWin();
@@ -177,18 +186,26 @@ function buildSheet() {
   const n = S.names.length;
   const sheet = $('sheet');
   sheet.style.setProperty('--cols', n);
-  sheet.className = 'sheet' + (n >= 5 ? ' many' : '');
+  // the screen's width follows the players too: see #game.screen in the CSS
+  $('game').style.setProperty('--cols', n);
+  // Four players share the width; from five, columns keep a readable width
+  // and the grid scrolls sideways under the box names.
+  sheet.className = 'sheet' + (n > 4 ? ' wide' : '');
+  // The rows: the player tiles, then the boxes sharing the height that is
+  // left (never under 26px), the totals only as tall as their text.
+  sheet.style.gridTemplateRows = ['auto', ...ROWS.map((r) => (r.total ? 'auto' : 'minmax(26px, 1fr)'))].join(' ');
+  // a player's tile is just their name: the grand total is at the bottom
   let html = '<div class="corner"></div>';
   S.names.forEach((name, p) => {
-    html += `<button class="ptile" data-p="${p}"><span class="pname">${esc(name)}</span><b class="ptotal"></b></button>`;
+    html += `<button class="ptile" data-p="${p}"><span class="pname">${esc(name)}</span></button>`;
   });
   for (const row of ROWS) {
-    if (row.head) { html += `<div class="sect" style="grid-column:1 / -1">${row.head}</div>`; continue; }
     const id = row.box ? row.box.id : row.ybonus ? 'ybonus' : row.total;
-    const cls = row.box ? 'lab box' : row.ybonus ? 'lab box yb' : 'lab tot' + (row.grand ? ' grand' : '');
+    const split = row.split ? ' split' : '';
+    const cls = (row.box ? 'lab box' : row.ybonus ? 'lab box yb' : 'lab tot' + (row.grand ? ' grand' : '')) + split;
     html += `<div class="${cls}" data-row="${id}">${esc(row.box ? row.box.label : row.label)}</div>`;
     S.names.forEach((_, p) => {
-      if (row.box || row.ybonus) html += `<button class="cell" data-p="${p}" data-id="${id}"></button>`;
+      if (row.box || row.ybonus) html += `<button class="cell${split}" data-p="${p}" data-id="${id}"></button>`;
       else html += `<div class="cell tot${row.grand ? ' grand' : ''}" data-p="${p}" data-total="${id}"></div>`;
     });
   }
@@ -209,7 +226,6 @@ function render() {
     const p = Number(t.dataset.p);
     t.classList.toggle('sel', p === sel);
     t.classList.toggle('turn', p === S.cur && !S.over);
-    t.querySelector('.ptotal').textContent = totals(p).grand;
   });
 
   document.querySelectorAll('button.cell').forEach((c) => {
@@ -253,10 +269,15 @@ function render() {
   });
 }
 
+/* A passing message takes the title's place in the top bar for a moment:
+   anywhere over the sheet would cover a score, and the title's space is
+   exactly what is free. */
 function flash(text) {
-  $('msg').textContent = text;
+  const t = document.querySelector('.topbar h1');
+  t.textContent = text;
+  t.classList.add('msg-on');
   clearTimeout(msgTimer);
-  msgTimer = setTimeout(() => { $('msg').textContent = ''; }, 2400);
+  msgTimer = setTimeout(() => { t.textContent = 'Yahtzee'; t.classList.remove('msg-on'); }, 2400);
 }
 
 /* ---------------- scoring a box ----------------
@@ -290,7 +311,7 @@ function openEntry(p, id) {
       if (n) body.append(choice('Take one off', () => { setYBonus(p, n - 1); done(); }, 'quiet'));
     }
     $('entryEmpty').classList.add('hidden');
-    $('entryOverlay').classList.remove('hidden');
+    showEntry();
     return;
   }
 
@@ -328,7 +349,7 @@ function openEntry(p, id) {
   }
 
   body.append(choice('Scratch — 0', () => score(0), 'scratch-btn' + (v === 0 ? ' on' : '')));
-  $('entryOverlay').classList.remove('hidden');
+  showEntry();
 }
 
 function choice(label, onTap, cls) {
@@ -341,18 +362,74 @@ function choice(label, onTap, cls) {
 
 function score(v) {
   const { p, id } = entry;
+  const turnWas = S.cur;
   setBox(p, id, v);
-  done(`${S.names[p]}: ${box(id).label} ${v ? v : 'scratched'}`);
+  done(`${S.names[p]}: ${box(id).label} ${v ? v : 'scratched'}`, turnWas);
 }
 
-function done(text) {
+function done(text, turnWas) {
   closeEntry();
   save(); render();
+  // the turn passed: bring the next player's column into view
+  if (turnWas != null && S.cur !== turnWas) showColumn(S.cur);
   if (text) flash(text);
   if (S.over) showWin();
 }
 
+/* With more players than fit, bring a player's column into view — clear of
+   the box names, which stay put over the left of the scrolling grid. */
+function showColumn(p) {
+  const wrap = document.querySelector('.sheet-wrap');
+  if (wrap.scrollWidth <= wrap.clientWidth) return;
+  const tile = document.querySelector(`.ptile[data-p="${p}"]`);
+  const names = document.querySelector('.corner').getBoundingClientRect().width;
+  // the column's place within the scrolling grid, whatever is scrolled now
+  const r = tile.getBoundingClientRect(), w = wrap.getBoundingClientRect();
+  const left = r.left - w.left + wrap.scrollLeft, right = left + r.width;
+  if (left < wrap.scrollLeft + names) wrap.scrollTo({ left: left - names, behavior: 'smooth' });
+  else if (right > wrap.scrollLeft + wrap.clientWidth) wrap.scrollTo({ left: right - wrap.clientWidth, behavior: 'smooth' });
+}
+
 function closeEntry() { $('entryOverlay').classList.add('hidden'); entry = null; }
+
+/* The scoring panel is a bubble beside the box that was tapped, pointing at
+   it: below the box when there is room, above it when there is not, and
+   slid sideways to stay on screen — the pointer slides the other way to
+   keep pointing at the box. It moves again when the screen changes size,
+   as when a phone's keyboard opens for a typed total. */
+function showEntry() {
+  $('entryOverlay').classList.remove('hidden');
+  placeEntry();
+}
+
+function placeEntry() {
+  if (!entry) return;
+  const cell = document.querySelector(`button.cell[data-p="${entry.p}"][data-id="${entry.id}"]`);
+  const card = $('entryCard');
+  if (!cell) return;
+  const vv = window.visualViewport;
+  const viewH = vv ? vv.height : window.innerHeight, viewW = window.innerWidth;
+  const top0 = vv ? vv.offsetTop : 0;
+  const c = cell.getBoundingClientRect();
+  const w = card.offsetWidth, h = card.offsetHeight, gap = 10, edge = 8;
+
+  // across: centred on the box, kept on screen
+  const left = Math.min(Math.max(c.left + c.width / 2 - w / 2, edge), viewW - w - edge);
+  // up or down: wherever it fits, preferring below
+  const below = c.bottom + gap + h <= top0 + viewH - edge || c.top - gap - h < top0 + edge;
+  let top = below ? c.bottom + gap : c.top - gap - h;
+  top = Math.min(Math.max(top, top0 + edge), top0 + viewH - h - edge);
+
+  card.style.left = left + 'px';
+  card.style.top = top + 'px';
+  card.classList.toggle('below', below);
+  card.classList.toggle('above', !below);
+  // where along the bubble's edge the pointer sits: over the box's middle
+  card.style.setProperty('--ax', Math.min(Math.max(c.left + c.width / 2 - left, 18), w - 18) + 'px');
+}
+
+window.addEventListener('resize', placeEntry);
+if (window.visualViewport) window.visualViewport.addEventListener('resize', placeEntry);
 
 $('entryClose').onclick = closeEntry;
 $('entryOverlay').addEventListener('click', (e) => { if (e.target === $('entryOverlay')) closeEntry(); });

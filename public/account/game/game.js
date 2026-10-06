@@ -388,8 +388,8 @@
 
     // the sheet, as it ended: a dash for a scratched box
     const sheet = el('div', 'yz-sheet');
-    sheet.style.gridTemplateColumns = `minmax(96px, 1.4fr) repeat(${n}, minmax(40px, 1fr))`;
-    sheet.append(el('span', 'yz-h'));
+    sheet.style.gridTemplateColumns = `minmax(96px, 1.4fr) repeat(${n}, minmax(${n > 4 ? 56 : 40}px, 1fr))`;
+    sheet.append(el('span', 'yz-h yz-l'));
     names.forEach((nm) => sheet.append(el('span', 'yz-h', nm)));
     for (const [id, label] of YZ_BOXES) {
       const sum = id === 'bonus' || id === 'ybonus';

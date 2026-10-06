@@ -48,50 +48,66 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 /* ---------- The sheet ----------
    A grid like the paper one: box names down the left, a column per player.
    The player tiles stay at the top while the sheet scrolls. */
-.sheet-wrap{overflow-x:auto;margin:0 -2px}
-.sheet{
-  display:grid;grid-template-columns:minmax(104px,1.4fr) repeat(var(--cols),minmax(46px,1fr));
-  border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--card);
-  min-width:min-content;
+/* The game is one screen tall and the sheet takes what the top bar leaves;
+   only a very short screen, where the rows hit their 26px floor, scrolls. */
+#game.screen{height:100dvh;min-height:0;gap:6px;padding-top:6px}
+/* Wider than the other screens when there are players to fit: about 96px a
+   player beside the names, so a laptop shows ten without scrolling. A phone
+   is narrower than this anyway, and scrolls past four as before. */
+#game.screen{max-width:max(560px, calc(130px + var(--cols, 2) * 96px))}
+body.playing .acct{display:none}
+/* The frame clips and scrolls; the grid inside is as wide as its columns
+   need. Past four players that is wider than the phone, and the player
+   columns scroll sideways under the box names, which stay put. */
+.sheet-wrap{
+  flex:1;min-height:0;overflow:auto;margin:0 -2px;
+  border:1px solid var(--line);border-radius:12px;background:var(--card);
+  overscroll-behavior:contain;
 }
+.sheet{
+  display:grid;grid-template-columns:minmax(98px,1.35fr) repeat(var(--cols),minmax(46px,1fr));
+  min-width:min-content;min-height:100%;
+}
+/* five or more: each column keeps room for a name, about four to a phone
+   screen, and the grid scrolls */
+.sheet.wide{grid-template-columns:104px repeat(var(--cols),minmax(66px,1fr))}
 .sheet>*{border-top:1px solid var(--line);border-left:1px solid var(--line);min-width:0}
 .corner,.ptile{position:sticky;top:0;z-index:2;border-top:none}
 .corner{background:var(--card);border-left:none}
+/* the box names stay put while the player columns scroll under them */
+.lab,.corner{position:sticky;left:0;z-index:1;box-shadow:1px 0 0 var(--line)}
+.corner{z-index:3}
 
 .ptile{
-  background:var(--bg2);padding:7px 3px 6px;display:flex;flex-direction:column;align-items:center;gap:1px;
+  background:var(--bg2);padding:8px 3px 6px;display:flex;flex-direction:column;align-items:center;justify-content:center;
   border-bottom:3px solid transparent;
 }
-.ptile .pname{font-size:11.5px;font-weight:700;color:var(--dim);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ptile .ptotal{font-size:18px;font-weight:800;font-variant-numeric:tabular-nums}
+.ptile .pname{font-size:12.5px;font-weight:700;color:var(--dim);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ptile.sel{background:#1c2b23;border-bottom-color:var(--green)}
 .ptile.sel .pname{color:var(--txt)}
 /* whose turn: a dot before the name */
 .ptile.turn .pname::before{content:'● ';color:var(--gold)}
 
-.sect{
-  font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);
-  padding:6px 8px 4px;background:var(--bg);border-left:none;
-}
-.lab{padding:0 8px;display:flex;align-items:center;font-size:13.5px;min-height:36px;border-left:none;
+/* where the lower section starts */
+.sheet>.split{border-top:3px solid var(--line)}
+.lab{padding:0 8px;display:flex;align-items:center;font-size:13.5px;border-left:none;background:var(--card);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.lab.tot{font-size:12.5px;color:var(--dim);font-weight:700;background:var(--bg2)}
-.lab.grand{color:var(--txt);font-size:14px}
+/* the totals: not tapped, so only as tall as their text */
+.lab.tot{font-size:11.5px;color:var(--dim);font-weight:700;background:var(--bg2);padding-top:3px;padding-bottom:3px}
+.lab.grand{color:var(--txt);font-size:13.5px;padding-top:5px;padding-bottom:5px}
 
 .cell{
-  display:flex;align-items:center;justify-content:center;min-height:36px;
+  display:flex;align-items:center;justify-content:center;
   font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;background:none;
 }
 button.cell:active{background:var(--line)}
 .cell.scratch{color:var(--dim);font-weight:400}
-.cell.tot{background:var(--bg2);font-size:13.5px;color:var(--dim)}
-.cell.tot.grand{color:var(--txt);font-size:16px;font-weight:800}
+.cell.tot{background:var(--bg2);font-size:12.5px;color:var(--dim);padding:3px 0}
+.cell.tot.grand{color:var(--txt);font-size:15px;font-weight:800;padding:5px 0}
 .cell.tot.earned{color:var(--green)}
 /* the bonus row: its value, and how far off it is underneath */
-.cell.tot small{display:block;font-size:9.5px;font-weight:500;color:var(--dim);line-height:1.1;white-space:nowrap}
+.cell.tot small{display:block;font-size:9px;font-weight:500;color:var(--dim);line-height:1.1;white-space:nowrap}
 .cell.tot:has(small){flex-direction:column;gap:1px}
-.sheet.many .cell{font-size:13.5px}
-.sheet.many .lab{font-size:12.5px;padding:0 6px}
 
 /* The highlight, for the selected player: green where they have scored,
    yellow where they still can, on their cells and the box names alike. */
@@ -100,24 +116,42 @@ button.cell:active{background:var(--line)}
 .lab.open{color:#f0d77a}
 .lab.filled{color:#8fd4aa}
 
-.sheet-hint{text-align:center;font-size:12px;color:var(--dim)}
-.mini-row{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .ghost{color:var(--dim);border:1px solid var(--line);border-radius:11px;padding:9px;width:100%;font-size:14px}
-.msg{text-align:center;font-size:13px;font-weight:600;color:var(--gold);min-height:16px}
+
+/* the top bar: back, the name, and the game's own buttons */
+.topbar{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;flex:none}
+.topbar .backlink{padding:4px 2px}
+.topbar h1{font-size:13px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:var(--dim);text-align:center}
+.topbtns{display:flex;gap:6px}
+.tbtn{font-size:12.5px;font-weight:600;color:var(--dim);border:1px solid var(--line);border-radius:9px;padding:6px 10px}
+.tbtn:active{background:var(--card);color:var(--txt)}
+
+/* a passing message, standing in for the title (see flash) */
+.topbar h1{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.topbar h1.msg-on{color:var(--gold);letter-spacing:0;text-transform:none;font-size:13px}
 
 /* ---------- Scoring a box ---------- */
 .overlay{
   position:fixed;inset:0;background:#0b0e12ee;
   display:flex;align-items:center;justify-content:center;padding:24px;z-index:10;
 }
-.overlay.sheet-entry{align-items:flex-end;padding:0;background:#0b0e12aa}
+/* the scoring bubble: placed beside its box by placeEntry() */
+.overlay.sheet-entry{display:block;padding:0;background:#0b0e1255}
 .entry-card{
-  background:var(--card);border:1px solid var(--line);border-bottom:none;border-radius:18px 18px 0 0;
-  width:100%;max-width:560px;padding:14px 14px calc(16px + var(--pad));
-  display:flex;flex-direction:column;gap:10px;
+  position:fixed;width:min(300px, calc(100vw - 16px));
+  background:var(--card);border:1px solid #3a4756;border-radius:14px;
+  padding:12px 12px 12px;display:flex;flex-direction:column;gap:9px;
+  box-shadow:0 12px 30px #000c;
 }
+/* the pointer: a small turned square on the edge facing the box */
+.entry-card::before{
+  content:'';position:absolute;left:calc(var(--ax, 50%) - 8px);width:16px;height:16px;
+  background:var(--card);border:1px solid #3a4756;transform:rotate(45deg);
+}
+.entry-card.below::before{top:-9px;border-right:none;border-bottom:none}
+.entry-card.above::before{bottom:-9px;border-left:none;border-top:none}
 .entry-top{display:flex;justify-content:space-between;align-items:flex-start}
-.entry-top b{display:block;font-size:19px}
+.entry-top b{display:block;font-size:17px}
 .entry-top small{color:var(--dim);font-size:12.5px}
 .entry-x{font-size:26px;line-height:1;color:var(--dim);padding:0 6px}
 .entry-hint{font-size:13px;color:var(--dim)}
@@ -126,7 +160,7 @@ button.cell:active{background:var(--line)}
 .face-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
 .choice{
   background:var(--bg2);border:1px solid var(--line);border-radius:11px;
-  padding:14px 0;font-size:19px;font-weight:800;font-variant-numeric:tabular-nums;
+  padding:12px 0;font-size:18px;font-weight:800;font-variant-numeric:tabular-nums;
 }
 .choice:active{background:var(--green-d);border-color:var(--green)}
 .choice.on{border-color:var(--green);color:var(--green)}
@@ -155,5 +189,6 @@ button.cell:active{background:var(--line)}
 .standings li{display:flex;justify-content:space-between;gap:10px;padding:6px 10px;border-radius:8px;background:var(--bg2);font-size:15px}
 .standings li b{font-variant-numeric:tabular-nums}
 
-/* five or six players: the bonus note has to fit a narrow column */
-.sheet.many .cell.tot small{font-size:8.5px;letter-spacing:-.1px}
+
+/* scrolling columns: the name gets all of the tile's width */
+.sheet.wide .ptile{padding-left:1px;padding-right:1px}

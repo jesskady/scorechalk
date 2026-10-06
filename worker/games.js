@@ -19,6 +19,10 @@ import { currentUserId } from './auth.js';
 const TURNS_PER_STATEMENT = 10;
 const MAX_TURNS = 400;
 const MAX_DETAIL = 64;
+// Players in one game. Darts and cribbage stop well short of this; a
+// Yahtzee table can run to ten.
+const MAX_PLAYERS = 12;
+const isPlayerIdx = (v) => isInt(v) && v >= 0 && v < MAX_PLAYERS;
 
 const json = (body, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -41,11 +45,11 @@ function validate(body) {
   if (!isInt(body.started_at)) return 'started_at';
   if (body.ended_at != null && !isInt(body.ended_at)) return 'ended_at';
   if (body.winner_idx != null && !isInt(body.winner_idx)) return 'winner_idx';
-  if (body.me_idx != null && (!isInt(body.me_idx) || body.me_idx < 0 || body.me_idx > 7)) return 'me_idx';
+  if (body.me_idx != null && !isPlayerIdx(body.me_idx)) return 'me_idx';
 
-  if (!Array.isArray(body.players) || body.players.length < 1 || body.players.length > 8) return 'players';
+  if (!Array.isArray(body.players) || body.players.length < 1 || body.players.length > MAX_PLAYERS) return 'players';
   for (const p of body.players) {
-    if (!isInt(p.idx) || p.idx < 0 || p.idx > 7) return 'player.idx';
+    if (!isPlayerIdx(p.idx)) return 'player.idx';
     // 80, not 40: in a builder game played in teams a "player" is a team,
     // named for everyone on it — four 14-letter names and their " & "s
     if (!str(p.name, 80)) return 'player.name';
@@ -54,7 +58,7 @@ function validate(body) {
   if (!Array.isArray(body.turns)) return 'turns';
   if (body.turns.length > MAX_TURNS) return 'too many turns';
   for (const t of body.turns) {
-    if (!isInt(t.player_idx) || t.player_idx < 0 || t.player_idx > 7) return 'turn.player_idx';
+    if (!isPlayerIdx(t.player_idx)) return 'turn.player_idx';
     if (!isInt(t.turn_no) || t.turn_no < 0) return 'turn.turn_no';
     if (!isInt(t.points)) return 'turn.points';
     if (!isInt(t.score_after)) return 'turn.score_after';
@@ -212,7 +216,7 @@ export async function patchGame(request, env, id) {
   try { body = await request.json(); }
   catch { return json({ error: 'Invalid JSON' }, 400); }
 
-  if (!isInt(body.me_idx) || body.me_idx < 0 || body.me_idx > 7) {
+  if (!isPlayerIdx(body.me_idx)) {
     return json({ error: 'Invalid me_idx' }, 400);
   }
 
