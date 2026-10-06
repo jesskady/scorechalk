@@ -9,17 +9,23 @@
 <title>Yahtzee · Score Chalk</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='15' fill='%23182029'/><circle cx='16' cy='16' r='11' fill='%232e7d4f'/><circle cx='16' cy='16' r='7' fill='%23182029'/><circle cx='16' cy='16' r='3.5' fill='%23c0392b'/></svg>">
 <!-- ?v= must be bumped whenever a stylesheet or app.js changes, as in darts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredericka+the+Great&family=Josefin+Sans:wght@400;600;700&family=Bree+Serif&family=Kalam:wght@400;700&display=swap">
 <link rel="stylesheet" href="../shared.css?v=29">
-<link rel="stylesheet" href="style.css?v=11">
+<!-- the room this game is played in (data-room on the body), with any
+     adjustments of this game's own at the top of style.css -->
+<link rel="stylesheet" href="../themes.css?v=4">
+<link rel="stylesheet" href="style.css?v=12">
 </head>
-<body>
+<body data-room="living" data-game="yahtzee">
 
 <!-- ============ SETUP ============ -->
 <section id="setup" class="screen">
   <a class="backlink" href="/">&lsaquo; All games</a>
 
   <header class="brand">
-    <h1>Yahtzee</h1>
+    <h1 class="room-title">Yahtzee</h1>
     <p>A scoresheet for one to ten players</p>
   </header>
 
@@ -45,7 +51,7 @@
        share the top bar rather than taking a row of their own. -->
   <header class="topbar">
     <a class="backlink" href="/yahtzee/">&lsaquo; Back</a>
-    <h1>Yahtzee</h1>
+    <h1 class="room-title">Yahtzee</h1>
     <div class="topbtns">
       <button id="undoBtn" class="tbtn">Undo</button>
       <button id="quitBtn" class="tbtn">New game</button>
@@ -61,7 +67,8 @@
 <!-- ============ ENTRY ============ -->
 <!-- scoring one box: what it offers depends on the box; see openEntry() -->
 <div id="entryOverlay" class="overlay sheet-entry hidden">
-  <div class="entry-card" id="entryCard">
+  <!-- a slip of the room's paper -->
+  <div class="entry-card paper plain" id="entryCard">
     <div class="entry-top">
       <div>
         <b id="entryTitle"></b>

@@ -9,17 +9,23 @@
 <title>Cribbage · Score Chalk</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='15' fill='%23182029'/><circle cx='16' cy='16' r='11' fill='%232e7d4f'/><circle cx='16' cy='16' r='7' fill='%23182029'/><circle cx='16' cy='16' r='3.5' fill='%23c0392b'/></svg>">
 <!-- ?v= must be bumped whenever a stylesheet or app.js changes, as in darts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredericka+the+Great&family=Josefin+Sans:wght@400;600;700&family=Bree+Serif&family=Kalam:wght@400;700&display=swap">
 <link rel="stylesheet" href="../shared.css?v=29">
-<link rel="stylesheet" href="style.css?v=16">
+<!-- the room this game is played in (data-room on the body), with any
+     adjustments of this game's own at the top of style.css -->
+<link rel="stylesheet" href="../themes.css?v=4">
+<link rel="stylesheet" href="style.css?v=17">
 </head>
-<body>
+<body data-room="living" data-game="cribbage">
 
 <!-- ============ SETUP ============ -->
 <section id="setup" class="screen">
   <a class="backlink" href="/">&lsaquo; All games</a>
 
   <header class="brand">
-    <h1>Cribbage</h1>
+    <h1 class="room-title">Cribbage</h1>
     <p>Pegging, hands and crib, first to 121</p>
   </header>
 
@@ -46,7 +52,7 @@
 <section id="game" class="screen hidden">
   <header class="brand compact gamebar">
     <a class="backlink" href="/cribbage/">&lsaquo; Back</a>
-    <h1>Cribbage</h1>
+    <h1 class="room-title">Cribbage</h1>
   </header>
 
   <!-- the board: drawn once per game by buildBoard(), pegs moved by render() -->
@@ -83,7 +89,8 @@
   <!-- ===== count phase: one hand at a time, in counting order ===== -->
   <div id="countBox" class="countbox hidden">
     <div class="count-seq" id="countSeq"></div>
-    <div class="handcard" id="handCard">
+    <!-- the hand being counted, on a slip of the room's paper -->
+    <div class="handcard paper plain" id="handCard">
       <div class="hand-head">
         <div class="hand-name">
           <b id="handTitle"></b>

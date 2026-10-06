@@ -146,6 +146,12 @@ surface. Builder games choose their room on the setup screen — Farkle is the
 Living Room, Canasta the Parlor, anything new the Workshop — and keep it in My
 games. Adding a room is one block in `themes.css`.
 
+The dedicated games each have a fixed room — Yahtzee, Cribbage and Magic the
+Living Room — and name themselves with `data-game`. A game may adjust its room
+with a short block at the top of its own stylesheet that redefines values only
+(Magic dims the Living Room, so a phone lying on the table doesn't glare);
+everything it leaves alone still follows the room.
+
 A game
 that saves a game in progress can also be listed under *Pick up where you left
 off* by adding its storage key to `GAMES` in `home.js`. Games share `shared.css` — the palette and the reset — and nothing

@@ -83,7 +83,7 @@ body.playing .acct{display:none}
   border-bottom:3px solid transparent;
 }
 .ptile .pname{font-size:12.5px;font-weight:700;color:var(--dim);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ptile.sel{background:#1c2b23;border-bottom-color:var(--green)}
+.ptile.sel{background:var(--select,#1c2b23);border-bottom-color:var(--green)}
 .ptile.sel .pname{color:var(--txt)}
 /* whose turn: a dot before the name */
 .ptile.turn .pname::before{content:'● ';color:var(--gold)}
@@ -111,10 +111,10 @@ button.cell:active{background:var(--line)}
 
 /* The highlight, for the selected player: green where they have scored,
    yellow where they still can, on their cells and the box names alike. */
-.cell.filled,.lab.filled{background:#17301f}
-.cell.open,.lab.open{background:#2d2712}
-.lab.open{color:#f0d77a}
-.lab.filled{color:#8fd4aa}
+.cell.filled,.lab.filled{background:var(--mark-done,#17301f)}
+.cell.open,.lab.open{background:var(--mark-open,#2d2712)}
+.lab.open{color:var(--mark-open-ink,#f0d77a)}
+.lab.filled{color:var(--mark-done-ink,#8fd4aa)}
 
 .ghost{color:var(--dim);border:1px solid var(--line);border-radius:11px;padding:9px;width:100%;font-size:14px}
 
@@ -132,21 +132,21 @@ button.cell:active{background:var(--line)}
 
 /* ---------- Scoring a box ---------- */
 .overlay{
-  position:fixed;inset:0;background:#0b0e12ee;
+  position:fixed;inset:0;background:var(--veil,#0b0e12ee);
   display:flex;align-items:center;justify-content:center;padding:24px;z-index:10;
 }
 /* the scoring bubble: placed beside its box by placeEntry() */
-.overlay.sheet-entry{display:block;padding:0;background:#0b0e1255}
+.overlay.sheet-entry{display:block;padding:0;background:var(--veil-soft,#0b0e1255)}
 .entry-card{
   position:fixed;width:min(300px, calc(100vw - 16px));
-  background:var(--card);border:1px solid #3a4756;border-radius:14px;
+  background:var(--card);border:1px solid var(--paper-edge,#3a4756);border-radius:14px;
   padding:12px 12px 12px;display:flex;flex-direction:column;gap:9px;
-  box-shadow:0 12px 30px #000c;
+  box-shadow:0 12px 30px var(--shadow,#000c);
 }
 /* the pointer: a small turned square on the edge facing the box */
 .entry-card::before{
   content:'';position:absolute;left:calc(var(--ax, 50%) - 8px);width:16px;height:16px;
-  background:var(--card);border:1px solid #3a4756;transform:rotate(45deg);
+  background:var(--paper,var(--card));border:1px solid var(--paper-edge,#3a4756);transform:rotate(45deg);
 }
 .entry-card.below::before{top:-9px;border-right:none;border-bottom:none}
 .entry-card.above::before{bottom:-9px;border-left:none;border-top:none}
@@ -168,8 +168,8 @@ button.cell:active{background:var(--line)}
 .choice.scratch-btn{font-size:14px;font-weight:600;color:var(--dim);padding:11px 0}
 .choice.quiet{font-size:13px;font-weight:600;color:var(--dim);padding:9px 0}
 .typed-row{display:flex;gap:6px}
-.choice.enter{padding:0 22px;font-size:16px;background:var(--green);border-color:var(--green);color:#fff}
-.entry-empty{color:#e2857a;border-color:#5a302a}
+.choice.enter{padding:0 22px;font-size:16px;background:var(--green);border-color:var(--green);color:var(--on-primary,#fff)}
+.entry-empty{color:var(--neg,#e2857a);border-color:var(--neg-line,#5a302a)}
 
 /* ---------- Overlays ---------- */
 .win-card{
@@ -192,3 +192,13 @@ button.cell:active{background:var(--line)}
 
 /* scrolling columns: the name gets all of the tile's width */
 .sheet.wide .ptile{padding-left:1px;padding-right:1px}
+
+/* ---------- the room ---------- */
+/* the name in the room's lettering; a passing message keeps the plain face */
+.topbar h1.room-title{font-size:19px;color:var(--txt)}
+.topbar h1.room-title.msg-on{font-family:inherit;font-size:13px;color:var(--gold)}
+.brand h1.room-title{font-size:30px}
+/* on the slip, the entry's own text takes the paper's ink */
+.entry-card.paper .entry-top b,.entry-card.paper .entry-hint,.entry-card.paper .entry-top small{color:var(--paper-ink)}
+.entry-card.paper .entry-hint,.entry-card.paper .entry-top small{color:var(--paper-dim)}
+.entry-card.paper .entry-x{color:var(--paper-dim)}

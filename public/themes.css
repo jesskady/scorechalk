@@ -19,7 +19,14 @@
    plain face in every room; only colour and lettering change.
 
    Fonts are loaded by each page from Google Fonts; every face here falls
-   back to something close on the system. */
+   back to something close on the system.
+
+   A dedicated game names itself too — <body data-room="living"
+   data-game="magic"> — and may adjust its room with a short block at the top
+   of its own stylesheet, redefining values only, never restyling parts:
+     [data-game="magic"]{ --bg:...; --card:...; }
+   Everything it doesn't redefine still follows the room. When two games
+   want the same adjustment, it belongs here as a named variant instead. */
 
 /* ---------- the names every room sets ---------- */
 [data-room]{
@@ -34,6 +41,11 @@
   --paper:var(--card); --paper-ink:var(--txt); --paper-dim:var(--dim);
   --paper-rule:transparent; --paper-margin:transparent; --paper-edge:var(--line);
   --paper-neg:var(--neg);     /* a loss written on the paper */
+  /* marking what's done and what's still open, as on a scoresheet */
+  --mark-done:#17301f; --mark-done-ink:#8fd4aa;
+  --mark-open:#2d2712; --mark-open-ink:#f0d77a;
+  --veil-soft:#0b0e1255;      /* the lighter dimming behind a bubble */
+  --shadow:#000c;
 }
 
 /* ---------- the parlor: slate, chalk, brass, felt ---------- */
@@ -68,6 +80,9 @@ body[data-room="parlor"]{
   --paper:#fbf1bd; --paper-ink:#22324d; --paper-dim:#5f5b4c;
   --paper-rule:#a9c4e0; --paper-margin:#d4544c; --paper-edge:#d8cfa3;
   --paper-neg:#c0392b;
+  --mark-done:#dcebd2; --mark-done-ink:#3c6b45;
+  --mark-open:#f6e7a9; --mark-open-ink:#77580f;
+  --veil-soft:#3a2d2040; --shadow:#3a2d2040;
   color-scheme:light;
 }
 body[data-room="living"]{
@@ -87,6 +102,9 @@ body[data-room="living"]{
   --f-hand:"Josefin Sans", "Avenir Next", "Futura", sans-serif;
   --paper:#ffffff; --paper-ink:#1e2b2a; --paper-dim:#5b6a67;
   --paper-rule:#dbe4df; --paper-edge:#1e2b2a;
+  --mark-done:#d6ece2; --mark-done-ink:#24564a;
+  --mark-open:#fbf1bd; --mark-open-ink:#6b5a12;
+  --veil-soft:#1e2b2a33; --shadow:#1e2b2a40;
   color-scheme:light;
 }
 body[data-room="workshop"]{
@@ -114,3 +132,6 @@ body[data-room="workshop"]{
     repeating-linear-gradient(180deg, transparent 0 23px, var(--paper-rule) 23px 24px);
 }
 [data-room] .paper .hand{font-family:var(--f-hand)}
+/* paper with the ruling but no margin line, for a slip whose content runs
+   close to its left edge */
+[data-room] .paper.plain{background-image:repeating-linear-gradient(180deg, transparent 0 23px, var(--paper-rule) 23px 24px)}

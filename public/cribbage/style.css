@@ -83,7 +83,7 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
   font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;
   padding:3px 10px;border-radius:999px;border:1px solid var(--line);
 }
-.step.is-on{color:#fff;background:var(--green-d);border-color:var(--green)}
+.step.is-on{color:var(--on-primary,#fff);background:var(--green-d);border-color:var(--green)}
 .step-sep{opacity:.5}
 
 /* ---------- Players ---------- */
@@ -104,13 +104,13 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 .pmeta{display:flex;gap:5px;align-items:center}
 .heels{
   font-size:11px;color:var(--gold);white-space:nowrap;
-  border:1px solid #6b5620;background:#241f11;border-radius:999px;padding:2px 9px;
+  border:1px solid var(--badge-line,#6b5620);background:var(--badge-bg,#241f11);border-radius:999px;padding:2px 9px;
 }
 .heels b{font-weight:800}
-.heels:active{background:#3a3016}
+.heels:active{filter:brightness(1.15)}
 .badge-d{
   font-size:9.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;
-  color:var(--gold);border:1px solid #4a3c18;background:#241f11;padding:1px 7px;border-radius:999px;
+  color:var(--badge-fg,var(--gold));border:1px solid var(--badge-line,#4a3c18);background:var(--badge-bg,#241f11);padding:1px 7px;border-radius:999px;
 }
 .lead{font-size:11px;font-weight:700;color:var(--green)}
 
@@ -162,7 +162,7 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 .hand-name{display:flex;flex-direction:column;align-items:flex-start;gap:5px}
 
 .hand-total{font-size:28px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1}
-.hand-total.bad{color:#e2857a}
+.hand-total.bad{color:var(--neg,#e2857a)}
 .hand-taps{display:flex;flex-wrap:wrap;gap:5px;min-height:22px}
 .tap{font-size:12px;font-weight:600;background:var(--bg2);border:1px solid var(--line);border-radius:999px;padding:2px 9px}
 .tap-none{font-size:12px;color:var(--dim)}
@@ -200,7 +200,7 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 
 /* ---------- Overlays ---------- */
 .overlay{
-  position:fixed;inset:0;background:#0b0e12ee;
+  position:fixed;inset:0;background:var(--veil,#0b0e12ee);
   display:flex;align-items:center;justify-content:center;padding:24px;z-index:10;
 }
 .win-card{
@@ -211,7 +211,7 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 .trophy{font-size:52px}
 .win-card h2{font-size:26px;color:var(--gold)}
 .win-card p{color:var(--dim);font-size:14px}
-.win-skunk{font-weight:800;color:#e2857a !important;font-size:16px !important}
+.win-skunk{font-weight:800;color:var(--neg,#e2857a) !important;font-size:16px !important}
 .win-skunk:empty,.win-save:empty{display:none}
 .win-save{font-size:12.5px !important}
 .overlay.confirm{z-index:20}
@@ -239,20 +239,20 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
    Entering the hand's cards, inside the hand card. */
 .mode-row{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:2px;gap:2px}
 .mode{font-size:11.5px;font-weight:700;padding:3px 11px;border-radius:999px;color:var(--dim)}
-.mode.is-on{background:var(--green-d);color:#fff}
+.mode.is-on{background:var(--green-d);color:var(--on-primary,#fff)}
 .ct-box{display:flex;flex-direction:column;gap:9px}
 
 /* five playing cards: the hand, a gap, the starter */
 .ct-slots{display:flex;gap:6px;justify-content:center;align-items:center}
 .ct-gap{width:10px}
 .ct-card{
-  width:50px;height:68px;border-radius:8px;background:#f4f1ea;color:#1a1a1a;
-  border:2px solid #f4f1ea;display:flex;align-items:center;justify-content:center;
-  box-shadow:0 2px 6px #0006;
+  width:50px;height:68px;border-radius:8px;background:#fffdf7;color:#1a1a1a;
+  border:2px solid var(--line);display:flex;align-items:center;justify-content:center;
+  box-shadow:0 2px 6px var(--shadow,#0006);
 }
 .ct-card b{font-size:23px;font-weight:800}
 .ct-card.empty{background:var(--bg2);border:2px dashed var(--line);box-shadow:none}
-.ct-card.is-at{border-color:var(--green);box-shadow:0 0 0 3px #2e9e6355}
+.ct-card.is-at{border-color:var(--green);box-shadow:0 0 0 3px color-mix(in srgb, var(--green) 35%, transparent)}
 .ct-card.empty.is-at{border-style:solid}
 /* while a question is open: the cards it asks about, and the rest */
 .ct-card.asked{border-color:var(--gold);box-shadow:0 0 0 3px #e0b34166,0 2px 10px #e0b34155}
@@ -321,3 +321,14 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 
 /* Buttons' submit, under the typed total */
 .buttons-box{display:flex;flex-direction:column;gap:8px}
+
+/* ---------- the room ---------- */
+.brand.compact h1.room-title{font-size:19px;color:var(--txt)}
+.brand h1.room-title{font-size:30px}
+/* the hand on its slip: the player's colour edges it, the paper's ink writes on it */
+.handcard.paper{border-color:var(--pc)}
+.handcard.paper .hand-head b,.handcard.paper .hand-total{color:var(--paper-ink)}
+.handcard.paper .ct-hint,.handcard.paper .tap-none,.handcard.paper .ct-labels,.handcard.paper .psec-label{color:var(--paper-dim)}
+.handcard.paper .ct-items li{border-top-color:var(--paper-edge)}
+.handcard.paper .ct-items,.handcard.paper .ct-items b{color:var(--paper-ink)}
+.handcard.paper .ct-items i,.handcard.paper .ct-items span small{color:var(--paper-dim)}

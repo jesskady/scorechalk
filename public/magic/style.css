@@ -1,3 +1,21 @@
+/* ---------- room adjustments (see /themes.css) ----------
+   Magic plays in the Living Room, dimmed: a phone lying face up on the
+   table all game shouldn't glare, and the panels' player colours read better
+   against something darker. Values only — everything else follows the room. */
+[data-game="magic"]{
+  --bg:#2e261d; --bg2:#3a3025; --card:#40352a; --line:#5a4b3a;
+  --txt:#f3e9d6; --dim:#c8b79a;
+  --select:#4a4a32;
+  --neg:#f0957f; --neg-line:#6e3a2a;
+  --badge-fg:#2e261d; --badge-bg:#d8b46a; --badge-line:#d8b46a;
+  --veil:#1c160fee; --shadow:#000a;
+  --table:#211a13;             /* between the players' panels */
+  --panel-base:#1d1813;        /* what each player's colour is mixed into */
+  --counter-bg:#241d16f2; --counter-solid:#241d16; --hub-bg:#241d16e6;
+  color-scheme:dark;
+}
+body[data-game="magic"]{background:radial-gradient(120% 60% at 50% 0%, #3d3226 0%, #2e261d 65%) fixed, #2e261d}
+
 /* Magic. The format menu and setup follow the other games' screens; the
    table is its own thing — full screen, one panel per player. */
 
@@ -17,7 +35,7 @@
   display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);
   border-radius:13px;padding:14px;text-decoration:none;color:inherit;
 }
-.tile:active{background:#1c2b23;border-color:var(--green)}
+.tile:active{background:var(--select,#1c2b23);border-color:var(--green)}
 .tile-text{display:flex;flex-direction:column;gap:3px;flex:1;min-width:0}
 .tile-text b{font-size:18px}
 .tile-text small{color:var(--dim);font-size:12.5px;line-height:1.4}
@@ -50,7 +68,7 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 body.playing .acct{display:none}
 body.playing{overflow:hidden}
 
-.table{position:fixed;inset:0;height:100dvh;background:#0b0e12}
+.table{position:fixed;inset:0;height:100dvh;background:var(--table,#0b0e12)}
 .panels{
   position:absolute;inset:0;display:grid;gap:5px;
   padding:5px 5px calc(5px + var(--pad));
@@ -67,7 +85,7 @@ body.playing{overflow:hidden}
 
 .panel{
   position:relative;overflow:hidden;border-radius:16px;
-  background:color-mix(in srgb, var(--pc) 22%, #151a21);
+  background:color-mix(in srgb, var(--pc) 22%, var(--panel-base,#151a21));
   border:2px solid color-mix(in srgb, var(--pc) 55%, transparent);
   min-width:0;min-height:0;
 }
@@ -144,14 +162,14 @@ body.playing{overflow:hidden}
 /* ---------- Poison / commander counter ---------- */
 .counter{
   position:absolute;inset:5px;z-index:5;border-radius:12px;
-  background:#12161cf2;border:1px solid var(--line);
+  background:var(--counter-bg,#12161cf2);border:1px solid var(--line);
   display:flex;flex-direction:column;gap:6px;padding:8px;overflow:auto;
 }
 .chead{display:flex;flex-direction:column;font-weight:700;font-size:14px}
 /* the rule, on its own line under the title */
 .chead small{color:var(--dim);font-weight:500;font-size:11.5px}
 .chead.sec{margin-top:4px;padding-top:6px;border-top:1px solid var(--line)}
-.cdone{margin-top:auto;flex:none;font-size:14px;font-weight:700;color:#fff;background:var(--green-d);border:1px solid var(--green);border-radius:9px;padding:8px}
+.cdone{margin-top:auto;flex:none;font-size:14px;font-weight:700;color:var(--on-primary,#fff);background:var(--green-d);border:1px solid var(--green);border-radius:9px;padding:8px}
 /* a row: who it is from, then its − count + underneath, so it fits a narrow panel */
 .crow{display:grid;grid-template-columns:minmax(28px,44px) minmax(22px,1fr) minmax(28px,44px);align-items:center;gap:4px 5px}
 .clabel{grid-column:1 / -1;font-size:12.5px;color:var(--dim);display:flex;align-items:center;gap:6px;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
@@ -167,12 +185,12 @@ body.playing{overflow:hidden}
    a minus side. */
 .hub{
   position:absolute;left:10px;bottom:calc(10px + var(--pad));z-index:6;
-  width:42px;height:42px;border-radius:50%;background:#12161ce6;border:2px solid var(--line);
+  width:42px;height:42px;border-radius:50%;background:var(--hub-bg,#12161ce6);border:2px solid var(--line);
   color:var(--txt);font-size:18px;line-height:1;box-shadow:0 2px 10px #000a;
 }
 
 /* ---------- Overlays ---------- */
-.overlay{position:fixed;inset:0;background:#0b0e12ee;display:flex;align-items:center;justify-content:center;padding:24px;z-index:10}
+.overlay{position:fixed;inset:0;background:var(--veil,#0b0e12ee);display:flex;align-items:center;justify-content:center;padding:24px;z-index:10}
 .win-card{
   background:var(--card);border:1px solid var(--line);border-radius:18px;padding:24px 20px;
   text-align:center;width:100%;max-width:340px;display:flex;flex-direction:column;gap:10px;
@@ -205,7 +223,7 @@ body.playing{overflow:hidden}
 .cbar{
   position:sticky;top:-8px;z-index:1;flex:none;margin:-8px -8px 0;padding:6px 6px 6px 10px;
   display:flex;align-items:center;justify-content:space-between;gap:8px;
-  background:#12161c;border-bottom:1px solid var(--line);border-radius:12px 12px 0 0;
+  background:var(--counter-solid,#12161c);border-bottom:1px solid var(--line);border-radius:12px 12px 0 0;
 }
 .cbar b{font-size:13px;color:color-mix(in srgb, var(--pc) 60%, #fff);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cx{
@@ -217,3 +235,6 @@ body.playing{overflow:hidden}
 
 /* hidden while a counter is open: it would sit on the counter's lower rows */
 body.counting .hub{display:none}
+
+/* ---------- the room ---------- */
+.brand h1.room-title{font-size:30px}
