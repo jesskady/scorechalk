@@ -42,11 +42,12 @@ const RULE_FIELDS = {
   teams:     isBool,
   teamCount: (v) => isInt(v) && v >= 2 && v <= 4,
   players:   (v) => isInt(v) && v >= 1 && v <= 8,
+  theme:     (v) => ['parlor', 'living', 'workshop'].includes(v),
 };
 
 // Fields added after My games shipped. A browser still running the page from
 // before them sends rules without them, so they are filled in, not refused.
-const OPTIONAL = { teams: false, teamCount: 2, players: 2 };
+const OPTIONAL = { teams: false, teamCount: 2, players: 2, theme: 'workshop' };
 
 function cleanRules(rules) {
   if (!rules || typeof rules !== 'object') return { bad: 'rules' };

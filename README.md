@@ -80,6 +80,7 @@ public/
   home.js         the home page's games in progress, and My games
   home.css        styles the account pages still share
   shared.css      palette, reset and shared controls, used by every page
+  themes.css      the rooms a game is played in: Parlor, Living Room, Workshop
   account.js      account bubble, injected into every page
   account/
     index.html    your profile: darts statistics, game history, My games
@@ -136,7 +137,16 @@ living above it.
 
 **Adding a game** means adding a folder under `public/` and a card in the room
 it belongs to on the home page: the **Parlor** (chalk on felt) for party and pub
-games, the **Living Room** (a legal pad) for family and tabletop ones. A game
+games, the **Living Room** (a legal pad) for family and tabletop ones. 
+**Themes.** A game can be played in one of the rooms in `themes.css`, chosen with
+`data-room` on its body (`parlor`, `living`, `workshop`). A theme redefines the
+colour names `shared.css` already uses, adds a few of its own (button text, the
+selected tint, title and handwriting faces), and gives `.paper` its room's
+surface. Builder games choose their room on the setup screen — Farkle is the
+Living Room, Canasta the Parlor, anything new the Workshop — and keep it in My
+games. Adding a room is one block in `themes.css`.
+
+A game
 that saves a game in progress can also be listed under *Pick up where you left
 off* by adding its storage key to `GAMES` in `home.js`. Games share `shared.css` — the palette and the reset — and nothing
 else, so one game's layout can never break another's. Keep game-specific rules

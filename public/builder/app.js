@@ -275,8 +275,30 @@ $('templateSel').addEventListener('change', (e) => {
   location.hash = sourceHash(e.target.value);
 });
 
+// The page takes the game's room: the setup screen as it is being chosen,
+// the game screen as it was started.
+function setRoom(theme) {
+  document.body.dataset.room = theme;
+}
+
+function renderThemes() {
+  const row = $('themeRow');
+  const cur = themeOf(cfg);
+  row.innerHTML = '';
+  for (const t of THEMES) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = `swatch sw-${t.id}` + (t.id === cur ? ' is-on' : '');
+    b.innerHTML = `<span class="sw-face" aria-hidden="true">Aa</span><b>${t.label}</b><small>${t.hint}</small>`;
+    b.onclick = () => { cfg.theme = t.id; saveCfg(); renderSetup(); };
+    row.appendChild(b);
+  }
+}
+
 function renderSetup() {
   renderRulesCard();
+  setRoom(themeOf(cfg));
+  renderThemes();
   $('gameName').value = cfg.name;
 
   const n = cfg.names.length;
@@ -660,6 +682,7 @@ function flashSetup(text) {
 
 function showGame() {
   show('game');
+  setRoom(themeOf(S.cfg));
   // back to this game's own setup, template or custom
   // (a bare '#' rather than no hash, so leaving is a hash change, not a reload)
   $('gameBack').setAttribute('href', '#' + sourceHash(S.cfg.source || 'custom'));

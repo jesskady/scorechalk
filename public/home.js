@@ -38,10 +38,9 @@
       line: (g) => (g.over ? null : `${many(g.names.length)} · ${g.names[g.cur]}'s turn`) },
     { key: 'magic-v1', room: 'living', name: 'Magic', href: '/magic/#play',
       line: (g) => (g.won ? null : `${g.format === 'commander' ? 'Commander' : 'Constructed'} · ${list(g.names.map((n, i) => `${n} ${g.life[i]}`))}`) },
-    // a builder game takes its template's room — Farkle the living room,
-    // Canasta the parlor — and anything built from scratch the workshop's
+    // a builder game takes its own room, as chosen on its setup screen
     { key: 'builder-v1', href: '/builder/#play',
-      room: (g) => ({ farkle: 'living', canasta: 'parlor' })[g.cfg && g.cfg.source] || 'workshop',
+      room: (g) => themeOf(g.cfg),   // see /builder/rules.js
       name: (g) => (g.cfg && g.cfg.name) || 'Builder game',
       line: (g) => list(g.cfg.names.map((n, i) => `${n} ${g.scores[i]}`)) },
   ];

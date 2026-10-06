@@ -41,7 +41,23 @@ function defaultRules() {
     // side is scored as one. Which player is on which side is part of who is
     // playing, not of the rules, so it lives with the names (see app.js).
     teams: false, teamCount: 2,
+    // the room the game is played in: see /themes.css
+    theme: 'workshop',
   };
+}
+
+// The rooms a builder game can be played in, as the setup screen offers them.
+const THEMES = [
+  { id: 'parlor', label: 'Parlor', hint: 'Chalk and felt' },
+  { id: 'living', label: 'Living Room', hint: 'Cream, sage and a legal pad' },
+  { id: 'workshop', label: 'Workshop', hint: 'Graph paper' },
+];
+
+/* A game's room. A game started before rooms existed has no theme: its
+   template says, and anything else is the workshop's. */
+function themeOf(c) {
+  if (c && THEMES.some((t) => t.id === c.theme)) return c.theme;
+  return ({ farkle: 'living', canasta: 'parlor' })[c && c.source] || 'workshop';
 }
 
 // Teams need at least two players a side, so 4 players make 2 teams at most,
@@ -57,6 +73,7 @@ const TEMPLATES = [
     rules: {
       ...defaultRules(), name: 'Farkle', win: 'target', target: 10000,
       quick: '50, 100, 500, 1000', typed: false, signs: false, turns: true,
+      theme: 'living',
     } },
   // Partnership canasta: four players in two teams of two, first to 5,000.
   // The named keys are the hand's bonuses; card points are typed, and cards
@@ -66,6 +83,7 @@ const TEMPLATES = [
       ...defaultRules(), name: 'Canasta', win: 'target', target: 5000,
       quick: 'Natural canasta 500, Mixed canasta 300, Red three 100, All 4 red threes 800, Going out 100, Out concealed 200',
       typed: true, signs: true, turns: true, teams: true, teamCount: 2, players: 4,
+      theme: 'parlor',
     } },
 ];
 

@@ -17,7 +17,7 @@
 .rules-text{font-size:14px;line-height:1.45}
 .rules-actions{display:flex;gap:6px}
 .rules-actions .ghost{flex:1}
-.reset{color:#e2857a;border-color:#5a302a}
+.reset{color:var(--neg,#e2857a);border-color:var(--neg-line,#5a302a)}
 .save{color:var(--green);border-color:var(--green-d)}
 
 /* ---------- Setup ---------- */
@@ -115,7 +115,7 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
   background:var(--bg2);border:1px solid var(--line);
   padding:3px 10px;border-radius:999px;font-variant-numeric:tabular-nums;
 }
-.chips .bad{color:#e2857a;border-color:#5a302a}
+.chips .bad{color:var(--neg,#e2857a);border-color:var(--neg-line,#5a302a)}
 
 /* switch row */
 .toggle{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:2px}
@@ -140,8 +140,8 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 .badges:empty{display:none}
 .badge{
   font-size:10px;font-weight:700;letter-spacing:.6px;
-  text-transform:uppercase;color:var(--gold);
-  border:1px solid #4a3c18;background:#241f11;
+  text-transform:uppercase;color:var(--badge-fg,var(--gold));
+  border:1px solid var(--badge-line,#4a3c18);background:var(--badge-bg,#241f11);
   padding:2px 9px;border-radius:999px;
 }
 
@@ -161,7 +161,7 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
   transition:border-color .15s,background .15s,opacity .15s;
   min-width:0;
 }
-.player.active{border-color:var(--green);background:#1c2b23}
+.player.active{border-color:var(--green);background:var(--select,#1c2b23)}
 .player.leader .pname::before{content:'★ ';color:var(--gold)}
 .player.out{opacity:.4}
 .player.out .pscore b{text-decoration:line-through}
@@ -190,7 +190,7 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
   width:42px;height:40px;border-radius:9px;font-size:22px;font-weight:800;
   background:var(--bg2);border:1px solid var(--line);color:var(--dim);
 }
-.sgn.is-on[data-sign="1"]{background:var(--green-d);border-color:var(--green);color:#fff}
+.sgn.is-on[data-sign="1"]{background:var(--green-d);border-color:var(--green);color:var(--on-primary,#fff)}
 .sgn.is-on[data-sign="-1"]{background:var(--red);border-color:var(--red);color:#fff}
 .entrytotal{flex:1;text-align:center;display:flex;flex-direction:column;min-width:0}
 .entrytotal span{font-size:24px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}
@@ -213,7 +213,7 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
   font-variant-numeric:tabular-nums;
 }
 .key:active{background:var(--green-d);border-color:var(--green)}
-.quickpad.neg .key:active{background:#5a302a;border-color:var(--red)}
+.quickpad.neg .key:active{background:var(--neg-line,#5a302a);border-color:var(--red)}
 
 .typedrow{display:flex;gap:6px}
 .typedrow .key{padding:0 20px;font-size:16px}
@@ -237,11 +237,11 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 .history small{font-size:11px}
 .history b{text-align:right}
 .history b{font-variant-numeric:tabular-nums;color:var(--txt)}
-.history .neg{color:#e2857a}
+.history .neg{color:var(--neg,#e2857a)}
 
 /* ---------- Overlays ---------- */
 .overlay{
-  position:fixed;inset:0;background:#0b0e12ee;
+  position:fixed;inset:0;background:var(--veil,#0b0e12ee);
   display:flex;align-items:center;justify-content:center;padding:24px;z-index:10;
 }
 .win-card{
@@ -301,3 +301,37 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 
 /* the round being played out after someone reached the target */
 .badge.round.final{color:#fff;background:var(--red);border-color:var(--red)}
+
+/* ---------- rooms (see /themes.css) ---------- */
+/* the game's name, in the room's lettering, a size up from the plain bar */
+.brand.compact h1.room-title{font-size:19px;color:var(--txt)}
+.brand h1.room-title{font-size:30px}
+
+/* the theme choice: a swatch of each room */
+.swatches{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.swatch{
+  display:grid;gap:2px;justify-items:center;text-align:center;padding:0 0 9px;overflow:hidden;
+  border:2px solid var(--line);border-radius:12px;background:var(--bg2);color:var(--txt);
+}
+.swatch.is-on{border-color:var(--green);box-shadow:0 0 0 2px var(--green)}
+.swatch b{font-size:13px;font-weight:700;margin-top:6px}
+.swatch small{font-size:11px;color:var(--dim);line-height:1.2;padding:0 4px}
+.sw-face{width:100%;height:48px;display:grid;place-items:center;font-size:24px}
+.sw-parlor .sw-face{background:radial-gradient(90% 90% at 50% 0%, #2b3a34, #1c2723);color:#ecebe3;font-family:"Fredericka the Great",Georgia,serif;border-bottom:4px solid #6b4a2b}
+.sw-living .sw-face{color:#22324d;font-family:"Kalam",cursive;font-weight:700;
+  background:linear-gradient(90deg, transparent 14px, #d4544c 14px 15px, transparent 15px), repeating-linear-gradient(180deg, transparent 0 11px, #a9c4e0 11px 12px), #fbf1bd;
+  border-bottom:4px solid #5f9a6c}
+.sw-workshop .sw-face{color:#1e2b2a;font-family:"Josefin Sans",sans-serif;font-weight:700;
+  background:linear-gradient(#c9d6cf 1px, transparent 1px) 0 0/10px 10px, linear-gradient(90deg, #c9d6cf 1px, transparent 1px) 0 0/10px 10px, #eef1ec;
+  border-bottom:4px solid #1e2b2a}
+
+/* the entries so far, on paper: ruled lines instead of borders, the scores
+   in the room's handwriting */
+/* no padding above or below, so the 24px rows sit exactly on the 24px rules */
+.history.paper{border:1px solid var(--paper-edge);border-radius:4px;padding:0 8px 0 30px;font-size:12.5px;color:var(--paper-dim)}
+.history.paper div{border-top:none;height:24px;line-height:24px;padding:0 2px;overflow:hidden}
+.history.paper div > *{line-height:24px}
+.history.paper b{color:var(--paper-ink);font-family:var(--f-hand);font-size:15px}
+.history.paper span{color:var(--paper-ink)}
+.history.paper small,.history.paper em{color:var(--paper-dim)}
+.history.paper .neg{color:var(--paper-neg)}

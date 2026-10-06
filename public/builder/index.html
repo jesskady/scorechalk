@@ -9,10 +9,15 @@
 <title>Builder · Score Chalk</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='15' fill='%23182029'/><circle cx='16' cy='16' r='11' fill='%232e7d4f'/><circle cx='16' cy='16' r='7' fill='%23182029'/><circle cx='16' cy='16' r='3.5' fill='%23c0392b'/></svg>">
 <!-- ?v= must be bumped whenever a stylesheet or app.js changes, as in darts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredericka+the+Great&family=Josefin+Sans:wght@400;600;700&family=Bree+Serif&family=Kalam:wght@400;700&display=swap">
 <link rel="stylesheet" href="../shared.css?v=29">
-<link rel="stylesheet" href="style.css?v=17">
+<!-- the rooms a game can be played in; app.js sets data-room on the body -->
+<link rel="stylesheet" href="../themes.css?v=3">
+<link rel="stylesheet" href="style.css?v=22">
 </head>
-<body>
+<body data-room="workshop">
 
 <!-- ============ SETUP ============ -->
 <!-- The hash picks the screen — '' custom setup, a template id (#farkle) its
@@ -22,7 +27,7 @@
   <a class="backlink" href="/">&lsaquo; All games</a>
 
   <header class="brand">
-    <h1 id="setupTitle">ScoreChalk Builder</h1>
+    <h1 id="setupTitle" class="room-title">ScoreChalk Builder</h1>
     <p id="setupSub"></p>
   </header>
 
@@ -41,6 +46,12 @@
       <span>Game</span>
       <input id="gameName" type="text" placeholder="Name (optional)" autocomplete="off" maxlength="24">
     </label>
+  </div>
+
+  <div class="card rule">
+    <span class="field-label">Theme</span>
+    <!-- the room the game is played in; filled from THEMES -->
+    <div class="swatches" id="themeRow"></div>
   </div>
 
   <div class="card rule">
@@ -162,7 +173,7 @@
 <section id="game" class="screen hidden">
   <header class="brand compact gamebar">
     <a class="backlink" id="gameBack" href="#">&lsaquo; Setup</a>
-    <h1 id="gTitle">Scores</h1>
+    <h1 id="gTitle" class="room-title">Scores</h1>
   </header>
 
   <div id="badges" class="badges"></div>
@@ -201,7 +212,8 @@
 
   <p id="msg" class="msg"></p>
 
-  <div class="history" id="history"></div>
+  <!-- the entries so far, on the room's paper -->
+  <div class="history paper" id="history"></div>
 </section>
 
 <!-- ============ CONFIRM ============ -->
@@ -240,7 +252,7 @@
 </div>
 
 <script src="/account.js?v=29" defer></script>
-<script src="rules.js?v=5"></script>
-<script src="app.js?v=19"></script>
+<script src="rules.js?v=7"></script>
+<script src="app.js?v=20"></script>
 </body>
 </html>

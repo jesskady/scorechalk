@@ -1,0 +1,116 @@
+/* Score Chalk themes: the rooms a game can be played in.
+
+   A page picks one with an attribute on its body:
+
+     <body data-room="parlor">     chalk and felt, for party and pub games
+     <body data-room="living">     walnut and lamp light, for the kitchen table
+     <body data-room="workshop">   graph paper, for games built from scratch
+
+   A theme redefines the names shared.css already gives every page (--bg,
+   --card, --txt, --green...), so a game styled from those names changes room
+   with no change of its own. It adds a few more for what the shared set
+   can't say: the text on a primary button, the selected player's tint, the
+   soft red of a loss, badges, the dimmed screen behind a dialog, a title
+   face and a handwriting face, and a paper surface.
+
+   The paper is the one place a room shows its texture inside a game: put
+   .paper on what would be paper at a real table — a scorecard, a slip, a
+   list of entries. Scores, buttons and tap targets keep their size and their
+   plain face in every room; only colour and lettering change.
+
+   Fonts are loaded by each page from Google Fonts; every face here falls
+   back to something close on the system. */
+
+/* ---------- the names every room sets ---------- */
+[data-room]{
+  --on-primary:#fff;          /* text on a primary button or selected segment */
+  --select:#1c2b23;           /* the tint behind whatever is selected or active */
+  --neg:#e2857a;              /* a loss, a subtraction, a warning */
+  --neg-line:#5a302a;
+  --badge-fg:var(--gold); --badge-bg:#241f11; --badge-line:#4a3c18;
+  --veil:#0b0e12ee;           /* behind a dialog */
+  --f-title:inherit;          /* a game's name, a setup heading */
+  --f-hand:inherit;           /* writing on paper */
+  --paper:var(--card); --paper-ink:var(--txt); --paper-dim:var(--dim);
+  --paper-rule:transparent; --paper-margin:transparent; --paper-edge:var(--line);
+  --paper-neg:var(--neg);     /* a loss written on the paper */
+}
+
+/* ---------- the parlor: slate, chalk, brass, felt ---------- */
+[data-room="parlor"]{
+  --bg:#1c2723; --bg2:#24312c; --card:#26342e; --line:#3a4a43;
+  --txt:#ecebe3; --dim:#a7b0a9;
+  --green:#2a7d56; --green-d:#1f5e41; --gold:#c9a35a; --red:#c0392b;
+  --select:#2c3527;
+  --badge-fg:#1c1405; --badge-bg:#c9a35a; --badge-line:#c9a35a;
+  --veil:#0d1310ee;
+  --f-title:"Fredericka the Great", "Chalkduster", Georgia, serif;
+  --f-hand:"Fredericka the Great", "Chalkduster", Georgia, serif;
+  --paper:#24312c; --paper-ink:#ecebe3; --paper-dim:#a7b0a9; --paper-edge:#5d4128;
+}
+body[data-room="parlor"]{
+  background:radial-gradient(110% 55% at 50% 0%, #2b3a34 0%, #1c2723 70%) fixed, #1c2723;
+}
+
+/* ---------- the living room: sepia and cream, sage, a legal pad ---------- */
+/* Light and warm, like old paper under a lamp; sage for what you press. */
+[data-room="living"]{
+  --bg:#f1e6d0; --bg2:#e7d9bd; --card:#fbf5e8; --line:#d6c4a2;
+  --txt:#3a2d20; --dim:#7a6850;
+  --green:#5f9a6c; --green-d:#4b8058; --gold:#a8762a; --red:#b8402f;
+  --on-primary:#fff;
+  --select:#e2ecd6;
+  --neg:#b8402f; --neg-line:#e6c3b4;
+  --badge-fg:#fbf5e8; --badge-bg:#8a6a3e; --badge-line:#8a6a3e;
+  --veil:#3a2d20cc;
+  --f-title:"Bree Serif", "Rockwell", Georgia, serif;
+  --f-hand:"Kalam", "Bradley Hand", "Segoe Print", cursive;
+  --paper:#fbf1bd; --paper-ink:#22324d; --paper-dim:#5f5b4c;
+  --paper-rule:#a9c4e0; --paper-margin:#d4544c; --paper-edge:#d8cfa3;
+  --paper-neg:#c0392b;
+  color-scheme:light;
+}
+body[data-room="living"]{
+  background:radial-gradient(120% 60% at 50% 0%, #f8f0de 0%, #efe2c8 60%, #e8d8b8 100%) fixed, #f1e6d0;
+}
+
+/* ---------- the workshop: graph paper and drafting ink ---------- */
+[data-room="workshop"]{
+  --bg:#eef1ec; --bg2:#e1e7e2; --card:#ffffff; --line:#c3d0c9;
+  --txt:#1e2b2a; --dim:#5b6a67;
+  --green:#2f6d5c; --green-d:#24564a; --gold:#a8761f; --red:#b8402f;
+  --select:#dcebe4;
+  --neg:#b8402f; --neg-line:#e6b8ad;
+  --badge-fg:#eef1ec; --badge-bg:#1e2b2a; --badge-line:#1e2b2a;
+  --veil:#1e2b2acc;
+  --f-title:"Josefin Sans", "Avenir Next", "Futura", sans-serif;
+  --f-hand:"Josefin Sans", "Avenir Next", "Futura", sans-serif;
+  --paper:#ffffff; --paper-ink:#1e2b2a; --paper-dim:#5b6a67;
+  --paper-rule:#dbe4df; --paper-edge:#1e2b2a;
+  color-scheme:light;
+}
+body[data-room="workshop"]{
+  background:
+    linear-gradient(#c9d6cf 1px, transparent 1px) 0 0/22px 22px,
+    linear-gradient(90deg, #c9d6cf 1px, transparent 1px) 0 0/22px 22px,
+    #eef1ec;
+}
+
+/* ---------- what every room restyles ---------- */
+/* buttons and segments take the room's text-on-accent, not always white */
+[data-room] .primary,
+[data-room] .preset.is-on,
+[data-room] .seg.is-on{color:var(--on-primary)}
+
+/* a game's name, and the setup heading, in the room's lettering */
+[data-room] .room-title{font-family:var(--f-title);font-weight:400;letter-spacing:0;text-transform:none}
+[data-room="workshop"] .room-title{font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+
+/* paper: whatever would be paper at a real table */
+[data-room] .paper{
+  background-color:var(--paper);color:var(--paper-ink);border-color:var(--paper-edge);
+  background-image:
+    linear-gradient(90deg, transparent 22px, var(--paper-margin) 22px 23px, transparent 23px),
+    repeating-linear-gradient(180deg, transparent 0 23px, var(--paper-rule) 23px 24px);
+}
+[data-room] .paper .hand{font-family:var(--f-hand)}
