@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#12161c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Magic · Score Chalk</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='15' fill='%23182029'/><circle cx='16' cy='16' r='11' fill='%232e7d4f'/><circle cx='16' cy='16' r='7' fill='%23182029'/><circle cx='16' cy='16' r='3.5' fill='%23c0392b'/></svg>">
+<!-- ?v= must be bumped whenever a stylesheet or app.js changes, as in darts -->
+<link rel="stylesheet" href="../shared.css?v=29">
+<link rel="stylesheet" href="style.css?v=15">
+</head>
+<body>
+
+<!-- ============ FORMAT ============ -->
+<!-- The hash picks the screen: '' this choice, #constructed or #commander
+     their setup, #play the game. See route(). -->
+<section id="formats" class="screen hidden">
+  <a class="backlink" href="/">&lsaquo; All games</a>
+  <header class="brand">
+    <h1>Magic: The Gathering</h1>
+    <p>Life, poison and commander damage</p>
+  </header>
+
+  <a id="resumeBtn" class="primary big resume hidden" href="#play">Resume game</a>
+
+  <nav class="tiles">
+    <a class="tile" href="#constructed">
+      <span class="tile-text"><b>Constructed</b><small>20 life. Two players by default. Out at 0 life or 10 poison.</small></span>
+      <span class="tile-go" aria-hidden="true">&rsaquo;</span>
+    </a>
+    <a class="tile" href="#commander">
+      <span class="tile-text"><b>Commander</b><small>40 life. Four players by default. Out at 21 damage from any one commander, too.</small></span>
+      <span class="tile-go" aria-hidden="true">&rsaquo;</span>
+    </a>
+  </nav>
+</section>
+
+<!-- ============ SETUP ============ -->
+<section id="setup" class="screen hidden">
+  <a class="backlink" href="#">&lsaquo; Formats</a>
+  <header class="brand">
+    <h1 id="setupTitle"></h1>
+    <p id="setupSub"></p>
+  </header>
+
+  <div class="card">
+    <div class="field">
+      <span>Players</span>
+      <div class="stepper">
+        <button type="button" class="step" id="pMinus" aria-label="Fewer players">&minus;</button>
+        <b id="pCount">2</b>
+        <button type="button" class="step" id="pPlus" aria-label="More players">+</button>
+      </div>
+    </div>
+    <div id="names" class="names"></div>
+  </div>
+
+  <div class="card">
+    <label class="field">
+      <span>Life</span>
+      <input id="life" type="number" inputmode="numeric" min="1" max="999">
+    </label>
+  </div>
+
+  <p class="setup-note">Lay the phone in the middle of the table: each player's side faces them.</p>
+  <button id="startBtn" class="primary big">Start Game</button>
+</section>
+
+<!-- ============ GAME ============ -->
+<!-- one panel per player, built by buildTable(); the top row is turned to
+     face the far side of the table -->
+<section id="game" class="table hidden">
+  <div class="panels" id="panels"></div>
+  <button class="hub" id="hubBtn" aria-label="Menu">⋯</button>
+</section>
+
+<!-- the menu behind the middle button -->
+<div id="menuOverlay" class="overlay hidden">
+  <div class="win-card menu-card">
+    <h2>Game</h2>
+    <button id="undoBtn" class="ghost">Undo the last change</button>
+    <button id="restartBtn" class="primary big">Restart — same players</button>
+    <a id="setupLink" class="ghost link-btn" href="#">Change players or format</a>
+    <button id="menuClose" class="ghost">Back to the game</button>
+  </div>
+</div>
+
+<!-- ============ CONFIRM ============ -->
+<div id="confirmOverlay" class="overlay confirm hidden">
+  <div class="win-card">
+    <h2>Are you sure?</h2>
+    <p id="confirmText"></p>
+    <button id="confirmYes" class="danger big">Yes</button>
+    <button id="confirmNo" class="ghost">Cancel</button>
+  </div>
+</div>
+
+<!-- ============ WIN ============ -->
+<div id="winOverlay" class="overlay hidden">
+  <div class="win-card">
+    <div class="trophy">🏆</div>
+    <h2 id="winName"></h2>
+    <button id="rematchBtn" class="primary big">Play again</button>
+    <button id="keepBtn" class="ghost">Back to the table</button>
+  </div>
+</div>
+
+<script src="/account.js?v=29" defer></script>
+<script src="app.js?v=9"></script>
+</body>
+</html>

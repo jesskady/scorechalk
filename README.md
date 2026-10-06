@@ -8,6 +8,8 @@ Mobile-first scorekeeping for the games I play. The home page is a chooser; each
 
 **Yahtzee** is the pen-and-paper scoresheet for one to six players: players across the top, boxes down the side, totals and the 35 upper bonus worked out as you go. Tapping a player highlights their column — green where they have scored, yellow where they still can — and the box names to match. Tapping a box offers only what it can take: the five possible scores for Aces to Sixes, a typed dice total for the of-a-kinds and Chance, the fixed value for the rest, or a scratch. Filling a box passes the turn; the game ends when the sheet is full.
 
+**Magic: The Gathering** is a life counter for the phone lying in the middle of the table: **Constructed** (20 life, two players by default) or **Commander** (40 life, four). The screen splits into a panel per player, the far row turned to face its players. Tap the near half of a life total to lose a life and the far half to gain one, holding to repeat, with a running ± beside it. Each panel also counts poison (out at 10) and, in Commander, damage from each opponent's commander (out at 21 from any one, and taken off life too). When one player is left standing they win. The screen is kept awake while a game is open. Games stay on the device; nothing is saved to the profile.
+
 **ScoreChalk Builder** covers everything else: pick how a game ends (keep score, first to a target, lowest wins, out at zero), which way it scores, a fixed number of rounds, and your own quick-score buttons. Quick-score buttons can be **named** (`Red three 100, Going out 100`): the button shows the name, and what was tapped is spelled out before it is entered and in the history. With four or more players a game can be **played in teams**: players are split into 2–4 sides (alternate seats by default, tap a player's team chip to move them), and each side is scored as one, named for its players. **Farkle** and **Canasta** are builder games with their rules filled in — *templates* — and have their own tiles on the home page. Canasta uses both: two teams of two, first to 5,000, with named buttons for canastas, red threes and going out. Signed in, you can save your own builder games to your profile as **My games**.
 
 ## Use it
@@ -90,6 +92,10 @@ public/
     app.js
     style.css
     sync.js       saving games to a profile
+  magic/
+    index.html
+    app.js        formats, the split-screen table, life, poison, commander damage
+    style.css
   yahtzee/
     index.html
     app.js        the scoresheet, scoring a box, saving to a profile

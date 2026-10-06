@@ -1,0 +1,219 @@
+/* Magic. The format menu and setup follow the other games' screens; the
+   table is its own thing — full screen, one panel per player. */
+
+.screen{
+  max-width:520px;margin:0 auto;
+  padding:10px 10px calc(10px + var(--pad));
+  display:flex;flex-direction:column;gap:8px;min-height:100%;
+}
+.brand{text-align:center;padding:8px 0 2px}
+.brand h1{font-size:25px;letter-spacing:-.5px}
+.brand p{color:var(--dim);font-size:13px;margin-top:2px}
+.backlink{align-self:flex-start;color:var(--dim);font-size:13px;text-decoration:none;padding:6px 2px}
+.backlink:active{color:var(--txt)}
+
+.tiles{display:flex;flex-direction:column;gap:8px}
+.tile{
+  display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);
+  border-radius:13px;padding:14px;text-decoration:none;color:inherit;
+}
+.tile:active{background:#1c2b23;border-color:var(--green)}
+.tile-text{display:flex;flex-direction:column;gap:3px;flex:1;min-width:0}
+.tile-text b{font-size:18px}
+.tile-text small{color:var(--dim);font-size:12.5px;line-height:1.4}
+.tile-go{color:var(--dim);font-size:22px}
+.resume{display:block;text-align:center;text-decoration:none}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px;display:flex;flex-direction:column;gap:9px}
+.field{display:flex;align-items:center;gap:12px}
+.field>span{width:80px;flex:none;color:var(--dim);font-size:14px}
+input{
+  flex:1;min-width:0;background:var(--bg2);border:1px solid var(--line);border-radius:10px;
+  color:var(--txt);padding:12px;font-size:17px;-webkit-user-select:text;user-select:text;
+}
+input:focus{outline:none;border-color:var(--green)}
+input[type=number]{-moz-appearance:textfield}
+input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.stepper{display:flex;align-items:center;gap:10px;margin-left:auto}
+.stepper b{min-width:28px;text-align:center;font-size:20px}
+.step{width:44px;height:40px;border-radius:10px;font-size:22px;font-weight:700;background:var(--bg2);border:1px solid var(--line)}
+.step:disabled{opacity:.35}
+.names{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.names.one{grid-template-columns:1fr}
+.name-row{display:flex;align-items:center;gap:8px;min-width:0}
+.name-row input{padding:10px;font-size:15px}
+.dot{width:13px;height:13px;border-radius:50%;flex:none}
+.setup-note{text-align:center;font-size:12.5px;color:var(--dim);line-height:1.4}
+
+/* ---------- The table ---------- */
+/* the account bubble would sit on a player's panel */
+body.playing .acct{display:none}
+body.playing{overflow:hidden}
+
+.table{position:fixed;inset:0;height:100dvh;background:#0b0e12}
+.panels{
+  position:absolute;inset:0;display:grid;gap:5px;
+  padding:5px 5px calc(5px + var(--pad));
+}
+.panels.n1{grid-template:1fr / 1fr}
+.panels.n2{grid-template:1fr 1fr / 1fr}
+.panels.n3{grid-template:1fr 1fr / 1fr 1fr}
+.panels.n3 .panel:first-child{grid-column:1 / -1}
+.panels.n4{grid-template:1fr 1fr / 1fr 1fr}
+.panels.n5{grid-template:1fr 1fr / repeat(6, 1fr)}
+.panels.n5 .panel:nth-child(-n+3){grid-column:span 2}
+.panels.n5 .panel:nth-child(n+4){grid-column:span 3}
+.panels.n6{grid-template:1fr 1fr / 1fr 1fr 1fr}
+
+.panel{
+  position:relative;overflow:hidden;border-radius:16px;
+  background:color-mix(in srgb, var(--pc) 22%, #151a21);
+  border:2px solid color-mix(in srgb, var(--pc) 55%, transparent);
+  min-width:0;min-height:0;
+}
+/* the inner frame is what turns, so everything in it faces its player */
+.inner{position:absolute;inset:0}
+.panel.flip .inner{transform:rotate(180deg)}
+
+/* the name in the upper outside corner, clear of the counters button */
+.pname{
+  position:absolute;top:12px;pointer-events:none;max-width:calc(100% - 120px);
+  font-size:13px;font-weight:700;color:color-mix(in srgb, var(--pc) 60%, #fff);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.panel[data-out="l"] .pname{left:12px;text-align:left}
+.panel[data-out="r"] .pname{right:12px;text-align:right}
+
+/* the life box: far half gives a life, near half takes one */
+.half{position:absolute;left:0;right:0;height:50%;touch-action:none}
+.half.plus{top:0}
+.half.minus{bottom:0}
+.half:active{background:#ffffff0d}
+/* the + and − marks along the outside edge */
+.half i{
+  position:absolute;font-style:normal;font-size:26px;font-weight:300;
+  color:#ffffff40;pointer-events:none;
+}
+.panel[data-out="l"] .half i{left:14px}
+.panel[data-out="r"] .half i{right:14px}
+.half.plus i{bottom:18%}
+.half.minus i{top:18%}
+
+.life{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  pointer-events:none;
+}
+.num{font-size:clamp(44px, 17vmin, 128px);font-weight:800;font-variant-numeric:tabular-nums;line-height:1;letter-spacing:-2px}
+.panels.n5 .num,.panels.n6 .num{font-size:clamp(38px, 13vmin, 96px)}
+.delta{
+  position:absolute;top:calc(50% - clamp(44px, 17vmin, 128px) * .9);
+  font-size:18px;font-weight:800;color:#e2857a;
+}
+.delta.up{color:#7fd6a2}
+
+.out-tag{
+  position:absolute;left:0;right:0;top:calc(50% + clamp(34px, 12vmin, 84px));text-align:center;pointer-events:none;
+  font-size:13px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#e2857a;
+}
+.panel.out{filter:grayscale(.85);opacity:.6}
+
+/* poison and commander damage, along the near edge */
+/* Poison and commander damage: one button in the far half, under the name,
+   so the near half is all for taking life. Big enough to hit without
+   looking. */
+/* in the upper inside corner */
+.chip{
+  position:absolute;top:8px;z-index:2;
+  display:flex;align-items:center;justify-content:center;gap:12px;
+  min-height:42px;padding:0 16px;border-radius:999px;white-space:nowrap;
+  background:#00000040;border:1px solid #ffffff22;color:#ffffffaa;font-size:18px;
+}
+.chip .ci{display:flex;align-items:center;gap:5px}
+.chip b{font-variant-numeric:tabular-nums;font-size:18px}
+.chip.some{background:#00000070;color:#fff;border-color:#ffffff55}
+/* five or six across: the narrow panel */
+.panel[data-out="l"] .chip{right:8px}
+.panel[data-out="r"] .chip{left:8px}
+/* Five or six across: the panel is too narrow for the button and the name
+   side by side, so the button stacks its two counts and the name tucks
+   beside it. */
+.panels.n5 .chip,.panels.n6 .chip{flex-direction:column;gap:0;padding:4px 10px;border-radius:14px;font-size:14px;min-height:0}
+.panels.n5 .pname,.panels.n6 .pname{max-width:calc(100% - 70px)}
+.panels.n5 .chip b,.panels.n6 .chip b{font-size:15px}
+
+/* ---------- Poison / commander counter ---------- */
+.counter{
+  position:absolute;inset:5px;z-index:5;border-radius:12px;
+  background:#12161cf2;border:1px solid var(--line);
+  display:flex;flex-direction:column;gap:6px;padding:8px;overflow:auto;
+}
+.chead{display:flex;flex-direction:column;font-weight:700;font-size:14px}
+/* the rule, on its own line under the title */
+.chead small{color:var(--dim);font-weight:500;font-size:11.5px}
+.chead.sec{margin-top:4px;padding-top:6px;border-top:1px solid var(--line)}
+.cdone{margin-top:auto;flex:none;font-size:14px;font-weight:700;color:#fff;background:var(--green-d);border:1px solid var(--green);border-radius:9px;padding:8px}
+/* a row: who it is from, then its − count + underneath, so it fits a narrow panel */
+.crow{display:grid;grid-template-columns:minmax(28px,44px) minmax(22px,1fr) minmax(28px,44px);align-items:center;gap:4px 5px}
+.clabel{grid-column:1 / -1;font-size:12.5px;color:var(--dim);display:flex;align-items:center;gap:6px;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.clabel i{width:10px;height:10px;border-radius:50%;flex:none}
+.crow b{text-align:center;font-size:20px;font-variant-numeric:tabular-nums}
+.crow b.lethal{color:#e2857a}
+.cstep{height:36px;border-radius:9px;background:var(--bg2);border:1px solid var(--line);font-size:20px;touch-action:none}
+.cstep:active{border-color:var(--green)}
+
+/* The menu button, in the bottom-left corner of the screen: the gap between
+   the rows is where every panel keeps its name and counters button, so it
+   would always cover one of them there. The corner is the empty near end of
+   a minus side. */
+.hub{
+  position:absolute;left:10px;bottom:calc(10px + var(--pad));z-index:6;
+  width:42px;height:42px;border-radius:50%;background:#12161ce6;border:2px solid var(--line);
+  color:var(--txt);font-size:18px;line-height:1;box-shadow:0 2px 10px #000a;
+}
+
+/* ---------- Overlays ---------- */
+.overlay{position:fixed;inset:0;background:#0b0e12ee;display:flex;align-items:center;justify-content:center;padding:24px;z-index:10}
+.win-card{
+  background:var(--card);border:1px solid var(--line);border-radius:18px;padding:24px 20px;
+  text-align:center;width:100%;max-width:340px;display:flex;flex-direction:column;gap:10px;
+}
+.win-card h2{font-size:24px;color:var(--gold)}
+.win-card p{color:var(--dim);font-size:14px}
+.menu-card h2{color:var(--txt);font-size:18px}
+.trophy{font-size:50px}
+.ghost{color:var(--dim);border:1px solid var(--line);border-radius:11px;padding:11px;width:100%;font-size:14px}
+.link-btn{display:block;text-decoration:none}
+.overlay.confirm{z-index:20}
+.overlay.confirm h2{color:var(--txt);font-size:22px}
+
+/* five or six across: the counter shrinks its type to the narrow panel */
+.panels.n5 .chead,.panels.n6 .chead{font-size:12.5px}
+.panels.n5 .crow b,.panels.n6 .crow b{font-size:17px}
+.panels.n5 .cstep,.panels.n6 .cstep{height:30px;font-size:17px}
+.panels.n5 .counter,.panels.n6 .counter{gap:4px;padding:6px}
+.panels.n5 .crow,.panels.n6 .crow{gap:2px 5px}
+.panels.n5 .clabel,.panels.n6 .clabel{font-size:11.5px}
+.panels.n5 .cdone,.panels.n6 .cdone{padding:6px}
+
+/* five or six across: the name gets the panel's full width */
+.panels.n5 .pname,.panels.n6 .pname{font-size:12px}
+
+.clabel:empty{display:none}
+
+/* the counter's top bar: whose it is, and a close button, pinned while the
+   list scrolls under it */
+.cbar{
+  position:sticky;top:-8px;z-index:1;flex:none;margin:-8px -8px 0;padding:6px 6px 6px 10px;
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  background:#12161c;border-bottom:1px solid var(--line);border-radius:12px 12px 0 0;
+}
+.cbar b{font-size:13px;color:color-mix(in srgb, var(--pc) 60%, #fff);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cx{
+  flex:none;width:34px;height:34px;border-radius:50%;
+  background:var(--bg2);border:1px solid var(--line);color:var(--txt);font-size:22px;line-height:1;
+}
+.cx:active{border-color:var(--green)}
+.panels.n5 .cbar,.panels.n6 .cbar{margin:-6px -6px 0;top:-6px}
+
+/* hidden while a counter is open: it would sit on the counter's lower rows */
+body.counting .hub{display:none}
