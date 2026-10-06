@@ -34,16 +34,25 @@ const RULE_FIELDS = {
   target:    (v) => isInt(v) && v >= 1 && v <= 1e7,
   useRounds: isBool,
   rounds:    (v) => isInt(v) && v >= 1 && v <= 999,
-  quick:     (v) => typeof v === 'string' && v.length <= 100,
+  // room for named keys: "Natural canasta 500, Mixed canasta 300, ..."
+  quick:     (v) => typeof v === 'string' && v.length <= 300,
   typed:     isBool,
   signs:     isBool,
   turns:     isBool,
+  teams:     isBool,
+  teamCount: (v) => isInt(v) && v >= 2 && v <= 4,
+  players:   (v) => isInt(v) && v >= 1 && v <= 8,
 };
+
+// Fields added after My games shipped. A browser still running the page from
+// before them sends rules without them, so they are filled in, not refused.
+const OPTIONAL = { teams: false, teamCount: 2, players: 2 };
 
 function cleanRules(rules) {
   if (!rules || typeof rules !== 'object') return { bad: 'rules' };
   const out = {};
   for (const [k, ok] of Object.entries(RULE_FIELDS)) {
+    if (!(k in rules) && k in OPTIONAL) { out[k] = OPTIONAL[k]; continue; }
     if (!(k in rules)) return { bad: `rules.${k}` };
     if (!ok(rules[k])) return { bad: `rules.${k}` };
     out[k] = rules[k];

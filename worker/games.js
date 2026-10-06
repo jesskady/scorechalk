@@ -46,7 +46,9 @@ function validate(body) {
   if (!Array.isArray(body.players) || body.players.length < 1 || body.players.length > 8) return 'players';
   for (const p of body.players) {
     if (!isInt(p.idx) || p.idx < 0 || p.idx > 7) return 'player.idx';
-    if (!str(p.name, 40)) return 'player.name';
+    // 80, not 40: in a builder game played in teams a "player" is a team,
+    // named for everyone on it — four 14-letter names and their " & "s
+    if (!str(p.name, 80)) return 'player.name';
   }
 
   if (!Array.isArray(body.turns)) return 'turns';

@@ -3,8 +3,14 @@
 const KEY = 'builder-v1';          // the game in progress
 const RULES_KEY = 'builder-rules-v1';     // { custom: {...}, farkle: {...} }
 const PLAYERS_KEY = 'builder-players-v1'; // names, shared by every game
+const TEAMS_KEY = 'builder-teams-v1';     // each player's team, with the names
 const OLD_CFG_KEY = 'builder-cfg-v1';     // before per-game rules; names only
 const MAX_PLAYERS = 8;
+
+// Team chips on the setup screen, and nothing else: in the game a team is
+// just a side with a score, shown by its players' names.
+const TEAM_COLORS = ['#2e9e63', '#d9534f', '#3b82f6', '#e0b341'];
+const TEAM_LETTERS = ['A', 'B', 'C', 'D'];
 
 const $ = (id) => document.getElementById(id);
 const fmt = (n) => n.toLocaleString();
@@ -54,14 +60,36 @@ const sourceHash = (src) => src === 'custom' ? '' : src.startsWith('my:') ? 'my/
 // whether the rules on screen differ from where they came from
 const rulesChanged = () => RULE_KEYS.some(k => cfg[k] !== baseRules(source)[k]);
 
+// Every name typed, up to eight: a game opens with as many as it needs, and
+// the rest wait for a game with more players.
 function savedNames() {
   const n = loadJSON(PLAYERS_KEY) || (loadJSON(OLD_CFG_KEY) || {}).names;
   return Array.isArray(n) && n.length ? n : ['', ''];
 }
 
+function sized(list, n) {
+  const out = list.slice(0, n);
+  while (out.length < n) out.push('');
+  return out;
+}
+
 function loadCfg(src) {
   const mine = src.startsWith('my:') ? {} : (loadJSON(RULES_KEY) || {})[src] || {};
-  return { ...baseRules(src), ...mine, names: savedNames() };
+  const teamOf = loadJSON(TEAMS_KEY);
+  const rules = { ...baseRules(src), ...mine };
+  // a game opens with its own number of players, whatever the last one had
+  return { ...rules, names: sized(savedNames(), rules.players || 2), teamOf: Array.isArray(teamOf) ? teamOf : [] };
+}
+
+/* Which team each player is on. A player with no team yet, or one on a team
+   that no longer exists, gets the usual seating: alternate sides round the
+   table, so partners sit opposite — 1 & 3 against 2 & 4. */
+function teamsFor(c) {
+  const n = c.teamCount || 2;
+  return c.names.map((_, i) => {
+    const t = c.teamOf[i];
+    return Number.isInteger(t) && t < n ? t : i % n;
+  });
 }
 
 let cfg = loadCfg('custom');
@@ -74,8 +102,18 @@ let source = 'custom';   // see above
 let S = null;       // { cfg, scores, cur, log, pend, sign }
 let msgTimer = null;
 
+/* In teams, the sides are what is scored: each one's name is its players'
+   (Jess & Sam), and from here on the game knows only sides. The players and
+   their teams are kept so a rematch can deal the same teams again. */
 function newGame(c) {
-  const names = c.names.map((n, i) => n.trim() || `Player ${i + 1}`);
+  const players = c.names.map((n, i) => n.trim() || `Player ${i + 1}`);
+  let names = players, members = null, playerTeams = null;
+  if (teamsOn(c, players.length)) {
+    playerTeams = teamsFor(c);
+    members = Array.from({ length: c.teamCount }, (_, t) => players.filter((_, i) => playerTeams[i] === t))
+      .filter((m) => m.length);
+    names = members.map((m) => m.join(' & '));
+  }
   const rounds = roundsOn(c);
   return {
     // Chosen here, as darts does, so saving the same game twice updates one
@@ -83,14 +121,30 @@ function newGame(c) {
     id: crypto.randomUUID(),
     startedAt: Date.now(),
     // Rounds are counted in turns, so a game with them always takes turns.
-    cfg: { ...c, names, quickVals: parseQuick(c.quick).vals,
+    cfg: { ...c, names, playerNames: players, members, playerTeams, quickKeys: parseQuick(c.quick).keys,
            useRounds: rounds, turns: c.turns || rounds },
     scores: names.map(() => c.start),
     cur: 0,
     log: [],          // { p, d, cur } — cur is who was on turn before it
     pend: 0,
+    parts: [],        // what made pend: { label, d } per tap, for the breakdown
     sign: c.mode === 'down' ? -1 : 1,
   };
+}
+
+/* A score's breakdown, as said aloud: named keys by name and how many,
+   anything else by its points. Empty when nothing named was tapped, since
+   "+50 · +100" says no more than the total does. */
+function partsText(parts) {
+  if (!parts || !parts.some((p) => p.label)) return '';
+  const out = [];
+  for (const p of parts) {
+    const text = p.label ? (p.d < 0 ? '−' : '') + p.label : signed(p.d);
+    const last = out[out.length - 1];
+    if (last && last.text === text) last.n++;
+    else out.push({ text, n: 1 });
+  }
+  return out.map((o) => (o.n > 1 ? `${o.text} ×${o.n}` : o.text)).join(' · ');
 }
 
 function loadJSON(k) {
@@ -104,6 +158,19 @@ const save = () => saveJSON(KEY, S);
 
 const isOut = (i) => S.cfg.win === 'zero' && S.scores[i] <= 0;
 
+// Someone has reached the target, or the limit when lowest wins.
+function lineCrossed() {
+  const { win, target, useRounds } = S.cfg;
+  if (useRounds || (win !== 'target' && win !== 'low')) return false;
+  return S.scores.some((s) => s >= target);
+}
+
+// Every side has had the same number of turns: a round has just finished.
+const roundDone = () => S.log.length % S.scores.length === 0;
+
+// The line has been crossed, and the round is being played out.
+const finalRound = () => S.cfg.turns && lineCrossed() && !roundDone();
+
 // Who has won, or null while the game is still going.
 function result() {
   const { win, target, useRounds, rounds } = S.cfg;
@@ -111,8 +178,13 @@ function result() {
   if (useRounds) {
     return S.log.length >= rounds * n ? best(win === 'low' ? Math.min : Math.max) : null;
   }
-  if (win === 'target' && sc.some(s => s >= target)) return best(Math.max);
-  if (win === 'low' && sc.some(s => s >= target)) return best(Math.min);
+  // Reaching the target (or the limit) ends the game — but in a game taken
+  // in turns, only once the round is over, so everyone scores the last
+  // round and the best score then wins, not merely the first past the line.
+  if (lineCrossed()) {
+    if (S.cfg.turns && !roundDone()) return null;
+    return best(win === 'low' ? Math.min : Math.max);
+  }
   if (win === 'zero') {
     const alive = sc.map((s, i) => i).filter(i => !isOut(i));
     if (n === 1 && alive.length === 0) return { winners: [], solo: true };
@@ -212,15 +284,47 @@ function renderSetup() {
   $('pMinus').disabled = n <= 1;
   $('pPlus').disabled = n >= MAX_PLAYERS;
   const box = $('names');
+  const teamed = teamsOn(cfg, n), teams = teamed ? teamsFor(cfg) : null;
   box.classList.toggle('one', n === 1);
+  box.classList.toggle('teamed', teamed);
   box.innerHTML = '';
   cfg.names.forEach((name, i) => {
     const inp = document.createElement('input');
     inp.type = 'text'; inp.maxLength = 14; inp.autocomplete = 'off';
     inp.placeholder = `Player ${i + 1}`; inp.value = name;
     inp.addEventListener('input', () => { cfg.names[i] = inp.value; saveCfg(); });
-    box.appendChild(inp);
+    if (!teamed) { box.appendChild(inp); return; }
+    // in teams, each player has a chip for their side: tap it to move them
+    const row = document.createElement('div');
+    row.className = 'name-row';
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'team-chip';
+    chip.textContent = TEAM_LETTERS[teams[i]];
+    chip.style.setProperty('--tc', TEAM_COLORS[teams[i]]);
+    chip.setAttribute('aria-label', `Team ${TEAM_LETTERS[teams[i]]} — tap to change`);
+    chip.onclick = () => {
+      cfg.teamOf = teamsFor(cfg);
+      cfg.teamOf[i] = (cfg.teamOf[i] + 1) % cfg.teamCount;
+      saveCfg(); renderSetup();
+    };
+    row.append(chip, inp);
+    box.appendChild(row);
   });
+
+  // teams need four players or more
+  $('teamsBox').classList.toggle('hidden', maxTeams(n) < 2);
+  setToggle($('teamsTgl'), teamed);
+  const tcRow = $('teamCountRow');
+  tcRow.classList.toggle('hidden', !teamed || maxTeams(n) < 3);
+  tcRow.innerHTML = '';
+  for (let t = 2; t <= maxTeams(n); t++) {
+    const b = document.createElement('button');
+    b.className = 'seg' + (t === cfg.teamCount ? ' is-on' : '');
+    b.textContent = `${t} teams`;
+    b.onclick = () => { cfg.teamCount = t; saveCfg(); renderSetup(); };
+    tcRow.appendChild(b);
+  }
 
   $('startAt').value = cfg.start;
 
@@ -268,10 +372,14 @@ function renderSetup() {
 }
 
 function renderQuickPreview() {
-  const { vals, bad } = parseQuick(cfg.quick);
+  const { keys, bad } = parseQuick(cfg.quick);
   const el = $('quickPreview');
   el.innerHTML = '';
-  for (const v of vals) el.insertAdjacentHTML('beforeend', `<b>${fmt(v)}</b>`);
+  for (const k of keys) {
+    const b = document.createElement('b');
+    b.textContent = keyText(k);
+    el.appendChild(b);
+  }
   for (const t of bad) {
     const b = document.createElement('b');
     b.className = 'bad'; b.textContent = t;
@@ -287,14 +395,17 @@ function setToggle(btn, on) {
 // Keeps this device's copy of the rules (see the sources comment above) and
 // the players. My games keep no local copy: Save changes is their only save.
 function saveCfg() {
-  saveJSON(PLAYERS_KEY, cfg.names);
+  // the names on screen over the saved ones, keeping any beyond them
+  const names = savedNames();
+  cfg.names.forEach((v, i) => { names[i] = v; });
+  saveJSON(PLAYERS_KEY, names.slice(0, MAX_PLAYERS));
+  saveJSON(TEAMS_KEY, cfg.teamOf);
   if (source.startsWith('my:')) { renderRulesCard(); return; }
   const base = baseRules(source), mine = {};
   for (const k of Object.keys(base)) if (cfg[k] !== base[k]) mine[k] = cfg[k];
   const all = loadJSON(RULES_KEY) || {};
   if (Object.keys(mine).length) all[source] = mine; else delete all[source];
   saveJSON(RULES_KEY, all);
-  saveJSON(PLAYERS_KEY, cfg.names);
   renderRulesCard();
 }
 
@@ -341,8 +452,26 @@ $('rulesReset').onclick = async () => {
 
 $('gameName').addEventListener('input', (e) => { cfg.name = e.target.value; saveCfg(); });
 
-$('pMinus').onclick = () => { if (cfg.names.length > 1) { cfg.names.pop(); saveCfg(); renderSetup(); } };
-$('pPlus').onclick = () => { if (cfg.names.length < MAX_PLAYERS) { cfg.names.push(''); saveCfg(); renderSetup(); } };
+$('teamsTgl').onclick = () => {
+  cfg.teams = !teamsOn(cfg, cfg.names.length);
+  // the team count can't be more than the players allow
+  cfg.teamCount = Math.min(cfg.teamCount || 2, maxTeams(cfg.names.length)) || 2;
+  saveCfg(); renderSetup();
+};
+
+/* The player count. For a template it is tonight's only: Canasta opens with
+   four every time. For Custom and My games it is the game's own default —
+   Custom remembers it, and a change to one of My games is saved with Save
+   changes, like any other rule. */
+function setPlayers(n) {
+  // adding a player brings back the name last typed in that place
+  const saved = savedNames();
+  cfg.names = Array.from({ length: n }, (_, i) => (i < cfg.names.length ? cfg.names[i] : saved[i] || ''));
+  if (!TEMPLATES.some((t) => t.id === source)) cfg.players = n;
+  saveCfg(); renderSetup();
+}
+$('pMinus').onclick = () => { if (cfg.names.length > 1) setPlayers(cfg.names.length - 1); };
+$('pPlus').onclick = () => { if (cfg.names.length < MAX_PLAYERS) setPlayers(cfg.names.length + 1); };
 
 $('modeRow').addEventListener('click', (e) => {
   const b = e.target.closest('[data-mode]');
@@ -363,9 +492,15 @@ $('signs').onclick = () => { cfg.signs = !cfg.signs; setToggle($('signs'), cfg.s
 $('turns').onclick = () => { cfg.turns = !cfg.turns; setToggle($('turns'), cfg.turns); saveCfg(); };
 
 $('startBtn').onclick = async () => {
-  if (!parseQuick(cfg.quick).vals.length && !cfg.typed) {
+  if (!parseQuick(cfg.quick).keys.length && !cfg.typed) {
     flashSetup('Add at least one quick-score button, or switch on typed scores.');
     return;
+  }
+  if (teamsOn(cfg, cfg.names.length)) {
+    const t = teamsFor(cfg);
+    for (let k = 0; k < cfg.teamCount; k++) {
+      if (!t.includes(k)) { flashSetup(`Team ${TEAM_LETTERS[k]} has no players yet.`); return; }
+    }
   }
   if (loadJSON(KEY) && !(await askConfirm('This replaces the saved game.', 'Start new game'))) return;
   saveCfg();
@@ -396,7 +531,8 @@ function toPayload(r) {
     return {
       player_idx: e.p,
       turn_no: n,              // each player's own count, as darts records it
-      detail: [],              // a builder turn is just its points
+      // what the points were made of, when named keys were used
+      detail: (e.parts || []).slice(0, 64).map((x) => ({ label: x.label, d: x.d })),
       points: e.d,
       bust: false,
       score_after: running[e.p],
@@ -466,7 +602,8 @@ async function putMine(id, name) {
   const res = await fetch('/api/custom-games/' + encodeURIComponent(id), {
     method: 'PUT',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ name, rules: rulesOnly(cfg) }),
+    // the players on screen become the saved game's own number of players
+    body: JSON.stringify({ name, rules: { ...rulesOnly(cfg), players: cfg.names.length } }),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || 'Could not save');
@@ -566,15 +703,23 @@ function buildBoard() {
 }
 
 function buildPad() {
-  const vals = S.cfg.quickVals;
+  // a game started before keys had names has only their values
+  const keys = S.cfg.quickKeys || (S.cfg.quickVals || []).map((v) => ({ label: '', v }));
+  const named = keys.some((k) => k.label);
   const pad = $('quickpad');
-  pad.className = 'quickpad' + (vals.length === 4 || vals.length > 6 ? ' four' : '');
+  pad.className = 'quickpad' + (named ? ' named' : keys.length === 4 || keys.length > 6 ? ' four' : '');
   pad.innerHTML = '';
-  for (const v of vals) {
+  if (!S.parts) S.parts = [];
+  for (const k of keys) {
     const b = document.createElement('button');
-    b.className = 'key';
-    b.dataset.v = v;
-    b.onclick = () => { S.pend += S.sign * v; save(); render(); };
+    b.className = 'key' + (k.label ? ' nkey' : '');
+    b.dataset.v = k.v;
+    if (k.label) b.innerHTML = `<b>${esc(k.label)}</b><small></small>`;
+    b.onclick = () => {
+      S.pend += S.sign * k.v;
+      S.parts.push({ label: k.label, d: S.sign * k.v });
+      save(); render();
+    };
     pad.appendChild(b);
   }
   $('typedRow').classList.toggle('hidden', !S.cfg.typed);
@@ -589,7 +734,8 @@ function render() {
     const round = Math.floor(S.log.length / n) + 1;
     $('roundBadge').textContent = c.useRounds
       ? `Round ${Math.min(round, c.rounds)} of ${c.rounds}`
-      : `Round ${round}`;
+      : finalRound() ? 'Final round' : `Round ${round}`;
+    $('roundBadge').classList.toggle('final', finalRound());
   }
 
   // Leader: only once someone is actually ahead, and never in a solo game.
@@ -615,11 +761,15 @@ function render() {
   document.querySelectorAll('#signRow .sgn').forEach(b =>
     b.classList.toggle('is-on', Number(b.dataset.sign) === S.sign));
   $('quickpad').classList.toggle('neg', S.sign < 0);
-  [...$('quickpad').children].forEach(b =>
-    b.textContent = (S.sign < 0 ? '−' : '+') + fmt(Number(b.dataset.v)));
+  [...$('quickpad').children].forEach((b) => {
+    const text = (S.sign < 0 ? '−' : '+') + fmt(Number(b.dataset.v));
+    if (b.classList.contains('nkey')) b.querySelector('small').textContent = text;
+    else b.textContent = text;
+  });
 
   $('pendAmt').textContent = signed(S.pend);
-  $('pendFor').textContent = `for ${c.names[S.cur]}`;
+  // what has been tapped, by name, once any of it has one
+  $('pendFor').textContent = partsText(S.parts) || `for ${c.names[S.cur]}`;
   // With nothing entered, a turn-based game scores 0 — a bust, a hole with
   // nothing on it — and play moves on. Without turns a 0 would change
   // nothing, so there is nothing to enter.
@@ -636,7 +786,8 @@ function render() {
   $('history').innerHTML = S.log.slice(from).map((e, k) => {
     // an empty cell without turns keeps the score in its column
     const round = `<small>${c.turns ? `Round ${Math.floor((from + k) / n) + 1}` : ''}</small>`;
-    return `<div><span>${esc(c.names[e.p])}</span>${round}<b class="${e.d < 0 ? 'neg' : ''}">${signed(e.d)}</b></div>`;
+    const parts = partsText(e.parts);
+    return `<div><span>${esc(c.names[e.p])}${parts ? `<em>${esc(parts)}</em>` : ''}</span>${round}<b class="${e.d < 0 ? 'neg' : ''}">${signed(e.d)}</b></div>`;
   }).reverse().join('');
 }
 
@@ -652,9 +803,11 @@ function flash(text) {
 
 function commit(d) {
   const p = S.cur;
-  S.log.push({ p, d, cur: S.cur });
+  const crossedBefore = lineCrossed();
+  S.log.push({ p, d, cur: S.cur, parts: S.parts || [] });
   S.scores[p] += d;
   S.pend = 0;
+  S.parts = [];
   S.sign = S.cfg.mode === 'down' ? -1 : 1;
   if (isOut(p)) flash(`${S.cfg.names[p]} is out`);
   if (S.cfg.turns) S.cur = nextPlayer(p);
@@ -662,6 +815,10 @@ function commit(d) {
   render();
   const r = result();
   if (r) showWin(r);
+  // the line was crossed with turns still to come this round
+  else if (!crossedBefore && lineCrossed()) {
+    flash(`${S.cfg.names[p]} reached ${fmt(S.cfg.target)} — finishing the round`);
+  }
 }
 
 $('signRow').addEventListener('click', (e) => {
@@ -671,13 +828,14 @@ $('signRow').addEventListener('click', (e) => {
   save(); render();
 });
 
-$('clearBtn').onclick = () => { S.pend = 0; $('typedIn').value = ''; save(); render(); };
+$('clearBtn').onclick = () => { S.pend = 0; S.parts = []; $('typedIn').value = ''; save(); render(); };
 
 function addTyped() {
   // whole numbers, as everywhere a score is entered; see parseQuick
   const v = Math.round(Math.abs(Number($('typedIn').value)));
   if (!v) return;
   S.pend += S.sign * v;
+  S.parts.push({ label: '', d: S.sign * v });
   $('typedIn').value = '';
   save(); render();
 }
@@ -696,7 +854,7 @@ $('commitBtn').onclick = () => {
 };
 
 $('undoBtn').onclick = () => {
-  if (S.pend) { S.pend = 0; save(); render(); return; }
+  if (S.pend || (S.parts && S.parts.length)) { S.pend = 0; S.parts = []; save(); render(); return; }
   const e = S.log.pop();
   if (!e) { flash('Nothing to undo'); return; }
   S.scores[e.p] -= e.d;
@@ -742,7 +900,9 @@ function showWin(r) {
 }
 
 $('rematchBtn').onclick = () => {
-  const { quickVals, ...c } = S.cfg;
+  const { quickVals, quickKeys, members, ...c } = S.cfg;
+  // a game in teams is rebuilt from its players, not from the team names
+  if (c.playerNames) { c.names = c.playerNames; c.teamOf = c.playerTeams || []; }
   S = newGame(c);
   save();
   $('winOverlay').classList.add('hidden');

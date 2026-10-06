@@ -10,7 +10,7 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='15' fill='%23182029'/><circle cx='16' cy='16' r='11' fill='%232e7d4f'/><circle cx='16' cy='16' r='7' fill='%23182029'/><circle cx='16' cy='16' r='3.5' fill='%23c0392b'/></svg>">
 <!-- ?v= must be bumped whenever a stylesheet or app.js changes, as in darts -->
 <link rel="stylesheet" href="../shared.css?v=29">
-<link rel="stylesheet" href="style.css?v=14">
+<link rel="stylesheet" href="style.css?v=17">
 </head>
 <body>
 
@@ -95,12 +95,24 @@
       </div>
     </div>
     <div id="names" class="names"></div>
+
+    <!-- four or more players: split them into sides, each scored as one -->
+    <div id="teamsBox" class="teams-box hidden">
+      <button id="teamsTgl" class="toggle" role="switch" aria-checked="false">
+        <span class="tg-label">
+          <b>Play in teams</b>
+          <small>Each team is scored together. Tap a player's team to move them.</small>
+        </span>
+        <span class="tg-switch"></span>
+      </button>
+      <div class="preset-row hidden" id="teamCountRow"></div>
+    </div>
   </div>
 
   <div class="card rule">
     <span class="field-label">Quick-score buttons</span>
     <input id="quick" type="text" inputmode="text" autocomplete="off" value="1, 5, 10">
-    <small class="hint">Comma-separated. Each tap adds that much to the score being entered.</small>
+    <small class="hint">Comma-separated, and a name before a number labels the button: <i>Red three 100, Going out 100</i>. Each tap adds that much to the score being entered.</small>
     <div class="chips" id="quickPreview"></div>
     <button id="typed" class="toggle is-on" role="switch" aria-checked="true">
       <span class="tg-label">
@@ -228,7 +240,7 @@
 </div>
 
 <script src="/account.js?v=29" defer></script>
-<script src="rules.js?v=3"></script>
-<script src="app.js?v=15"></script>
+<script src="rules.js?v=5"></script>
+<script src="app.js?v=19"></script>
 </body>
 </html>
