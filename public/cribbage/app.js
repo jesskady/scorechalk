@@ -145,7 +145,13 @@ let playMode = (() => { try { return localStorage.getItem(PLAY_MODE_KEY) || 'det
 function save() {
   try { S ? localStorage.setItem(KEY, JSON.stringify(S)) : localStorage.removeItem(KEY); }
   catch (e) { /* private mode, ignore */ }
+  // and to the profile, when signed in (see /cloud.js)
+  if (S && window.SCCloud) SCCloud.keep(cloudGame);
 }
+
+// The game as the profile keeps it: its history, and its own state to pick
+// it up again by. Nothing until there is a score in it.
+const cloudGame = () => (S && S.log.length ? { ...toPayload(), state: S } : null);
 function load() {
   try { return JSON.parse(localStorage.getItem(KEY)); } catch (e) { return null; }
 }
@@ -247,7 +253,10 @@ $('countRow').addEventListener('click', (e) => {
 });
 
 $('startBtn').onclick = async () => {
-  if (load() && !(await askConfirm('This replaces the saved game.', 'Start new game'))) return;
+  const old = load();
+  if (old && !(await askConfirm('This discards the game in progress.', 'Start new game'))) return;
+  // given up unfinished: off the profile too
+  if (old && !old.over) SCCloud.drop(old.id);
   S = newGame(Array.from({ length: setupN }, (_, i) => nameOf(i)), setupDealer);
   save();
   showGame();
@@ -693,6 +702,7 @@ $('undoBtn').onclick = () => {
 
 $('quitBtn').onclick = async () => {
   if (S.log.length && !(await askConfirm('This ends the current game and its scores.', 'New game'))) return;
+  if (!S.over) SCCloud.drop(S.id);
   S = null; save();
   location.reload();
 };
@@ -776,11 +786,11 @@ function toPayload() {
   return {
     id: S.id,
     game_type: 'cribbage',
-    config: { players: S.names.length, firstDealer: S.firstDealer, skunk: skunk() },
+    config: { players: S.names.length, firstDealer: S.firstDealer, skunk: S.over ? skunk() : null },
     started_at: S.startedAt,
     me_idx: 0,
-    ended_at: Date.now(),
-    winner_idx: S.winner,
+    ended_at: S.over ? Date.now() : null,
+    winner_idx: S.over ? S.winner : null,
     players: S.names.map((name, idx) => ({ idx, name })),
     turns,
   };
@@ -793,12 +803,7 @@ async function saveToProfile() {
   if (!me) return;
   note.textContent = 'Saving to your profile…';
   try {
-    const res = await fetch('/api/games', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(toPayload()),
-    });
-    if (!res.ok) throw new Error();
+    await SCCloud.now(cloudGame);
     note.textContent = 'Saved to your profile';
   } catch (e) {
     note.textContent = 'Could not save to your profile. Tap to try again.';
@@ -822,3 +827,27 @@ if (location.hash === '#play') {
   history.replaceState(null, '', location.pathname + location.search);
   if (!$('resumeBtn').classList.contains('hidden')) $('resumeBtn').click();
 }
+
+/* ?resume=<id> — a game picked up from the profile, saved on this device or
+   another. It takes the place of the one here, which is put on the profile
+   first so that it can be picked up again too. */
+async function resumeFromProfile() {
+  const id = SCCloud.resumeId();
+  if (!id) return;
+  const here = load();
+  if (here && here.id !== id && !here.over && here.log.length) {
+    S = here;
+    let kept = false;
+    try { kept = await SCCloud.now(cloudGame); } catch (e) { /* offline */ }
+    S = null;
+    if (!kept && !(await askConfirm('Your game in progress here isn\'t saved to your profile, and opening this one replaces it.', 'Open it'))) return;
+  }
+  try {
+    const g = await SCCloud.load(id);
+    if (!g.state) return;          // finished since: nothing to pick up
+    S = g.state;
+    save();
+    showGame();
+  } catch (e) { /* offline, or gone: the setup stays */ }
+}
+resumeFromProfile();

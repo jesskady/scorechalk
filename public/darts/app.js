@@ -7,6 +7,7 @@ const $ = (id) => document.getElementById(id);
 
 let S = null;      // game state, null until a game starts
 let msgTimer = null;
+let signedIn = false;   // set once /api/me answers; see buildSetup
 
 /* ---------------- state ---------------- */
 
@@ -130,7 +131,6 @@ function buildSetup() {
      you. Hidden unless it matters — signed out there is nothing to record,
      and in practice mode there is only one player to be. */
   let meIdx = 0;
-  let signedIn = false;
   const meRow = $('meRow');
   const meBtns = [...document.querySelectorAll('#meSel .seg')];
 
@@ -202,10 +202,11 @@ function buildSetup() {
     if (open && !open.over) {
       const who = open.players.map(p => p.name).join(' vs ');
       const ok = await askConfirm(
-        clearingCost(open, `Your game in progress — ${who} — will be replaced on this device.`),
+        `Your game in progress — ${who} — will be discarded${signedIn ? ', from your profile too' : ''}.`,
         'Start new game'
       );
       if (!ok) return;
+      window.SCCloud && SCCloud.drop(open.id);
     }
 
     const names = playerCount === 1
@@ -394,10 +395,12 @@ function buildBoard() {
 
   $('quitBtn').addEventListener('click', async () => {
     const names = S.players.map(p => `${p.name} on ${p.score}`).join(' and ');
-    const ok = await askConfirm(
-      clearingCost(S, `This clears the game in progress — ${names} — and goes back to setup.`),
+    const ok = await askConfirm(S.over
+      ? 'This clears the finished game and goes back to setup.'
+      : `This discards the game in progress — ${names}${signedIn ? ', from your profile too' : ''} — and goes back to setup.`,
       'End game');
     if (!ok) return;
+    if (!S.over && window.SCCloud) SCCloud.drop(S.id);
     S = null; save(); location.reload();
   });
 

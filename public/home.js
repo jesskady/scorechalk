@@ -1,7 +1,8 @@
 /* The home page's live parts:
    - Pick up where you left off: every game left in progress on this device,
-     read from each game's own saved state, and — signed in — darts games
-     saved unfinished to the profile from another device. Newest first; each
+     read from each game's own saved state, and — signed in — every game in
+     progress on the profile, which is where one played on another device
+     shows up. Newest first; each
      card dressed in its room's style, with an × to discard it. Hidden when
      there are none.
    - My games: builder games saved to the profile, when signed in.
@@ -27,18 +28,32 @@
   /* ---------------- games in progress ----------------
 
      Each game keeps its game under its own key, in its own shape; these turn
-     each one into a line worth reading. A finished game is not in progress. */
+     each one into a line worth reading. A finished game is not in progress.
+     The profile keeps the same shape (see /cloud.js), so a game saved there
+     is read the same way. */
 
   // room: which look the card takes — 'parlor' chalk, 'living' legal pad, 'workshop' graph paper
-  const GAMES = [
-    { key: 'dart-tracker-v1', room: 'parlor', name: 'Darts', href: '/darts/#play',
+  const SPEC = {
+    darts: { room: 'parlor', name: 'Darts',
       line: (g) => (g.over ? null : list(g.players.map((p) => `${p.name} ${p.score}`))) },
-    { key: 'cribbage-v1', room: 'living', name: 'Cribbage', href: '/cribbage/#play',
+    cribbage: { room: 'living', name: 'Cribbage',
       line: (g) => (g.over ? null : list([...g.names.map((n, i) => `${n} ${g.scores[i]}`), `hand ${g.hand}`])) },
-    { key: 'yahtzee-v1', room: 'living', name: 'Yahtzee', href: '/yahtzee/#play',
+    yahtzee: { room: 'living', name: 'Yahtzee',
       line: (g) => (g.over ? null : `${many(g.names.length)} · ${g.names[g.cur]}'s turn`) },
-    { key: 'magic-v1', room: 'living', name: 'Magic', href: '/magic/#play',
+    magic: { room: 'living', name: 'Magic',
       line: (g) => (g.won ? null : `${g.format === 'commander' ? 'Commander' : 'Constructed'} · ${list(g.names.map((n, i) => `${n} ${g.life[i]}`))}`) },
+    // a builder game takes its own room, as chosen on its setup screen
+    builder: {
+      room: (g) => themeOf(g.cfg),   // see /builder/rules.js
+      name: (g) => (g.cfg && g.cfg.name) || 'Builder game',
+      line: (g) => (g.endedAt ? null : list(g.cfg.names.map((n, i) => `${n} ${g.scores[i]}`))) },
+  };
+
+  const GAMES = [
+    { ...SPEC.darts, key: 'dart-tracker-v1', href: '/darts/#play' },
+    { ...SPEC.cribbage, key: 'cribbage-v1', href: '/cribbage/#play' },
+    { ...SPEC.yahtzee, key: 'yahtzee-v1', href: '/yahtzee/#play' },
+    { ...SPEC.magic, key: 'magic-v1', href: '/magic/#play' },
   ];
 
   /* Builder games, one in progress per game: 'builder-game-v1:<source>' —
@@ -52,17 +67,17 @@
     if (!key.startsWith('builder-game-v1:') && key !== 'builder-v1') continue;
     const src = key === 'builder-v1' ? null : key.slice('builder-game-v1:'.length);
     GAMES.push({
-      key, href: (g) => '/builder/#' + playHash(src || (g.cfg && g.cfg.source) || 'custom'),
-      room: (g) => themeOf(g.cfg),   // see /builder/rules.js
-      name: (g) => (g.cfg && g.cfg.name) || 'Builder game',
-      line: (g) => list(g.cfg.names.map((n, i) => `${n} ${g.scores[i]}`)),
+      ...SPEC.builder, key,
+      href: (g) => '/builder/#' + playHash(src || (g.cfg && g.cfg.source) || 'custom'),
     });
   }
 
   const found = [];
-  // the ids of darts games saved unfinished to the profile: discarding one
-  // of those, from this device or another, deletes the saved copy too
+  // the ids of games saved unfinished to the profile: discarding one of
+  // those, from this device or another, deletes the saved copy too
   const saved = new Set();
+  const pick = (v, g) => (typeof v === 'function' ? v(g) : v);
+  const moves = (g) => (g && Array.isArray(g.log) ? g.log.length : 0);
 
   function local() {
     for (const G of GAMES) {
@@ -71,25 +86,37 @@
       let line = null;
       try { line = G.line(g); } catch (e) { /* an older shape: skip it rather than break the page */ }
       if (!line) continue;
-      const pick = (v) => (typeof v === 'function' ? v(g) : v);
-      found.push({ ...G, id: g.id, href: pick(G.href), room: pick(G.room), name: pick(G.name), line, at: g.startedAt || 0 });
+      found.push({ ...G, id: g.id, href: pick(G.href, g), room: pick(G.room, g), name: pick(G.name, g), line, at: g.startedAt || 0, n: moves(g) });
     }
   }
 
-  /* Darts games saved unfinished to the profile — from another device, as a
-     rule, since the one on this device is already in the list above. The
-     other games only reach the profile once they are finished. */
+  /* Games in progress on the profile. One played on this device is already
+     in the list above — unless it has been played on since somewhere else,
+     when the profile's is the newer and takes its place: opening it from
+     there brings this device up to date. */
   function fromProfile(games) {
     for (const g of games) {
-      if (g.game_type === 'darts') saved.add(g.id);
-      if (g.game_type !== 'darts' || found.some((f) => f.id === g.id)) continue;
-      const turns = g.turn_count === 1 ? '1 turn' : `${g.turn_count} turns`;
-      found.push({
-        room: 'parlor', name: 'Darts', id: g.id,
-        href: '/darts/?resume=' + encodeURIComponent(g.id),
-        line: list([(g.players || []).map((p) => p.name).join(' vs '), turns, 'saved']),
-        at: g.updated_at || g.started_at || 0,
-      });
+      saved.add(g.id);
+      const G = SPEC[g.game_type];
+      if (!G) continue;
+      const here = found.findIndex((f) => f.id === g.id);
+      if (here >= 0 && !(g.state && moves(g.state) > found[here].n)) continue;
+      let line = null;
+      if (g.state) {
+        try { line = G.line(g.state); } catch (e) { /* an older shape */ }
+      } else if (g.game_type === 'darts') {
+        // saved before games kept their state: what the list knows
+        const turns = g.turn_count === 1 ? '1 turn' : `${g.turn_count} turns`;
+        line = list([(g.players || []).map((p) => p.name).join(' vs '), turns, 'saved']);
+      }
+      if (!line) continue;
+      const card = {
+        key: here >= 0 ? found[here].key : null,
+        room: pick(G.room, g.state || {}), name: pick(G.name, g.state || {}), id: g.id,
+        href: `/${g.game_type}/?resume=${encodeURIComponent(g.id)}`,
+        line, at: g.updated_at || g.started_at || 0,
+      };
+      if (here >= 0) found[here] = card; else found.push(card);
     }
   }
 
@@ -166,7 +193,7 @@
   getJSON('/api/me')
     .then((me) => {
       if (!me || !me.user) return;
-      getJSON('/api/games?state=unfinished&limit=10')
+      getJSON('/api/games?state=unfinished&limit=20')
         .then((data) => { if (data) { fromProfile(data.games || []); showResume(); } })
         .catch(() => {});
       return getJSON('/api/custom-games').then((data) => { if (data) mine(data.games || []); });

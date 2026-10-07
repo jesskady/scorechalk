@@ -1,7 +1,9 @@
 /* Saving darts games to a profile.
  *
- * Two callers: the Save button, which stores an unfinished game so it can be
- * picked up later or elsewhere, and the automatic write when a game is won.
+ * Every turn is saved when signed in (autoSave in app.js), as is the Save
+ * button, which says whether it worked. They go through /cloud.js, which
+ * sends one save at a time; each carries the game's own state too, which is
+ * what resuming it hands back.
  * Both send the whole game, so a failed save is retried rather than
  * reconciled, and the game id is chosen here so a retry is idempotent.
  *
@@ -56,17 +58,8 @@ window.SCSync = (function () {
       winner_idx: S.over && S.winner != null ? S.winner : null,
       players: S.players.map((p, idx) => ({ idx, name: p.name })),
       turns,
+      state: S,
     };
-  }
-
-  async function post(S) {
-    const res = await fetch('/api/games', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(toPayload(S)),
-    });
-    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'save failed');
-    return res.json();
   }
 
   /* ---------------- rebuilding a game from the server ---------------- */
@@ -149,15 +142,14 @@ window.SCSync = (function () {
       const data = await me();
       if (!data || !data.user) return;
       try {
-        await post(S);
-        S.savedTurns = S.log.length;
+        if (await window.SCCloud.now(() => toPayload(S))) S.savedTurns = S.log.length;
       } catch (e) { /* the win is not lost, only unsynced */ }
     },
 
     /* Called by the Save button, where the user asked for this explicitly and
        so must be told whether it worked. */
     async saveNow(S) {
-      await post(S);
+      if (!(await window.SCCloud.now(() => toPayload(S)))) throw new Error('not signed in');
       // records what the profile now holds, so the warnings before clearing
       // this game can tell the truth about what is at risk
       S.savedTurns = S.log.length;
@@ -172,7 +164,10 @@ window.SCSync = (function () {
     async load(id) {
       const res = await fetch('/api/games/' + encodeURIComponent(id), { headers: { accept: 'application/json' } });
       if (!res.ok) throw new Error('could not load that game');
-      return rebuild((await res.json()).game);
+      const g = (await res.json()).game;
+      // saved with its state: that is the game, exactly as it was left
+      if (g.state && g.ended_at == null) return { ...g.state, savedTurns: g.turns.length };
+      return rebuild(g);
     },
   };
 })();

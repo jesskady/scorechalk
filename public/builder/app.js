@@ -161,7 +161,15 @@ function saveJSON(k, v) {
   try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, JSON.stringify(v)); }
   catch (e) { /* private mode, ignore */ }
 }
-const save = () => saveJSON(slotKey(S.cfg.source), S);
+const save = () => {
+  saveJSON(slotKey(S.cfg.source), S);
+  // and to the profile, when signed in (see /cloud.js)
+  if (window.SCCloud) SCCloud.keep(cloudGame);
+};
+
+// The game as the profile keeps it: its history, and its own state to pick
+// it up again by. Nothing until there is a score in it.
+const cloudGame = () => (S && S.log.length ? { ...toPayload(), state: S } : null);
 
 // The one game in progress from before moves into its own game's slot.
 (function migrate() {
@@ -550,6 +558,8 @@ $('startBtn').onclick = async () => {
       'Start a new one', 'Resume it');
     if (a === 'alt') { location.hash = playHash(source); return; }
     if (!a) return;
+    // given up unfinished: off the profile too
+    if (!prior.endedAt) SCCloud.drop(prior.id);
   }
   saveCfg();
   S = newGame({ ...cfg, source });
@@ -566,7 +576,7 @@ $('startBtn').onclick = async () => {
    `origin` still says where the rules came from — 'custom', a template id,
    or 'my:<id>' — so games of one kind can be grouped later. */
 
-function toPayload(r) {
+function toPayload() {
   const c = S.cfg;
   // old in-progress games predate ids; give them one on their first save
   if (!S.id) { S.id = crypto.randomUUID(); S.startedAt = S.startedAt || Date.now(); save(); }
@@ -594,8 +604,8 @@ function toPayload(r) {
     config: { name: c.name.trim(), rules: rulesOnly(c), origin: c.source || 'custom' },
     started_at: S.startedAt,
     me_idx: 0,
-    ended_at: Date.now(),
-    winner_idx: r.winners && r.winners.length === 1 ? r.winners[0] : null,
+    ended_at: S.endedAt || null,
+    winner_idx: S.endedAt && S.winnerIdx != null ? S.winnerIdx : null,
     players: c.names.map((name, idx) => ({ idx, name })),
     turns,
   };
@@ -608,12 +618,7 @@ async function saveToProfile(r) {
   if (!me) return;                    // signed out: nothing to save to
   note.textContent = 'Saving to your profile…';
   try {
-    const res = await fetch('/api/games', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(toPayload(r)),
-    });
-    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'save failed');
+    await SCCloud.now(cloudGame);
     note.textContent = 'Saved to your profile';
   } catch (e) {
     note.textContent = 'Could not save to your profile. Tap to try again.';
@@ -908,6 +913,8 @@ $('undoBtn').onclick = () => {
   if (!e) { flash('Nothing to undo'); return; }
   S.scores[e.p] -= e.d;
   S.cur = e.cur;
+  // an undo that takes back the win, or a Finish, opens the game again
+  if (S.endedAt && !result()) { S.endedAt = null; S.winnerIdx = null; }
   save(); render();
   flash(`Undid ${S.cfg.names[e.p]} ${signed(e.d)}`);
 };
@@ -924,6 +931,7 @@ $('finishBtn').onclick = async () => {
 
 $('quitBtn').onclick = async () => {
   if (S.log.length && !(await askConfirm('This ends the current game and its scores.', 'New game'))) return;
+  if (!S.endedAt) SCCloud.drop(S.id);
   endGame();
 };
 
@@ -945,6 +953,10 @@ function showWin(r) {
     `<li><span>${esc(c.names[i])}</span><b>${fmt(S.scores[i])}</b></li>`).join('');
   $('winTable').classList.toggle('hidden', c.names.length === 1);
   $('winOverlay').classList.remove('hidden');
+  // the game is over: kept on it, so every save from here says so
+  if (!S.endedAt) S.endedAt = Date.now();
+  S.winnerIdx = r.winners && r.winners.length === 1 ? r.winners[0] : null;
+  saveJSON(slotKey(S.cfg.source), S);
   saveToProfile(r);
 }
 
@@ -988,7 +1000,31 @@ function askConfirm(text, yesLabel, altLabel) {
   });
 }
 
+/* ?resume=<id> — a game picked up from the profile, saved on this device or
+   another. It goes into its own game's slot, in place of any game there,
+   which is put on the profile first so that it can be picked up again too. */
+async function resumeFromProfile(id) {
+  try {
+    const st = (await SCCloud.load(id)).state;
+    if (st && st.cfg) {
+      const src = st.cfg.source || 'custom';
+      const here = loadJSON(slotKey(src));
+      if (here && here.id !== id && !here.endedAt && here.log.length) {
+        S = here;
+        let kept = false;
+        try { kept = await SCCloud.now(cloudGame); } catch (e) { /* offline */ }
+        S = null;
+        if (!kept && !(await askConfirm('Your game in progress here isn\'t saved to your profile, and opening this one replaces it.', 'Open it'))) { route(); return; }
+      }
+      saveJSON(slotKey(src), st);
+      history.replaceState(null, '', '#' + playHash(src));
+    }
+  } catch (e) { /* offline, or gone: the setup instead */ }
+  route();
+}
+
 /* ---------------- boot ---------------- */
 
-route();
+const resumeId = window.SCCloud && SCCloud.resumeId();
+if (resumeId) resumeFromProfile(resumeId); else route();
 loadMine();

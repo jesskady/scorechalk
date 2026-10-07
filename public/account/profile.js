@@ -116,6 +116,10 @@
     } else if (g.game_type === 'cribbage') {
       bits.push('Cribbage');
       if (g.config && g.config.skunk) bits.push(g.config.skunk === 'double' ? 'double skunk' : 'skunk');
+    } else if (g.game_type === 'magic') {
+      // only ever here while in progress, and it keeps no turns
+      bits.push('Magic');
+      if (g.config && g.config.format) bits.push(g.config.format === 'commander' ? 'Commander' : 'Constructed');
     } else if (g.game_type === 'builder') {
       // the game's name as it was played: renaming one of My games later
       // does not rewrite the games already played with it
@@ -125,7 +129,7 @@
       if (g.config && g.config.doubleIn) bits.push('double in');
       if (g.config && g.config.doubleOut) bits.push('double out');
     }
-    bits.push(g.turn_count === 1 ? '1 turn' : `${g.turn_count} turns`);
+    if (g.game_type !== 'magic') bits.push(g.turn_count === 1 ? '1 turn' : `${g.turn_count} turns`);
     main.append(el('small', null, bits.join(' · ')));
 
     const side = el('div', 'game-side');

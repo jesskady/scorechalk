@@ -32,6 +32,9 @@ let S = null;   // the game
 function newGame(format, names, life) {
   const n = names.length;
   return {
+    // so every save to the profile updates the one row
+    id: crypto.randomUUID(),
+    startedAt: Date.now(),
     format, names, start: life,
     life: names.map(() => life),
     poison: names.map(() => 0),
@@ -45,6 +48,34 @@ function newGame(format, names, life) {
 function save() {
   try { S ? localStorage.setItem(KEY, JSON.stringify(S)) : localStorage.removeItem(KEY); }
   catch (e) { /* private mode, ignore */ }
+  // and to the profile, when signed in (see /cloud.js)
+  if (S && window.SCCloud) SCCloud.keep(cloudGame);
+}
+
+/* The game as the profile keeps it, while it is being played: its own state,
+   to pick it up again by. A Magic game has no history on the profile yet, so
+   it goes there only while it is in progress, and comes off once it is won.
+   Nothing until a life total has changed. */
+function cloudGame() {
+  if (!S || !S.log.length || S.won) return null;
+  // a game started before ids gets one, kept with it
+  if (!S.id) {
+    S.id = crypto.randomUUID();
+    S.startedAt = Date.now();
+    try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* private mode */ }
+  }
+  return {
+    id: S.id,
+    game_type: 'magic',
+    config: { format: S.format, start: S.start },
+    started_at: S.startedAt,
+    me_idx: 0,
+    ended_at: null,
+    winner_idx: null,
+    players: S.names.map((name, idx) => ({ idx, name })),
+    turns: [],
+    state: S,
+  };
 }
 function load() {
   try { return JSON.parse(localStorage.getItem(KEY)); } catch (e) { return null; }
@@ -153,7 +184,10 @@ $('pMinus').onclick = () => { if (setupN > FORMATS[fmt].min) { setupN--; renderS
 $('pPlus').onclick = () => { if (setupN < FORMATS[fmt].max) { setupN++; renderSetup(); } };
 
 $('startBtn').onclick = async () => {
-  if (load() && !(await askConfirm('This replaces the game in progress.', 'Start new game'))) return;
+  const old = load();
+  if (old && !(await askConfirm('This discards the game in progress.', 'Start new game'))) return;
+  // given up unfinished: off the profile too
+  if (old && !old.won) SCCloud.drop(old.id);
   const life = Math.max(1, Math.round(Number($('life').value)) || FORMATS[fmt].life);
   const names = Array.from({ length: setupN }, (_, i) => (setupNames[i] || '').trim() || `Player ${i + 1}`);
   S = newGame(fmt, names, life);
@@ -260,7 +294,10 @@ function afterChange() {
   save();
   render();
   const alive = S.names.map((_, p) => p).filter((p) => !outReason(p));
-  if (S.names.length > 1 && alive.length === 1 && !S.won) { S.won = true; save(); showWin(); }
+  if (S.names.length > 1 && alive.length === 1 && !S.won) {
+    S.won = true; save(); showWin();
+    SCCloud.drop(S.id);      // won: no longer in progress anywhere
+  }
   if (alive.length > 1 && S.won) { S.won = false; save(); }   // a fix brought someone back
 }
 
@@ -381,6 +418,7 @@ $('restartBtn').onclick = async () => {
 $('setupLink').onclick = (e) => { e.preventDefault(); $('menuOverlay').classList.add('hidden'); location.hash = S.format; };
 
 function restart() {
+  if (!S.won) SCCloud.drop(S.id);
   S = newGame(S.format, S.names, S.start);
   for (const k of Object.keys(deltas)) delete deltas[k];
   save();
@@ -427,6 +465,29 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && location.hash === '#play' && S) keepAwake();
 });
 
+/* ?resume=<id> — a game picked up from the profile, saved on this device or
+   another. It takes the place of the one here, which is put on the profile
+   first so that it can be picked up again too. */
+async function resumeFromProfile(id) {
+  const here = load();
+  if (here && here.id !== id && !here.won && here.log.length) {
+    S = here;
+    let kept = false;
+    try { kept = await SCCloud.now(cloudGame); } catch (e) { /* offline */ }
+    S = null;
+    if (!kept && !(await askConfirm('Your game in progress here isn\'t saved to your profile, and opening this one replaces it.', 'Open it'))) return;
+  }
+  try {
+    const st = (await SCCloud.load(id)).state;
+    if (!st) return;
+    S = st;
+    save();
+    if (location.hash === '#play') route(); else location.hash = 'play';
+  } catch (e) { /* offline, or gone: where it was */ }
+}
+
 /* ---------------- boot ---------------- */
 
 route();
+const resumeId = window.SCCloud && SCCloud.resumeId();
+if (resumeId) resumeFromProfile(resumeId);

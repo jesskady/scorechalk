@@ -1,7 +1,8 @@
 /* Game history.
  *
  * A game is written whole: the client sends the game, its players and every
- * turn so far, and this upserts the lot. That suits both callers — the button
+ * turn so far — and, while it is unfinished, its own state, which is what
+ * resuming it hands back (see migrations/0006) — and this upserts the lot. That suits both callers — the button
  * that saves an unfinished game and the automatic write when one is won — and
  * it means a failed save is simply retried rather than reconciled.
  *
@@ -19,6 +20,9 @@ import { currentUserId } from './auth.js';
 const TURNS_PER_STATEMENT = 10;
 const MAX_TURNS = 400;
 const MAX_DETAIL = 64;
+// A game's own state, as JSON. The largest real one, a long builder game,
+// is a few tens of kilobytes.
+const MAX_STATE = 256 * 1024;
 // Players in one game. Darts and cribbage stop well short of this; a
 // Yahtzee table can run to ten.
 const MAX_PLAYERS = 12;
@@ -53,6 +57,11 @@ function validate(body) {
     // 80, not 40: in a builder game played in teams a "player" is a team,
     // named for everyone on it — four 14-letter names and their " & "s
     if (!str(p.name, 80)) return 'player.name';
+  }
+
+  if (body.state != null) {
+    if (typeof body.state !== 'object' || Array.isArray(body.state)) return 'state';
+    if (JSON.stringify(body.state).length > MAX_STATE) return 'state too large';
   }
 
   if (!Array.isArray(body.turns)) return 'turns';
@@ -96,16 +105,19 @@ export async function saveGame(request, env) {
 
   stmts.push(
     env.DB.prepare(
-      `INSERT INTO games (id, owner_user_id, game_type, config, started_at, ended_at, winner_idx, me_idx, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `INSERT INTO games (id, owner_user_id, game_type, config, started_at, ended_at, winner_idx, me_idx, updated_at, state)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET
          config = excluded.config,
          ended_at = excluded.ended_at,
          winner_idx = excluded.winner_idx,
          me_idx = excluded.me_idx,
-         updated_at = excluded.updated_at`
+         updated_at = excluded.updated_at,
+         state = excluded.state`
     ).bind(body.id, uid, body.game_type, config, body.started_at,
-           body.ended_at ?? null, body.winner_idx ?? null, body.me_idx ?? 0, now)
+           body.ended_at ?? null, body.winner_idx ?? null, body.me_idx ?? 0, now,
+           // a finished game is never resumed, so it keeps no state
+           body.ended_at == null && body.state ? JSON.stringify(body.state) : null)
   );
 
   // Turns the game no longer has — taken back with Undo since the last save —
@@ -170,6 +182,7 @@ export async function listGames(request, env, url) {
   const rows = await env.DB.prepare(
     `SELECT g.id, g.game_type, g.config, g.started_at, g.ended_at, g.winner_idx, g.me_idx, g.updated_at,
             (SELECT COUNT(*) FROM turns t WHERE t.game_id = g.id) AS turn_count,
+            ${unfinishedOnly ? 'g.state,' : ''}
             (SELECT json_group_array(json_object('idx', p.idx, 'name', p.name))
                FROM (SELECT idx, name FROM game_players WHERE game_id = g.id ORDER BY idx) p
             ) AS players
@@ -180,7 +193,8 @@ export async function listGames(request, env, url) {
       LIMIT ?`
   ).bind(uid, limit).all();
 
-  return json({ games: (rows.results || []).map(shape) });
+  // the resume list draws each game from its state, so it comes along there
+  return json({ games: (rows.results || []).map((r) => ({ ...shape(r), ...(unfinishedOnly ? { state: parse(r.state, null) } : {}) })) });
 }
 
 /* Everything needed to put a game back on the board. */
@@ -189,7 +203,7 @@ export async function getGame(request, env, id) {
   if (!uid) return json({ error: 'Not signed in' }, 401);
 
   const game = await env.DB.prepare(
-    `SELECT id, owner_user_id, game_type, config, started_at, ended_at, winner_idx, me_idx, updated_at
+    `SELECT id, owner_user_id, game_type, config, started_at, ended_at, winner_idx, me_idx, updated_at, state
        FROM games WHERE id = ?`
   ).bind(id).first();
 
@@ -209,6 +223,7 @@ export async function getGame(request, env, id) {
     game: {
       ...game,
       config: parse(game.config, {}),
+      state: parse(game.state, null),
       players: players.results || [],
       turns: (turns.results || []).map((t) => ({ ...t, detail: parse(t.detail, []), bust: !!t.bust })),
     },
