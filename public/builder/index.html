@@ -15,7 +15,7 @@
 <link rel="stylesheet" href="../shared.css?v=29">
 <!-- the rooms a game can be played in; app.js sets data-room on the body -->
 <link rel="stylesheet" href="../themes.css?v=6">
-<link rel="stylesheet" href="style.css?v=22">
+<link rel="stylesheet" href="style.css?v=24">
 </head>
 <body data-room="workshop">
 
@@ -31,7 +31,6 @@
     <p id="setupSub"></p>
   </header>
 
-  <a id="resumeBtn" class="ghost resume hidden" href="#play">Resume saved game</a>
 
   <div class="card">
     <label class="field">
@@ -152,7 +151,8 @@
   </div>
 
   <!-- A template's rules (the .rule cards) fold into this one line; Custom
-       shows them always, and this card only for its reset. -->
+       shows them always, and this card only for its reset. Reset is always
+       here, greyed out when there is nothing to put back. -->
   <div class="card" id="rulesCard">
     <span class="field-label">Rules</span>
     <p class="rules-text" id="rulesText"></p>
@@ -222,6 +222,7 @@
     <h2>Are you sure?</h2>
     <p id="confirmText"></p>
     <button id="confirmYes" class="danger big">Yes</button>
+    <button id="confirmAlt" class="primary big hidden"></button>
     <button id="confirmNo" class="ghost">Cancel</button>
   </div>
 </div>
@@ -253,6 +254,6 @@
 
 <script src="/account.js?v=29" defer></script>
 <script src="rules.js?v=7"></script>
-<script src="app.js?v=20"></script>
+<script src="app.js?v=23"></script>
 </body>
 </html>

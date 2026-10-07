@@ -12,12 +12,12 @@
   min-height:100%;
 }
 
-.resume{display:block;text-align:center;text-decoration:none}
 
 .rules-text{font-size:14px;line-height:1.45}
 .rules-actions{display:flex;gap:6px}
 .rules-actions .ghost{flex:1}
 .reset{color:var(--neg,#e2857a);border-color:var(--neg-line,#5a302a)}
+.reset:disabled{opacity:.4;cursor:default}
 .save{color:var(--green);border-color:var(--green-d)}
 
 /* ---------- Setup ---------- */

@@ -38,12 +38,25 @@
       line: (g) => (g.over ? null : `${many(g.names.length)} · ${g.names[g.cur]}'s turn`) },
     { key: 'magic-v1', room: 'living', name: 'Magic', href: '/magic/#play',
       line: (g) => (g.won ? null : `${g.format === 'commander' ? 'Commander' : 'Constructed'} · ${list(g.names.map((n, i) => `${n} ${g.life[i]}`))}`) },
-    // a builder game takes its own room, as chosen on its setup screen
-    { key: 'builder-v1', href: '/builder/#play',
+  ];
+
+  /* Builder games, one in progress per game: 'builder-game-v1:<source>' —
+     custom, a template's id, or 'my:<id>' — and 'builder-v1', the one game
+     kept before each had its own. Each takes its own room, as chosen on its
+     setup screen. */
+  const playHash = (src) =>
+    'play/' + (src === 'custom' ? 'custom' : src.startsWith('my:') ? 'my/' + src.slice(3) : src);
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (!key.startsWith('builder-game-v1:') && key !== 'builder-v1') continue;
+    const src = key === 'builder-v1' ? null : key.slice('builder-game-v1:'.length);
+    GAMES.push({
+      key, href: (g) => '/builder/#' + playHash(src || (g.cfg && g.cfg.source) || 'custom'),
       room: (g) => themeOf(g.cfg),   // see /builder/rules.js
       name: (g) => (g.cfg && g.cfg.name) || 'Builder game',
-      line: (g) => list(g.cfg.names.map((n, i) => `${n} ${g.scores[i]}`)) },
-  ];
+      line: (g) => list(g.cfg.names.map((n, i) => `${n} ${g.scores[i]}`)),
+    });
+  }
 
   const found = [];
 
@@ -55,7 +68,7 @@
       try { line = G.line(g); } catch (e) { /* an older shape: skip it rather than break the page */ }
       if (!line) continue;
       const pick = (v) => (typeof v === 'function' ? v(g) : v);
-      found.push({ ...G, id: g.id, room: pick(G.room), name: pick(G.name), line, at: g.startedAt || 0 });
+      found.push({ ...G, id: g.id, href: pick(G.href), room: pick(G.room), name: pick(G.name), line, at: g.startedAt || 0 });
     }
   }
 

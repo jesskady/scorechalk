@@ -1,6 +1,10 @@
 /* Score Chalk — Builder: a configurable scorekeeper for any game */
 
-const KEY = 'builder-v1';          // the game in progress
+// Each game keeps its own game in progress: 'builder-game-v1:custom',
+// 'builder-game-v1:farkle', 'builder-game-v1:my:<id>'... so starting one
+// never touches another.
+const GAME_KEY = 'builder-game-v1:';
+const OLD_KEY = 'builder-v1';        // before, one game in progress for them all
 const RULES_KEY = 'builder-rules-v1';     // { custom: {...}, farkle: {...} }
 const PLAYERS_KEY = 'builder-players-v1'; // names, shared by every game
 const TEAMS_KEY = 'builder-teams-v1';     // each player's team, with the names
@@ -56,6 +60,9 @@ const baseRules = (src) => {
 
 // the hash that opens a source's setup
 const sourceHash = (src) => src === 'custom' ? '' : src.startsWith('my:') ? 'my/' + src.slice(3) : src;
+// A game in progress: 'play/custom', 'play/farkle', 'play/my/<id>'.
+const playHash = (src) => 'play/' + (sourceHash(src) || 'custom');
+const slotKey = (src) => GAME_KEY + (src || 'custom');
 
 // whether the rules on screen differ from where they came from
 const rulesChanged = () => RULE_KEYS.some(k => cfg[k] !== baseRules(source)[k]);
@@ -154,7 +161,14 @@ function saveJSON(k, v) {
   try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, JSON.stringify(v)); }
   catch (e) { /* private mode, ignore */ }
 }
-const save = () => saveJSON(KEY, S);
+const save = () => saveJSON(slotKey(S.cfg.source), S);
+
+// The one game in progress from before moves into its own game's slot.
+(function migrate() {
+  const old = loadJSON(OLD_KEY);
+  if (old && old.cfg && !loadJSON(slotKey(old.cfg.source))) saveJSON(slotKey(old.cfg.source), old);
+  saveJSON(OLD_KEY, null);
+})();
 
 const isOut = (i) => S.cfg.win === 'zero' && S.scores[i] <= 0;
 
@@ -215,15 +229,19 @@ function show(id) {
 
 // The hash decides the screen, so back and forward move between them:
 // '' the custom setup, a template id that template's setup, 'my/<id>' one of
-// My games, 'play' the game.
+// My games, 'play/<game>' that game in progress.
 function route() {
   const h = location.hash.slice(1);
   $('winOverlay').classList.add('hidden');
   $('confirmOverlay').classList.add('hidden');
   $('nameOverlay').classList.add('hidden');
-  if (h === 'play') {
-    S = loadJSON(KEY);
+  if (h.startsWith('play/')) {
+    const g = h.slice(5);
+    const src = g.startsWith('my/') ? 'my:' + g.slice(3) : g;
+    S = loadJSON(slotKey(src));
     if (S) { showGame(); return; }
+    location.replace('#' + sourceHash(src));   // nothing in progress: its setup
+    return;
   }
   if (h.startsWith('my/')) {
     if (myGames === null) return;        // loadMine() routes again when it lands
@@ -243,10 +261,6 @@ function openSetup(src) {
   cfg = loadCfg(src);
   renderTitle();
   renderPicker();
-
-  const saved = loadJSON(KEY);
-  $('resumeBtn').classList.toggle('hidden', !saved);
-  if (saved) $('resumeBtn').textContent = `Resume ${saved.cfg.name || 'saved game'}`;
 
   renderSetup();
   show('setup');
@@ -441,13 +455,17 @@ function renderRulesCard() {
   $('rulesToggle').classList.toggle('hidden', !named);
   $('rulesToggle').textContent = rulesOpen ? 'Hide rules' : 'Edit rules';
 
-  // nothing to reset or save when the rules already are the starting ones
-  const changed = g ? rulesChanged() : !!(loadJSON(RULES_KEY) || {})[source];
-  $('rulesReset').textContent = g ? 'Undo changes' : t ? `Reset to standard ${t.label}` : 'Clear all rules';
-  $('rulesReset').classList.toggle('hidden', !changed);
-  $('rulesSave').classList.toggle('hidden', !(g && changed));
-  // Custom with nothing to reset has nothing to show here at all
-  $('rulesCard').classList.toggle('hidden', !named && !changed);
+  // Reset is always there, so a bumped button or dial can always be put
+  // back; it is greyed out when the rules, and the player count, already are
+  // the game's own: Custom's plain tally, a template's standard rules, or a
+  // My game as it was saved.
+  const ruleEdits = g ? rulesChanged() : !!(loadJSON(RULES_KEY) || {})[source];
+  const changed = ruleEdits || cfg.names.length !== (baseRules(source).players || 2);
+  $('rulesReset').textContent = g ? 'Undo changes' : t ? `Reset to standard ${t.label}` : 'Reset to defaults';
+  $('rulesReset').disabled = !changed;
+  // a template's reset belongs with its rules: folded away, it isn't offered
+  $('rulesReset').classList.toggle('hidden', !!t && folded);
+  $('rulesSave').classList.toggle('hidden', !(g && ruleEdits));
   // Custom's card is only a reset button, so its heading would be noise
   $('rulesCard').querySelector('.field-label').classList.toggle('hidden', !named);
 
@@ -463,7 +481,7 @@ $('rulesReset').onclick = async () => {
   const t = TEMPLATES.find(t => t.id === source);
   const ok = await askConfirm(t
     ? `Put ${t.label} back to its standard rules?`
-    : 'Clear your custom rules back to a blank tally?', 'Reset');
+    : 'Put Custom back to its defaults: count up, with 1, 5 and 10 buttons?', 'Reset');
   if (!ok) return;
   const all = loadJSON(RULES_KEY) || {};
   delete all[source];
@@ -524,11 +542,19 @@ $('startBtn').onclick = async () => {
       if (!t.includes(k)) { flashSetup(`Team ${TEAM_LETTERS[k]} has no players yet.`); return; }
     }
   }
-  if (loadJSON(KEY) && !(await askConfirm('This replaces the saved game.', 'Start new game'))) return;
+  // only this game's own game in progress is in the way
+  const prior = loadJSON(slotKey(source));
+  if (prior) {
+    const name = (prior.cfg && prior.cfg.name) || cfg.name;
+    const a = await askConfirm(name ? `You have a game of ${name} in progress.` : 'You have a game in progress.',
+      'Start a new one', 'Resume it');
+    if (a === 'alt') { location.hash = playHash(source); return; }
+    if (!a) return;
+  }
   saveCfg();
   S = newGame({ ...cfg, source });
   save();
-  location.hash = 'play';
+  location.hash = playHash(source);
 };
 
 /* ---------------- game history ----------------
@@ -937,21 +963,27 @@ $('newBtn').onclick = endGame;
 // Clear the game and go back to the setup it came from.
 function endGame() {
   const back = $('gameBack').getAttribute('href').slice(1);
-  S = null; save();
+  saveJSON(slotKey(S.cfg.source), null);
+  S = null;
   location.hash = back;
 }
 
-function askConfirm(text, yesLabel) {
+// Resolves true for yes, false for cancel, and 'alt' for the middle choice
+// when there is one.
+function askConfirm(text, yesLabel, altLabel) {
   return new Promise((resolve) => {
     $('confirmText').textContent = text;
     $('confirmYes').textContent = yesLabel || 'Yes';
+    $('confirmAlt').textContent = altLabel || '';
+    $('confirmAlt').classList.toggle('hidden', !altLabel);
     $('confirmOverlay').classList.remove('hidden');
     const done = (v) => {
       $('confirmOverlay').classList.add('hidden');
-      $('confirmYes').onclick = $('confirmNo').onclick = null;
+      $('confirmYes').onclick = $('confirmAlt').onclick = $('confirmNo').onclick = null;
       resolve(v);
     };
     $('confirmYes').onclick = () => done(true);
+    $('confirmAlt').onclick = () => done('alt');
     $('confirmNo').onclick = () => done(false);
   });
 }
