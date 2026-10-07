@@ -108,6 +108,17 @@ export async function saveGame(request, env) {
            body.ended_at ?? null, body.winner_idx ?? null, body.me_idx ?? 0, now)
   );
 
+  // Turns the game no longer has — taken back with Undo since the last save —
+  // are dropped: each player keeps turns 0 .. (their count - 1). One
+  // statement for every player, to stay inside D1's per-invocation limit.
+  const counts = body.players.map((p) => body.turns.filter((t) => t.player_idx === p.idx).length);
+  stmts.push(
+    env.DB.prepare(
+      `DELETE FROM turns WHERE game_id = ? AND turn_no >= CASE player_idx
+         ${body.players.map(() => 'WHEN ? THEN ?').join(' ')} ELSE 0 END`
+    ).bind(body.id, ...body.players.flatMap((p, i) => [p.idx, counts[i]]))
+  );
+
   for (const p of body.players) {
     stmts.push(
       env.DB.prepare(

@@ -697,7 +697,7 @@ function submitTurn() {
     render(); save();
     showWin(p);
     // fire and forget: the win is already safe locally
-    if (window.SCSync) window.SCSync.onGameOver(S).then(save);
+    autoSave();
     return;
   }
 
@@ -707,6 +707,7 @@ function submitTurn() {
 
   passTurn();
   render(); save();
+  autoSave();
 }
 
 /* Manual bust: the turn scores nothing and play passes. For busts the app
@@ -736,6 +737,30 @@ function bustTurn() {
   say(`Bust — ${p.name} stays on ${p.score}`);
   passTurn();
   render(); save();
+  autoSave();
+}
+
+/* Signed in, the game goes to the profile after every turn — and after an
+   Undo, and when it is won — so it can be picked up on another device and
+   isn't lost with this one. Silent: localStorage is still the live game, and
+   a save that fails is simply made whole by the next one. One save at a
+   time, so an older one can never land after a newer; turns played while one
+   is on its way go up together in the next. A game with no turns isn't
+   saved until it has one. */
+let saving = false, saveAgain = false;
+async function autoSave() {
+  if (!S || !window.SCSync) return;
+  if (!S.log.length && typeof S.savedTurns !== 'number') return;
+  if (saving) { saveAgain = true; return; }
+  saving = true;
+  const g = S;
+  try {
+    const who = await window.SCSync.me();
+    if (who && who.user) await window.SCSync.saveNow(g);
+    if (g === S) save();          // persist the new savedTurns mark
+  } catch (e) { /* the next turn tries again */ }
+  saving = false;
+  if (saveAgain) { saveAgain = false; autoSave(); }
 }
 
 // play goes round the players in order
@@ -780,6 +805,7 @@ async function undoTurn() {
   $('winOverlay').classList.add('hidden');
 
   render(); save();
+  autoSave();
   say(`Undid ${p.name}'s ${last.pts}`);
 }
 
