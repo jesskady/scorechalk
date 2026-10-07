@@ -46,6 +46,8 @@
   --mark-open:#2d2712; --mark-open-ink:#f0d77a;
   --veil-soft:#0b0e1255;      /* the lighter dimming behind a bubble */
   --shadow:#000c;
+  --frame:var(--line);        /* a frame's edge: the parlor's is the board's wood */
+  --on-gold:#1c1405;          /* text on the room's gold */
 }
 
 /* ---------- the parlor: slate, chalk, brass, felt ---------- */
@@ -59,6 +61,7 @@
   --f-title:"Fredericka the Great", "Chalkduster", Georgia, serif;
   --f-hand:"Fredericka the Great", "Chalkduster", Georgia, serif;
   --paper:#24312c; --paper-ink:#ecebe3; --paper-dim:#a7b0a9; --paper-edge:#5d4128;
+  --frame:#6b4a2b;
 }
 body[data-room="parlor"]{
   background:radial-gradient(110% 55% at 50% 0%, #2b3a34 0%, #1c2723 70%) fixed, #1c2723;
@@ -123,6 +126,10 @@ body[data-room="workshop"]{
 /* a game's name, and the setup heading, in the room's lettering */
 [data-room] .room-title{font-family:var(--f-title);font-weight:400;letter-spacing:0;text-transform:none}
 [data-room="workshop"] .room-title{font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+/* a game's name as it is written, wherever a page's own heading rules would
+   capitalise it — except in the workshop, whose lettering is capitals */
+body[data-room] h1.room-title{text-transform:none;letter-spacing:0}
+body[data-room="workshop"] h1.room-title{text-transform:uppercase;letter-spacing:.04em}
 
 /* paper: whatever would be paper at a real table */
 [data-room] .paper{

@@ -11,17 +11,22 @@
 <!-- ?v= must be bumped whenever a stylesheet or app.js changes. Each file is
      cached independently at the edge, so without this a new index.html can
      load against a stale app.js and misbehave. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredericka+the+Great&family=Josefin+Sans:wght@400;600;700&family=Bree+Serif&family=Kalam:wght@400;700&display=swap">
 <link rel="stylesheet" href="../shared.css?v=29">
-<link rel="stylesheet" href="style.css?v=30">
+<!-- the room this game is played in: the Parlor (see /themes.css) -->
+<link rel="stylesheet" href="../themes.css?v=6">
+<link rel="stylesheet" href="style.css?v=31">
 </head>
-<body>
+<body data-room="parlor" data-game="darts">
 
 <!-- ============ SETUP ============ -->
 <section id="setup" class="screen">
   <a class="backlink" href="/">&lsaquo; All games</a>
 
   <header class="brand">
-    <h1>Darts</h1>
+    <h1 class="room-title">Darts</h1>
     <p>Countdown scoring for one to four players</p>
   </header>
 
@@ -118,7 +123,7 @@
        back as Resume, and Save puts it on the profile for other devices. -->
   <header class="brand compact gamebar">
     <a class="backlink" href="/darts/">&lsaquo; Back</a>
-    <h1>Darts</h1>
+    <h1 class="room-title">Darts</h1>
   </header>
 
   <div id="badges" class="badges hidden">

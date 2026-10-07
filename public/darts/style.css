@@ -74,8 +74,8 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 .badges{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
 .badge{
   font-size:10px;font-weight:700;letter-spacing:.6px;
-  text-transform:uppercase;color:var(--gold);
-  border:1px solid #4a3c18;background:#241f11;
+  text-transform:uppercase;color:var(--badge-fg,var(--gold));
+  border:1px solid var(--badge-line,#4a3c18);background:var(--badge-bg,#241f11);
   padding:2px 9px;border-radius:999px;
 }
 .badge.alert{
@@ -95,7 +95,7 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
   display:flex;flex-direction:column;align-items:center;gap:0;
   transition:border-color .15s,background .15s;
 }
-.player.active{border-color:var(--green);background:#1c2b23}
+.player.active{border-color:var(--green);background:var(--select,#1c2b23)}
 .pname{
   font-size:12px;color:var(--dim);font-weight:600;line-height:1.25;
   max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
@@ -223,8 +223,8 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 .mini-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
 
 /* voids the turn — a play action, so it reads apart from the two neutral ones */
-.bust-btn{color:#e2857a;border-color:#5a302a;font-weight:600}
-.bust-btn:active{background:#2a1a17;border-color:var(--red)}
+.bust-btn{color:var(--neg,#e2857a);border-color:var(--neg-line,#5a302a);font-weight:600}
+.bust-btn:active{background:var(--neg-line,#2a1a17);border-color:var(--red)}
 
 .msg{
   text-align:center;font-size:13px;font-weight:600;color:var(--gold);
@@ -233,7 +233,7 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 
 /* ---------- Win overlay ---------- */
 .overlay{
-  position:fixed;inset:0;background:#0b0e12ee;
+  position:fixed;inset:0;background:var(--veil,#0b0e12ee);
   display:flex;align-items:center;justify-content:center;padding:24px;z-index:10;
 }
 .win-card{
@@ -290,7 +290,7 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 }
 .brand.compact.gamebar .backlink{justify-self:start;padding:2px}
 .brand.compact.gamebar h1{grid-column:2}
-.cloud-error{font-size:12.5px;color:#e2857a;text-align:center;padding:4px 0}
+.cloud-error{font-size:12.5px;color:var(--neg,#e2857a);text-align:center;padding:4px 0}
 
 /* The "you are" selector sits in a .field row, whose children are not
    flexible by default — without this the two buttons collapse to the width
@@ -300,3 +300,25 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
   flex:1;min-width:0;font-size:14px;padding:10px 4px;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
+
+/* ---------- the room: the Parlor (see /themes.css) ----------
+   Chalk for the name and the checkout, the board's wooden frame under the
+   title bar, brass for what is in play — the player on the oche, the darts
+   thrown, a double or treble — and felt for Single and Submit. */
+.brand h1.room-title{font-size:34px}
+.brand.compact.gamebar{border-bottom:5px solid var(--frame);padding-bottom:7px}
+.brand.compact.gamebar h1.room-title{font-size:22px;color:var(--txt)}
+
+[data-room="parlor"] .player.active{border-color:var(--gold)}
+[data-room="parlor"] .player.active .pname{color:var(--gold)}
+[data-room="parlor"] .slot.filled{border-color:var(--gold)}
+[data-room="parlor"] .mult.is-on{background:var(--gold);border-color:var(--gold);color:var(--on-gold)}
+[data-room="parlor"] .mult[data-m="1"].is-on{background:var(--green-d);border-color:var(--green);color:var(--on-primary)}
+
+/* the way out, written up in chalk */
+[data-room="parlor"] .co-darts b{
+  font-family:var(--f-title);font-weight:400;font-size:19px;letter-spacing:.5px;
+  color:var(--txt);background:none;padding:0 4px;
+}
+[data-room="parlor"] .co-label{color:var(--gold)}
+[data-room="parlor"] .checkout{border-style:dashed}
