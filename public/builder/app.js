@@ -714,9 +714,6 @@ function flashSetup(text) {
 function showGame() {
   show('game');
   setRoom(themeOf(S.cfg));
-  // back to this game's own setup, template or custom
-  // (a bare '#' rather than no hash, so leaving is a hash change, not a reload)
-  $('gameBack').setAttribute('href', '#' + sourceHash(S.cfg.source || 'custom'));
   // only a game with no ending of its own needs telling when it is over
   const open = S.cfg.win === 'none' && !S.cfg.useRounds;
   $('finishBtn').classList.toggle('hidden', !open);
@@ -974,9 +971,10 @@ $('newBtn').onclick = endGame;
 
 // Clear the game and go back to the setup it came from.
 function endGame() {
-  const back = $('gameBack').getAttribute('href').slice(1);
+  const back = sourceHash(S.cfg.source || 'custom');
   saveJSON(slotKey(S.cfg.source), null);
   S = null;
+  // a bare '#' rather than no hash, so leaving is a hash change, not a reload
   location.hash = back;
 }
 
