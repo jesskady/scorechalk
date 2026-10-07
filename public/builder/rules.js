@@ -36,7 +36,7 @@ function defaultRules() {
     // for tonight without changing the game
     players: 2,
     useRounds: false, rounds: 9,
-    quick: '1, 5, 10', typed: true, signs: true, turns: false,
+    quick: '1, 5, 10', typed: true, signs: true, turns: true,
     // Played in teams: the players are split into teamCount sides, and each
     // side is scored as one. Which player is on which side is part of who is
     // playing, not of the rules, so it lives with the names (see app.js).
