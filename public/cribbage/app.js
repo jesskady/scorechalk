@@ -814,3 +814,11 @@ fetch('/api/me', { headers: { accept: 'application/json' } })
 /* ---------------- boot ---------------- */
 
 renderSetup();
+
+/* #play — arriving from a game in progress on the home page: straight back
+   to it, past the setup. The hash is used up, so a reload or a later visit
+   opens the setup as usual. */
+if (location.hash === '#play') {
+  history.replaceState(null, '', location.pathname + location.search);
+  if (!$('resumeBtn').classList.contains('hidden')) $('resumeBtn').click();
+}
