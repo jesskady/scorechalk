@@ -9,7 +9,9 @@ const RULES_KEY = 'builder-rules-v1';     // { custom: {...}, farkle: {...} }
 const PLAYERS_KEY = 'builder-players-v1'; // names, shared by every game
 const TEAMS_KEY = 'builder-teams-v1';     // each player's team, with the names
 const OLD_CFG_KEY = 'builder-cfg-v1';     // before per-game rules; names only
-const VIEW_KEY = 'builder-view-v1';       // 'board' or 'sheet': the view new games open in
+// 'board' or 'sheet': the view new games open in, as last chosen. The sheet
+// until one is; v2 starts everyone there.
+const VIEW_KEY = 'builder-view-v2';
 const MAX_PLAYERS = 8;
 
 // Team chips on the setup screen, and nothing else: in the game a team is
@@ -144,7 +146,7 @@ function newGame(c) {
     parts: [],        // what made pend: { label, d } per tap, for the breakdown
     sign: c.mode === 'down' ? -1 : 1,
     // the scoreboard or the scoresheet, as the last game was played
-    view: loadJSON(VIEW_KEY) === 'sheet' ? 'sheet' : 'board',
+    view: loadJSON(VIEW_KEY) === 'board' ? 'board' : 'sheet',
   };
 }
 
@@ -806,7 +808,11 @@ function layoutBoard() {
     }
   });
 }
-window.addEventListener('resize', () => { if (S && !$('game').classList.contains('hidden')) layoutBoard(); });
+window.addEventListener('resize', () => {
+  if (!S || $('game').classList.contains('hidden')) return;
+  layoutBoard();
+  if (sheetOn()) renderSheet();
+});
 
 function buildPad() {
   // a game started before keys had names has only their values
@@ -1067,11 +1073,35 @@ function turnsBySide() {
 }
 
 // The round being played: the first that a side still in the game has no
-// score for. A side that is out is waited for no longer.
+// score for. A side that is out is waited for no longer. Once the game is
+// over, the last round played.
 function sheetRound(t) {
+  // over: the last round played, with no next one waiting
+  if (S.endedAt || result()) return Math.max(1, ...t.map((x) => x.length));
   const live = t.map((_, p) => p).filter((p) => !isOut(p));
   const r = live.length ? Math.min(...live.map((p) => t[p].length)) + 1 : Math.max(...t.map((x) => x.length));
   return S.cfg.useRounds ? Math.min(r, S.cfg.rounds) : r;
+}
+
+/* The sheet can be turned on its side, a row a player and a column a
+   round — the better way round for a table of many players on a phone,
+   where the rounds then scroll sideways instead of the players. Either way
+   the names stay put down one edge and the rounds along the other, with
+   the totals kept in view at the far end. A round is the same size from
+   the first, and the totals sit at the far edge of the screen from the
+   start: until the rounds reach them, the space between is left blank,
+   ruled like the rest. */
+/* Which way round the sheet is: as tapped for this game, or else on its
+   side whenever the right way up wouldn't fit across the screen — on a
+   phone, five players or more, whose columns would otherwise scroll. It is
+   decided where the game is shown, so a game picked up on a laptop opens
+   the right way up there. */
+function sheetFlipped() {
+  if (typeof S.flip === 'boolean') return S.flip;
+  const n = S.cfg.names.length;
+  // the narrowest the right-way-up columns go: see .sheet and .sheet.wide
+  const need = n > 4 ? 86 + n * 66 : 82 + n * 52;
+  return need > document.documentElement.clientWidth - 20;
 }
 
 function renderSheet() {
@@ -1080,50 +1110,92 @@ function renderSheet() {
   const cur = sheetRound(t);
   const rows = c.useRounds ? c.rounds : Math.max(cur, ...t.map((x) => x.length));
   const leader = leaderOf();
-  const show = turnText;
+  const flip = sheetFlipped();
   // the entries changed since they were made, marked on their cells
   const changed = new Set((S.edits || []).map((x) => S.log[x.i]));
 
-  const sheet = $('sheet');
-  sheet.style.setProperty('--cols', n);
-  $('game').style.setProperty('--cols', n);
-  // four share the width; from five, columns keep a readable width and scroll
-  sheet.className = 'sheet' + (n > 4 ? ' wide' : '');
-
-  let html = '<div class="corner"></div>';
-  c.names.forEach((name, p) => {
-    html += `<div class="ptile${p === S.cur && !over ? ' turn' : ''}${isOut(p) ? ' out' : ''}" data-p="${p}"><span class="pname">${esc(name)}</span></div>`;
-  });
-  // where play starts, when it isn't at nothing
-  if (c.start) {
-    html += '<div class="lab start">Start</div>';
-    c.names.forEach(() => { html += `<div class="cell start">${fmt(c.start)}</div>`; });
-  }
-  for (let r = 1; r <= rows; r++) {
+  // one round's cell for one side, the same either way round
+  const cell = (p, r) => {
     const here = r === cur && !over;
-    html += `<div class="lab${here ? ' cur' : ''}" data-r="${r}">Round ${r}</div>`;
-    c.names.forEach((_, p) => {
-      const e = t[p][r - 1];
-      const at = `data-p="${p}" data-r="${r}"`;
-      if (e) {
-        const neg = c.mode === 'down' ? e.d > 0 : e.d < 0;
-        html += `<button class="cell${here ? ' cur done' : ''}${e.d === 0 ? ' zero' : neg ? ' neg' : ''}${changed.has(e) ? ' edited' : ''}" ${at}>${show(e.d)}</button>`;
-      } else if (isOut(p)) {
-        html += `<div class="cell gone${here ? ' cur' : ''}">—</div>`;
-      } else {
-        const open = here && t[p].length === r - 1;
-        html += `<button class="cell${here ? ' cur' : ''}${open ? ' open' : ''}${open && p === S.cur ? ' turn' : ''}" ${at}></button>`;
-      }
-    });
+    const e = t[p][r - 1];
+    const at = `data-p="${p}" data-r="${r}"`;
+    if (e) {
+      const neg = c.mode === 'down' ? e.d > 0 : e.d < 0;
+      return `<button class="cell${here ? ' cur done' : ''}${e.d === 0 ? ' zero' : neg ? ' neg' : ''}${changed.has(e) ? ' edited' : ''}" ${at}>${turnText(e.d)}</button>`;
+    }
+    if (isOut(p)) return `<div class="cell gone${here ? ' cur' : ''}">—</div>`;
+    const open = here && t[p].length === r - 1;
+    return `<button class="cell${here ? ' cur' : ''}${open ? ' open' : ''}${open && p === S.cur ? ' turn' : ''}" ${at}></button>`;
+  };
+  const name = (p) => `<div class="ptile${p === S.cur && !over ? ' turn' : ''}${isOut(p) ? ' out' : ''}" data-p="${p}"><span class="pname">${esc(c.names[p])}</span></div>`;
+  const total = (p) => `<div class="cell tot${p === leader ? ' leader' : ''}">${fmt(S.scores[p])}</div>`;
+  const corner = `<div class="corner"><button class="flipbtn" aria-label="Swap the players and the rounds" title="Swap the players and the rounds">⇄ Flip</button></div>`;
+
+  const sheet = $('sheet');
+  let html = corner;
+  if (!flip) {
+    // four share the width; from five, columns keep a readable width and scroll
+    sheet.className = 'sheet' + (n > 4 ? ' wide' : '');
+    sheet.style.gridTemplateColumns = '';
+    sheet.style.gridTemplateRows = `auto ${c.start ? '42px ' : ''}repeat(${rows}, 42px) 1fr 46px`;
+    $('sheetWrap').classList.remove('flipped');
+    sheet.style.setProperty('--cols', n);
+    $('sheetWrap').style.setProperty('--sheet-w', (110 + n * 96) + 'px');
+    for (let p = 0; p < n; p++) html += name(p);
+    // where play starts, when it isn't at nothing
+    if (c.start) {
+      html += '<div class="lab start">Start</div>';
+      for (let p = 0; p < n; p++) html += `<div class="cell start">${fmt(c.start)}</div>`;
+    }
+    for (let r = 1; r <= rows; r++) {
+      html += `<div class="lab${r === cur && !over ? ' cur' : ''}" data-r="${r}">Round ${r}</div>`;
+      for (let p = 0; p < n; p++) html += cell(p, r);
+    }
+    // the blank between the last round and the totals
+    html += '<div class="lab fill"></div>';
+    for (let p = 0; p < n; p++) html += '<div class="cell fill"></div>';
+    html += '<div class="lab tot">Total</div>';
+    for (let p = 0; p < n; p++) html += total(p);
+  } else {
+    /* A phone keeps the names to a narrow column, wrapping a long one onto
+       more lines. With room to spare, the names get as wide as the longest,
+       the rounds a little wider, and the sheet grows past the page to hold
+       them, up to the width of the screen. */
+    const roomy = document.documentElement.clientWidth >= 700;
+    const cellW = roomy ? 76 : 60, totalW = roomy ? 86 : 70;
+    const longest = Math.max(...c.names.map((s) => s.length));
+    const nameW = roomy ? Math.min(260, Math.max(120, Math.round(longest * 8.5) + 30)) : 96;
+    sheet.className = 'sheet flip' + (roomy ? ' roomy' : '');
+    sheet.style.gridTemplateColumns = `${nameW}px ${c.start ? '64px ' : ''}repeat(${rows}, ${cellW}px) 1fr ${totalW}px`;
+    sheet.style.gridTemplateRows = '';
+    $('sheetWrap').classList.add('flipped');
+    // what the columns need, borders and all, with a little over; and with
+    // room, a wide sheet from the start, so it isn't growing round by round
+    const need = nameW + (c.start ? 64 : 0) + rows * cellW + totalW + 24;
+    $('sheetWrap').style.setProperty('--sheet-w', (roomy ? Math.max(need, 960) : need) + 'px');
+    if (c.start) html += '<div class="rh start">Start</div>';
+    for (let r = 1; r <= rows; r++) {
+      html += `<div class="rh${r === cur && !over ? ' cur' : ''}" data-r="${r}"><small>Round</small>${r}</div>`;
+    }
+    html += '<div class="rh fill"></div><div class="rh tot">Total</div>';
+    for (let p = 0; p < n; p++) {
+      html += name(p);
+      if (c.start) html += `<div class="cell start">${fmt(c.start)}</div>`;
+      for (let r = 1; r <= rows; r++) html += cell(p, r);
+      html += '<div class="cell fill"></div>';
+      html += total(p);
+    }
   }
-  html += '<div class="lab tot">Total</div>';
-  c.names.forEach((_, p) => {
-    html += `<div class="cell tot${p === leader ? ' leader' : ''}">${fmt(S.scores[p])}</div>`;
-  });
   sheet.innerHTML = html;
 }
 
 $('sheet').addEventListener('click', (e) => {
+  if (e.target.closest('.flipbtn')) {
+    S.flip = !sheetFlipped();
+    save(); render();
+    requestAnimationFrame(() => showCurrent(false));
+    return;
+  }
   const cell = e.target.closest('button.cell');
   if (!cell) return;
   const p = Number(cell.dataset.p), r = Number(cell.dataset.r);
@@ -1140,16 +1212,26 @@ $('sheet').addEventListener('click', (e) => {
    the bottom, which stay put over the scrolling grid. */
 function showCurrent(smooth) {
   const wrap = $('sheetWrap');
-  const cell = wrap.querySelector('button.cell.open.turn') || wrap.querySelector('button.cell.open') || wrap.querySelector('.lab.cur');
+  const flip = $('sheet').classList.contains('flip');
+  const cell = wrap.querySelector('button.cell.open.turn') || wrap.querySelector('button.cell.open')
+    || wrap.querySelector(flip ? '.rh.cur' : '.lab.cur');
   if (!cell) return;
   const w = wrap.getBoundingClientRect(), r = cell.getBoundingClientRect();
-  const corner = wrap.querySelector('.corner'), foot = wrap.querySelector('.lab.tot');
+  const corner = wrap.querySelector('.corner');
+  // what stays put over the edges: the names and rounds, and the totals —
+  // along the bottom, or down the right when the sheet is on its side
+  const edge = { top: corner.offsetHeight, left: corner.offsetWidth, bottom: 0, right: 0 };
+  if (flip) edge.right = wrap.querySelector('.cell.tot').offsetWidth;
+  else edge.bottom = wrap.querySelector('.lab.tot').offsetHeight;
   let top = wrap.scrollTop, left = wrap.scrollLeft;
-  if (r.top < w.top + corner.offsetHeight) top += r.top - (w.top + corner.offsetHeight);
-  else if (r.bottom > w.bottom - foot.offsetHeight) top += r.bottom - (w.bottom - foot.offsetHeight);
-  if (!cell.classList.contains('lab')) {
-    if (r.left < w.left + corner.offsetWidth) left += r.left - (w.left + corner.offsetWidth);
-    else if (r.right > w.right) left += r.right - w.right;
+  const across = !cell.classList.contains('lab'), down = !cell.classList.contains('rh');
+  if (down) {
+    if (r.top < w.top + edge.top) top += r.top - (w.top + edge.top);
+    else if (r.bottom > w.bottom - edge.bottom) top += r.bottom - (w.bottom - edge.bottom);
+  }
+  if (across) {
+    if (r.left < w.left + edge.left) left += r.left - (w.left + edge.left);
+    else if (r.right > w.right - edge.right) left += r.right - (w.right - edge.right);
   }
   wrap.scrollTo({ top, left, behavior: smooth ? 'smooth' : 'auto' });
 }
