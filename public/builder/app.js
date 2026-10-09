@@ -751,7 +751,6 @@ function buildBoard() {
   if (c.turns) $('badges').insertAdjacentHTML('beforeend', '<span class="badge round" id="roundBadge"></span>');
 
   const board = $('scoreboard');
-  board.className = 'scoreboard' + (n === 1 ? ' solo' : n >= 5 ? ' many' : '');
   board.innerHTML = '';
   c.names.forEach((name, i) => {
     const b = document.createElement('button');
@@ -761,11 +760,53 @@ function buildBoard() {
     b.onclick = () => { if (S.cur !== i) { S.cur = i; save(); render(); } };
     board.appendChild(b);
   });
+  layoutBoard();
 
   // Off, every entry goes the game's natural way. A game saved before the
   // switch existed has no value for it, and keeps the switch it had.
   $('signRow').classList.toggle('hidden', c.signs === false);
 }
+
+/* The board's rows. As many players to a row as fit at a readable width —
+   four on a phone — and the players shared out evenly over the rows it
+   takes, the fuller rows first: six is 3 + 3, seven 4 + 3, ten 4 + 3 + 3,
+   never a row of four over a row of one. Each row spans the whole width:
+   the grid has 60 columns, which every row of one to six divides. Where
+   there is room — a laptop — the board goes wider than the pad under it,
+   to hold everyone in one row, as the sheet does. */
+const BOARD_COL = 92;   // the narrowest a player's column gets
+const BOARD_ROOMY = 116;  // what one is given when there is room to spare
+
+function layoutBoard() {
+  const board = $('scoreboard');
+  if (!S || !board.children.length) return;
+  const n = board.children.length;
+  const screen = document.documentElement.clientWidth - 20;
+  const page = $('game').clientWidth - 20;
+  // wider than the page only to fit everyone in one row
+  const width = Math.min(screen, Math.max(page, n * BOARD_ROOMY));
+  const fit = Math.max(1, Math.floor(width / BOARD_COL));
+  const rows = Math.ceil(n / fit);
+  const sizes = Array.from({ length: rows }, (_, k) => Math.floor(n / rows) + (k < n % rows ? 1 : 0));
+  const widest = Math.max(...sizes);
+
+  board.style.width = rows === 1 && n * BOARD_ROOMY > page ? width + 'px' : '';
+  board.style.gridTemplateColumns = rows === 1 ? `repeat(${n}, 1fr)` : 'repeat(60, 1fr)';
+  // smaller numbers once columns are narrow
+  const colW = (rows === 1 && n * BOARD_ROOMY > page ? width : page) / widest;
+  board.className = 'scoreboard' + (n === 1 ? ' solo' : colW < 110 ? ' many' : '');
+
+  let i = 0;
+  sizes.forEach((size, row) => {
+    for (let k = 0; k < size; k++, i++) {
+      const el = board.children[i];
+      el.style.gridColumn = rows === 1 ? '' : `span ${60 / size}`;
+      el.classList.toggle('rowstart', k === 0);
+      el.classList.toggle('newrow', row > 0);
+    }
+  });
+}
+window.addEventListener('resize', () => { if (S && !$('game').classList.contains('hidden')) layoutBoard(); });
 
 function buildPad() {
   // a game started before keys had names has only their values

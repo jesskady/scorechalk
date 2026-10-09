@@ -38,6 +38,7 @@
 .brand.compact.gamebar h1{grid-column:2}
 .brand.compact.gamebar .viewrow{grid-column:3}
 body.playing .acct{display:none}
+html{scrollbar-gutter:stable}
 
 .backlink{
   align-self:flex-start;
@@ -147,39 +148,43 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
   padding:2px 9px;border-radius:999px;
 }
 
-.scoreboard{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.scoreboard.solo{grid-template-columns:1fr}
-.scoreboard.solo .pscore{font-size:46px}
-/* five or more: three across, smaller numbers */
-.scoreboard.many{grid-template-columns:1fr 1fr 1fr;gap:6px}
-.scoreboard.many .pscore{font-size:24px}
-
-.player{
-  background:var(--card);
-  border:2px solid var(--line);
-  border-radius:12px;
-  padding:6px 6px 5px;
-  display:flex;flex-direction:column;align-items:center;
-  transition:border-color .15s,background .15s,opacity .15s;
-  min-width:0;
+/* The scoreboard: as the top of the scoresheet — a column a player, the
+   name on top and the total under it. Tapping a column, name or total,
+   picks who the next score is for. Its rows, and its width when it is
+   wider than the page, are set by layoutBoard(). */
+.scoreboard{
+  display:grid;align-self:center;width:100%;max-width:none;
+  border:1px solid var(--line);border-radius:12px;background:var(--card);overflow:hidden;
 }
-.player.active{border-color:var(--green);background:var(--select,#1c2b23)}
+.player{
+  display:flex;flex-direction:column;align-items:stretch;min-width:0;
+  border-left:1px solid var(--line);background:none;
+  transition:background .15s,opacity .15s;
+}
+.player.rowstart{border-left:none}
+.player.newrow{border-top:1px solid var(--line)}
+.scoreboard .pname{
+  display:block;background:var(--bg2);padding:8px 4px 6px;border-bottom:3px solid transparent;
+  font-size:12.5px;font-weight:700;color:var(--dim);text-align:center;line-height:1.25;
+  max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+/* who the next score is for: their name underlined, their column lit */
+.player.active{background:var(--select,#1c2b23)}
+.player.active .pname{border-bottom-color:var(--green);color:var(--txt)}
 .player.leader .pname::before{content:'★ ';color:var(--gold)}
 .player.out{opacity:.4}
 .player.out .pscore b{text-decoration:line-through}
-.pname{
-  font-size:12px;color:var(--dim);font-weight:600;line-height:1.25;
-  max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+.scoreboard .pscore{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:6px 2px 0;font-size:34px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums;
 }
-.player.active .pname{color:var(--green)}
-.pscore{
-  display:flex;align-items:baseline;justify-content:center;gap:5px;
-  font-size:34px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums;
-}
-.ppend{display:none;font-style:normal;font-size:16px;font-weight:700;color:var(--gold);white-space:nowrap}
-.player.pending .ppend{display:inline}
+.scoreboard.solo .pscore{font-size:46px}
+.scoreboard.many .pscore{font-size:24px}
+/* what the score will be once the one being entered goes in */
+.ppend{display:none;font-style:normal;font-size:14px;font-weight:700;color:var(--gold);white-space:nowrap}
+.player.pending .ppend{display:block}
 .scoreboard.many .ppend{font-size:12px}
-.pmeta{font-size:10px;color:var(--dim);min-height:12px;line-height:1.2}
+.pmeta{font-size:10px;color:var(--dim);min-height:12px;line-height:1.2;text-align:center;padding:1px 2px 6px}
 
 /* entry bar: sign, the amount being built, clear */
 .entrybar{
@@ -362,11 +367,12 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 #game.sheet-view .entry,
 #game.sheet-view .history{display:none}
 #game.sheet-view .actions{padding-top:2px}
-/* as wide as the players need, as the Yahtzee sheet is */
-#game.sheet-view{max-width:max(520px, calc(110px + var(--cols, 2) * 96px))}
-
+/* As wide as the players need, as the Yahtzee sheet is — the sheet alone,
+   centred over the page, so the top bar stays where it is when the view
+   is switched. */
 .sheet-wrap{
-  flex:0 1 auto;min-height:0;overflow:auto;margin:0 -2px;
+  flex:0 1 auto;min-height:0;overflow:auto;
+  align-self:center;width:min(calc(100vw - 20px), max(100%, calc(110px + var(--cols, 2) * 96px)));
   border:1px solid var(--line);border-radius:12px;background:var(--card);
   overscroll-behavior:contain;
 }
