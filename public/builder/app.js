@@ -9,6 +9,7 @@ const RULES_KEY = 'builder-rules-v1';     // { custom: {...}, farkle: {...} }
 const PLAYERS_KEY = 'builder-players-v1'; // names, shared by every game
 const TEAMS_KEY = 'builder-teams-v1';     // each player's team, with the names
 const OLD_CFG_KEY = 'builder-cfg-v1';     // before per-game rules; names only
+const VIEW_KEY = 'builder-view-v1';       // 'board' or 'sheet': the view new games open in
 const MAX_PLAYERS = 8;
 
 // Team chips on the setup screen, and nothing else: in the game a team is
@@ -19,6 +20,8 @@ const TEAM_LETTERS = ['A', 'B', 'C', 'D'];
 const $ = (id) => document.getElementById(id);
 const fmt = (n) => n.toLocaleString();
 const signed = (n) => n === 0 ? '0' : (n > 0 ? '+' : '−') + fmt(Math.abs(n));
+// one turn's score as the sheet writes it: counting down, which way it went
+const turnText = (d) => (S.cfg.mode === 'down' ? signed(d) : fmt(d));
 
 // WIN_OPTS, TEMPLATES, defaultRules, parseQuick and describeRules live in
 // rules.js, loaded first: the home page and the profile list games by them too.
@@ -133,9 +136,15 @@ function newGame(c) {
     scores: names.map(() => c.start),
     cur: 0,
     log: [],          // { p, d, cur } — cur is who was on turn before it
+    // scores changed after they were entered, oldest first:
+    // { i, p, r, from, to, fromParts, after } — i the log entry, r its round,
+    // after how long the log was then, which places it among the turns
+    edits: [],
     pend: 0,
     parts: [],        // what made pend: { label, d } per tap, for the breakdown
     sign: c.mode === 'down' ? -1 : 1,
+    // the scoreboard or the scoresheet, as the last game was played
+    view: loadJSON(VIEW_KEY) === 'sheet' ? 'sheet' : 'board',
   };
 }
 
@@ -232,6 +241,8 @@ function nextPlayer(from) {
 
 function show(id) {
   for (const s of ['setup', 'game']) $(s).classList.toggle('hidden', s !== id);
+  // in a game, the sign-in button would sit on the view switch
+  document.body.classList.toggle('playing', id === 'game');
   window.scrollTo(0, 0);
 }
 
@@ -718,9 +729,12 @@ function showGame() {
   const open = S.cfg.win === 'none' && !S.cfg.useRounds;
   $('finishBtn').classList.toggle('hidden', !open);
   document.querySelector('.mini-row').classList.toggle('two', !open);
+  closeEntry();
+  applyView();
   buildBoard();
   buildPad();
   render();
+  if (sheetOn()) requestAnimationFrame(() => showCurrent(false));
 }
 
 function buildBoard() {
@@ -779,22 +793,17 @@ function buildPad() {
 function render() {
   const c = S.cfg, n = c.names.length;
 
-  // Every entry, pass included, is one turn, so the round is just the count of
-  // turns over the table — and undo winds it back for free.
+  // The round is the first that a side still in the game hasn't scored, as
+  // the sheet shows it — and undo winds it back for free.
   if (c.turns) {
-    const round = Math.floor(S.log.length / n) + 1;
+    const round = sheetRound(turnsBySide());
     $('roundBadge').textContent = c.useRounds
-      ? `Round ${Math.min(round, c.rounds)} of ${c.rounds}`
+      ? `Round ${round} of ${c.rounds}`
       : finalRound() ? 'Final round' : `Round ${round}`;
     $('roundBadge').classList.toggle('final', finalRound());
   }
 
-  // Leader: only once someone is actually ahead, and never in a solo game.
-  let leader = -1;
-  if (n > 1 && new Set(S.scores).size > 1) {
-    const v = c.win === 'low' ? Math.min(...S.scores) : Math.max(...S.scores);
-    if (S.scores.filter(s => s === v).length === 1) leader = S.scores.indexOf(v);
-  }
+  const leader = leaderOf();
 
   [...$('scoreboard').children].forEach((el, i) => {
     el.classList.toggle('active', i === S.cur);
@@ -820,7 +829,8 @@ function render() {
 
   $('pendAmt').textContent = signed(S.pend);
   // what has been tapped, by name, once any of it has one
-  $('pendFor').textContent = partsText(S.parts) || `for ${c.names[S.cur]}`;
+  const who = entry ? entry.p : S.cur;
+  $('pendFor').textContent = partsText(S.parts) || `for ${c.names[who]}`;
   // With nothing entered, a turn-based game scores 0 — a bust, a hole with
   // nothing on it — and play moves on. Without turns a 0 would change
   // nothing, so there is nothing to enter.
@@ -828,18 +838,43 @@ function render() {
   $('commitBtn').textContent = zero && c.turns
     ? `Score 0 for ${c.names[S.cur]}`
     : `Enter for ${c.names[S.cur]}`;
-  $('commitBtn').disabled = idle;
-  $('commitBtn').style.opacity = idle ? .5 : 1;
+  let off = idle;
+  // changing a score: what it goes from and to, once it is different
+  if (entry && entry.i != null) {
+    const was = S.log[entry.i].d;
+    off = S.pend === was;
+    $('commitBtn').textContent = off ? 'No change yet' : `Change ${turnText(was)} → ${turnText(S.pend)}`;
+  }
+  $('commitBtn').disabled = off;
+  $('commitBtn').style.opacity = off ? .5 : 1;
 
-  // The round an entry belongs to follows from its place in the log, the
-  // same way the round badge does.
-  const from = Math.max(0, S.log.length - 6);
-  $('history').innerHTML = S.log.slice(from).map((e, k) => {
+  // The last few things done, newest first: each score, and any change made
+  // to one since, in its place among them. A score is tapped to change it.
+  const rounds = roundsOfLog(), items = [];
+  S.log.forEach((e, i) => {
+    items.push({ e, i });
+    for (const x of S.edits || []) if (x.after === i + 1) items.push({ x });
+  });
+  $('history').innerHTML = items.slice(-6).map(({ e, i, x }) => {
+    if (x) {
+      const diff = x.to - x.from;
+      return `<div class="hedit"><span>${esc(c.names[x.p])}<em>${c.turns ? `round ${x.r} ` : ''}changed</em></span><small>${turnText(x.from)} → ${turnText(x.to)}</small><b class="${diff < 0 ? 'neg' : ''}">${signed(diff)}</b></div>`;
+    }
     // an empty cell without turns keeps the score in its column
-    const round = `<small>${c.turns ? `Round ${Math.floor((from + k) / n) + 1}` : ''}</small>`;
+    const round = `<small>${c.turns ? `Round ${rounds[i]}` : ''}</small>`;
     const parts = partsText(e.parts);
-    return `<div><span>${esc(c.names[e.p])}${parts ? `<em>${esc(parts)}</em>` : ''}</span>${round}<b class="${e.d < 0 ? 'neg' : ''}">${signed(e.d)}</b></div>`;
+    return `<div class="hturn" data-i="${i}"><span>${esc(c.names[e.p])}${parts ? `<em>${esc(parts)}</em>` : ''}</span>${round}<b class="${e.d < 0 ? 'neg' : ''}">${signed(e.d)}</b></div>`;
   }).reverse().join('');
+
+  if (sheetOn()) renderSheet();
+}
+
+// The leader: only once someone is actually ahead, and never in a solo game.
+function leaderOf() {
+  const n = S.scores.length;
+  if (n < 2 || new Set(S.scores).size < 2) return -1;
+  const v = S.cfg.win === 'low' ? Math.min(...S.scores) : Math.max(...S.scores);
+  return S.scores.filter(s => s === v).length === 1 ? S.scores.indexOf(v) : -1;
 }
 
 function esc(s) {
@@ -863,7 +898,9 @@ function commit(d) {
   if (isOut(p)) flash(`${S.cfg.names[p]} is out`);
   if (S.cfg.turns) S.cur = nextPlayer(p);
   save();
+  closeEntry();
   render();
+  if (sheetOn()) showCurrent(true);
   const r = result();
   if (r) showWin(r);
   // the line was crossed with turns still to come this round
@@ -898,6 +935,7 @@ $('typedIn').addEventListener('keydown', (e) => { if (e.key === 'Enter') addType
 // next player a 0 they never scored.
 let lastCommit = 0;
 $('commitBtn').onclick = () => {
+  if (entry && entry.i != null) { changeTurn(); return; }
   if (Date.now() - lastCommit < 700) return;
   if (!S.pend && !S.cfg.turns) return;
   lastCommit = Date.now();
@@ -906,10 +944,25 @@ $('commitBtn').onclick = () => {
 
 $('undoBtn').onclick = () => {
   if (S.pend || (S.parts && S.parts.length)) { S.pend = 0; S.parts = []; save(); render(); return; }
+  // the last thing done was changing a score: put it back as it was
+  const x = S.edits && S.edits[S.edits.length - 1];
+  if (x && x.after === S.log.length) {
+    const t = S.log[x.i];
+    S.scores[t.p] += x.from - t.d;
+    t.d = x.from;
+    t.parts = x.fromParts;
+    S.edits.pop();
+    settleEnd();
+    save(); render();
+    flash(`Undid the change to ${S.cfg.names[x.p]}${S.cfg.turns ? `'s round ${x.r}` : ''}`);
+    return;
+  }
   const e = S.log.pop();
   if (!e) { flash('Nothing to undo'); return; }
   S.scores[e.p] -= e.d;
   S.cur = e.cur;
+  // changes to that score go with it
+  if (S.edits) S.edits = S.edits.filter((y) => y.i < S.log.length);
   // an undo that takes back the win, or a Finish, opens the game again
   if (S.endedAt && !result()) { S.endedAt = null; S.winnerIdx = null; }
   save(); render();
@@ -931,6 +984,256 @@ $('quitBtn').onclick = async () => {
   if (!S.endedAt) SCCloud.drop(S.id);
   endGame();
 };
+
+/* ---------------- the sheet view ----------------
+
+   For a game taken in turns, the scores can be kept as on paper: a row a
+   round, a column a player. With a fixed number of rounds every row is
+   there from the start; without, a round's row appears once the one before
+   it is complete. The round being played is picked out, and the cells still
+   to score in it are open: tapping one scores that player, in a bubble
+   beside the cell holding the same pad as the board.
+
+   Nothing is kept for it but which view is showing: a side's k-th entry in
+   the log is its score for round k, so Undo, the board and the sheet all
+   read the same log. */
+
+const sheetOn = () => !!S.cfg.turns && S.view === 'sheet';
+
+function applyView() {
+  const on = sheetOn();
+  $('viewRow').classList.toggle('hidden', !S.cfg.turns);
+  $('game').classList.toggle('sheet-view', on);
+  $('sheetWrap').classList.toggle('hidden', !on);
+  document.querySelectorAll('#viewRow .vseg').forEach((b) =>
+    b.classList.toggle('is-on', b.dataset.view === (on ? 'sheet' : 'board')));
+}
+
+$('viewRow').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-view]');
+  if (!b || b.dataset.view === S.view) return;
+  S.view = b.dataset.view;
+  saveJSON(VIEW_KEY, S.view);
+  save(); applyView(); render();
+  if (sheetOn()) requestAnimationFrame(() => showCurrent(false));
+});
+
+// Each side's entries, in order: the k-th is its score for round k.
+function turnsBySide() {
+  const t = S.scores.map(() => []);
+  for (const e of S.log) t[e.p].push(e);
+  return t;
+}
+
+// The round being played: the first that a side still in the game has no
+// score for. A side that is out is waited for no longer.
+function sheetRound(t) {
+  const live = t.map((_, p) => p).filter((p) => !isOut(p));
+  const r = live.length ? Math.min(...live.map((p) => t[p].length)) + 1 : Math.max(...t.map((x) => x.length));
+  return S.cfg.useRounds ? Math.min(r, S.cfg.rounds) : r;
+}
+
+function renderSheet() {
+  const c = S.cfg, n = c.names.length, t = turnsBySide();
+  const over = !!S.endedAt || !!result();
+  const cur = sheetRound(t);
+  const rows = c.useRounds ? c.rounds : Math.max(cur, ...t.map((x) => x.length));
+  const leader = leaderOf();
+  const show = turnText;
+  // the entries changed since they were made, marked on their cells
+  const changed = new Set((S.edits || []).map((x) => S.log[x.i]));
+
+  const sheet = $('sheet');
+  sheet.style.setProperty('--cols', n);
+  $('game').style.setProperty('--cols', n);
+  // four share the width; from five, columns keep a readable width and scroll
+  sheet.className = 'sheet' + (n > 4 ? ' wide' : '');
+
+  let html = '<div class="corner"></div>';
+  c.names.forEach((name, p) => {
+    html += `<div class="ptile${p === S.cur && !over ? ' turn' : ''}${isOut(p) ? ' out' : ''}" data-p="${p}"><span class="pname">${esc(name)}</span></div>`;
+  });
+  // where play starts, when it isn't at nothing
+  if (c.start) {
+    html += '<div class="lab start">Start</div>';
+    c.names.forEach(() => { html += `<div class="cell start">${fmt(c.start)}</div>`; });
+  }
+  for (let r = 1; r <= rows; r++) {
+    const here = r === cur && !over;
+    html += `<div class="lab${here ? ' cur' : ''}" data-r="${r}">Round ${r}</div>`;
+    c.names.forEach((_, p) => {
+      const e = t[p][r - 1];
+      const at = `data-p="${p}" data-r="${r}"`;
+      if (e) {
+        const neg = c.mode === 'down' ? e.d > 0 : e.d < 0;
+        html += `<button class="cell${here ? ' cur done' : ''}${e.d === 0 ? ' zero' : neg ? ' neg' : ''}${changed.has(e) ? ' edited' : ''}" ${at}>${show(e.d)}</button>`;
+      } else if (isOut(p)) {
+        html += `<div class="cell gone${here ? ' cur' : ''}">—</div>`;
+      } else {
+        const open = here && t[p].length === r - 1;
+        html += `<button class="cell${here ? ' cur' : ''}${open ? ' open' : ''}${open && p === S.cur ? ' turn' : ''}" ${at}></button>`;
+      }
+    });
+  }
+  html += '<div class="lab tot">Total</div>';
+  c.names.forEach((_, p) => {
+    html += `<div class="cell tot${p === leader ? ' leader' : ''}">${fmt(S.scores[p])}</div>`;
+  });
+  sheet.innerHTML = html;
+}
+
+$('sheet').addEventListener('click', (e) => {
+  const cell = e.target.closest('button.cell');
+  if (!cell) return;
+  const p = Number(cell.dataset.p), r = Number(cell.dataset.r);
+  if (cell.classList.contains('open')) { openEntry(p, r); return; }
+  if (cell.textContent) {
+    openEdit(S.log.indexOf(turnsBySide()[p][r - 1]), `#sheet button.cell[data-p="${p}"][data-r="${r}"]`);
+    return;
+  }
+  flash(S.endedAt || result() ? 'The game is over' : `Round ${r} comes after this one`);
+});
+
+/* Bring the cell to play into view — the next player's, in the round being
+   played — clear of the names along the top and left and the totals along
+   the bottom, which stay put over the scrolling grid. */
+function showCurrent(smooth) {
+  const wrap = $('sheetWrap');
+  const cell = wrap.querySelector('button.cell.open.turn') || wrap.querySelector('button.cell.open') || wrap.querySelector('.lab.cur');
+  if (!cell) return;
+  const w = wrap.getBoundingClientRect(), r = cell.getBoundingClientRect();
+  const corner = wrap.querySelector('.corner'), foot = wrap.querySelector('.lab.tot');
+  let top = wrap.scrollTop, left = wrap.scrollLeft;
+  if (r.top < w.top + corner.offsetHeight) top += r.top - (w.top + corner.offsetHeight);
+  else if (r.bottom > w.bottom - foot.offsetHeight) top += r.bottom - (w.bottom - foot.offsetHeight);
+  if (!cell.classList.contains('lab')) {
+    if (r.left < w.left + corner.offsetWidth) left += r.left - (w.left + corner.offsetWidth);
+    else if (r.right > w.right) left += r.right - w.right;
+  }
+  wrap.scrollTo({ top, left, behavior: smooth ? 'smooth' : 'auto' });
+}
+
+/* Scoring a cell: the pad moves into a bubble beside it, pointing at it —
+   below the cell when there is room, above when there is not, slid sideways
+   to stay on screen, as the Yahtzee sheet's does. */
+let entry = null;   // { p, r }: the cell being scored
+
+function openEntry(p, r) {
+  entry = { p, r };
+  S.cur = p;
+  S.pend = 0; S.parts = [];
+  S.sign = S.cfg.mode === 'down' ? -1 : 1;
+  $('typedIn').value = '';
+  save(); render();
+  showPad(`Round ${r}`, S.cfg.names[p]);
+}
+
+/* Changing a score already entered — a typo, or a rule remembered too late.
+   The pad opens on the score as it stands, with what made it, so a missed
+   +5 is one tap and a wrong total is Clear and the right one. Whose turn it
+   is doesn't change. sel is the cell or history row the bubble points at. */
+function openEdit(i, sel) {
+  const e = S.log[i];
+  if (!e) return;
+  const r = roundsOfLog()[i];
+  entry = { p: e.p, r, i, sel };
+  S.pend = e.d;
+  S.parts = (e.parts || []).slice();
+  S.sign = S.cfg.mode === 'down' ? -1 : 1;
+  $('typedIn').value = '';
+  render();
+  showPad(S.cfg.turns ? `Round ${r}: change the score` : 'Change the score', `${S.cfg.names[e.p]} · was ${turnText(e.d)}`);
+}
+
+function showPad(title, who) {
+  $('entryTitle').textContent = title;
+  $('entryWho').textContent = who;
+  $('entrySlot').appendChild($('entry'));
+  $('entryOverlay').classList.remove('hidden');
+  placeEntry();
+}
+
+// Each log entry's round: how many scores its side has had, it included.
+function roundsOfLog() {
+  const seen = [];
+  return S.log.map((e) => (seen[e.p] = (seen[e.p] || 0) + 1));
+}
+
+/* A change is asked about first, then kept: the score takes its new value,
+   and the change goes in the game's list of them, which the history shows
+   and Undo can take back. */
+async function changeTurn() {
+  const { i, r } = entry, e = S.log[i];
+  const from = e.d, to = S.pend, name = S.cfg.names[e.p];
+  if (from === to) return;
+  const where = S.cfg.turns ? ` in round ${r}` : '';
+  if (!(await askConfirm(`Change ${name}'s score${where} from ${turnText(from)} to ${turnText(to)}?`, 'Change'))) return;
+  if (!S.edits) S.edits = [];
+  S.edits.push({ i, p: e.p, r, from, to, fromParts: e.parts || [], after: S.log.length });
+  e.d = to;
+  e.parts = S.parts;
+  S.scores[e.p] += to - from;
+  S.pend = 0; S.parts = [];
+  settleEnd();
+  save();
+  closeEntry();
+  render();
+  flash(`${name}${where}: ${turnText(from)} → ${turnText(to)}`);
+  // the change decided the game
+  const res = result();
+  if (res && !S.endedAt) showWin(res);
+}
+
+/* After a score changes under a game that has ended, the end is looked at
+   again: it may have a new winner, or no longer be over at all. A game
+   ended with Finish stays finished, its winner the new highest. */
+function settleEnd() {
+  if (!S.endedAt) return;
+  const open = S.cfg.win === 'none' && !S.cfg.useRounds;
+  const r = open ? best(Math.max) : result();
+  if (!r) { S.endedAt = null; S.winnerIdx = null; return; }
+  S.winnerIdx = r.winners && r.winners.length === 1 ? r.winners[0] : null;
+}
+
+$('history').addEventListener('click', (e) => {
+  const row = e.target.closest('[data-i]');
+  if (row) openEdit(Number(row.dataset.i), `#history [data-i="${row.dataset.i}"]`);
+});
+
+// Back to the page, and anything half-entered with it is let go.
+function closeEntry() {
+  if (!entry) return;
+  entry = null;
+  $('entryOverlay').classList.add('hidden');
+  $('game').insertBefore($('entry'), document.querySelector('#game .actions'));
+  if (S && (S.pend || (S.parts && S.parts.length))) { S.pend = 0; S.parts = []; save(); render(); }
+}
+
+function placeEntry() {
+  if (!entry) return;
+  const cell = document.querySelector(entry.sel || `#sheet button.cell[data-p="${entry.p}"][data-r="${entry.r}"]`);
+  const card = $('entryCard');
+  if (!cell) return;
+  const vv = window.visualViewport;
+  const viewH = vv ? vv.height : window.innerHeight, viewW = window.innerWidth;
+  const top0 = vv ? vv.offsetTop : 0;
+  const c = cell.getBoundingClientRect();
+  const w = card.offsetWidth, h = card.offsetHeight, gap = 10, edge = 8;
+  const left = Math.min(Math.max(c.left + c.width / 2 - w / 2, edge), viewW - w - edge);
+  const below = c.bottom + gap + h <= top0 + viewH - edge || c.top - gap - h < top0 + edge;
+  let top = below ? c.bottom + gap : c.top - gap - h;
+  top = Math.min(Math.max(top, top0 + edge), top0 + viewH - h - edge);
+  card.style.left = left + 'px';
+  card.style.top = top + 'px';
+  card.classList.toggle('below', below);
+  card.classList.toggle('above', !below);
+  card.style.setProperty('--ax', Math.min(Math.max(c.left + c.width / 2 - left, 18), w - 18) + 'px');
+}
+window.addEventListener('resize', placeEntry);
+if (window.visualViewport) window.visualViewport.addEventListener('resize', placeEntry);
+
+$('entryClose').onclick = closeEntry;
+$('entryOverlay').addEventListener('click', (e) => { if (e.target === $('entryOverlay')) closeEntry(); });
 
 /* ---------------- overlays ---------------- */
 

@@ -36,6 +36,8 @@
 }
 .brand.compact.gamebar .backlink{justify-self:start;padding:2px}
 .brand.compact.gamebar h1{grid-column:2}
+.brand.compact.gamebar .viewrow{grid-column:3}
+body.playing .acct{display:none}
 
 .backlink{
   align-self:flex-start;
@@ -220,7 +222,9 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 
 /* sits straight under the pad; the history below grows downward, so it can
    never push the button up the screen */
-.actions{display:flex;flex-direction:column;gap:22px;padding-top:4px}
+.entry{display:flex;flex-direction:column;gap:8px}
+.entry #commitBtn{margin-top:4px}
+.actions{display:flex;flex-direction:column;gap:22px;padding-top:18px}
 .mini-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
 .mini-row.two{grid-template-columns:1fr 1fr}
 
@@ -238,6 +242,10 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 .history b{text-align:right}
 .history b{font-variant-numeric:tabular-nums;color:var(--txt)}
 .history .neg{color:var(--neg,#e2857a)}
+/* a score can be tapped to change it; a change shows as its own line */
+.history .hturn{cursor:pointer}
+.history .hturn:active{background:var(--select,#1c2b23)}
+.history .hedit span em{font-style:italic}
 
 /* ---------- Overlays ---------- */
 .overlay{
@@ -335,3 +343,104 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 .history.paper span{color:var(--paper-ink)}
 .history.paper small,.history.paper em{color:var(--paper-dim)}
 .history.paper .neg{color:var(--paper-neg)}
+
+/* ---------- the sheet view ----------
+   For games taken in turns: a row a round, a column a player, as on paper —
+   and as the Yahtzee sheet, whose scrolling it shares: the round names stay
+   put down the left and the player names along the top, and past four
+   players the columns scroll sideways under the round names. A cell is
+   scored in a bubble beside it, which holds the same pad as the board. */
+.viewrow{justify-self:end;display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.vseg{font-size:11.5px;font-weight:600;color:var(--dim);padding:5px 8px}
+.vseg.is-on{background:var(--green-d);color:var(--on-primary,#fff)}
+.brand.compact.gamebar h1{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* The sheet view is one screen tall and the sheet takes what is left; a
+   long game scrolls inside it, the names and the totals staying put. */
+#game.sheet-view{height:100dvh;min-height:0}
+#game.sheet-view .scoreboard,
+#game.sheet-view .entry,
+#game.sheet-view .history{display:none}
+#game.sheet-view .actions{padding-top:2px}
+/* as wide as the players need, as the Yahtzee sheet is */
+#game.sheet-view{max-width:max(520px, calc(110px + var(--cols, 2) * 96px))}
+
+.sheet-wrap{
+  flex:0 1 auto;min-height:0;overflow:auto;margin:0 -2px;
+  border:1px solid var(--line);border-radius:12px;background:var(--card);
+  overscroll-behavior:contain;
+}
+.sheet{
+  display:grid;grid-template-columns:minmax(82px,1fr) repeat(var(--cols),minmax(52px,1.2fr));
+  grid-auto-rows:minmax(42px,auto);min-width:min-content;
+}
+.sheet.wide{grid-template-columns:86px repeat(var(--cols),minmax(66px,1fr))}
+.sheet>*{border-top:1px solid var(--line);border-left:1px solid var(--line);min-width:0}
+.sheet .corner,.sheet .ptile{position:sticky;top:0;z-index:2;border-top:none}
+.sheet .corner{background:var(--card);border-left:none;z-index:3}
+.sheet .lab,.sheet .corner{position:sticky;left:0;box-shadow:1px 0 0 var(--line)}
+.sheet .lab{z-index:1}
+.sheet .ptile{
+  background:var(--bg2);padding:8px 3px 6px;display:flex;align-items:center;justify-content:center;
+  border-bottom:3px solid transparent;
+}
+.sheet .ptile .pname{font-size:12.5px;font-weight:700;color:var(--dim)}
+.sheet .ptile.turn{border-bottom-color:var(--green)}
+.sheet .ptile.turn .pname{color:var(--txt)}
+.sheet .ptile.turn .pname::before{content:'\25CF  ';color:var(--gold)}
+.sheet .ptile.out{opacity:.45}
+.sheet .lab{
+  padding:0 8px;display:flex;align-items:center;font-size:13px;border-left:none;background:var(--card);
+  white-space:nowrap;
+}
+.sheet .cell{
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;background:none;color:var(--txt);
+}
+.sheet .cell.neg{color:var(--neg,#e2857a)}
+.sheet .cell.zero,.sheet .cell.gone{color:var(--dim);font-weight:400}
+button.cell:active{background:var(--line)}
+/* the round being played: its row picked out, and the cells still to score
+   in it marked as open, the way the Yahtzee sheet marks a player's boxes */
+.sheet .lab.cur{background:var(--mark-open,#2d2712);color:var(--mark-open-ink,#f0d77a);font-weight:700}
+.sheet .cell.cur{background:color-mix(in srgb, var(--mark-open,#2d2712) 45%, transparent)}
+.sheet .cell.open{background:var(--mark-open,#2d2712);box-shadow:inset 0 0 0 2px var(--mark-open-ink,#f0d77a)}
+.sheet .cell.open::after{content:'+';font-size:20px;color:var(--mark-open-ink,#f0d77a)}
+.sheet .cell.done{background:var(--mark-done,#17301f)}
+/* where play starts, and the totals, which stay at the bottom */
+.sheet .lab.start,.sheet .cell.start{background:var(--bg2);color:var(--dim);font-size:12.5px;font-weight:600}
+.sheet .lab.tot,.sheet .cell.tot{
+  position:sticky;bottom:0;background:var(--bg2);border-top:2px solid var(--line);
+  font-weight:800;
+}
+.sheet .lab.tot{z-index:2;font-size:13px}
+.sheet .cell.tot{z-index:1;font-size:17px}
+.sheet .cell.tot.leader{color:var(--gold)}
+
+/* the scoring bubble: beside its cell, pointing at it (see placeEntry) */
+.overlay.sheet-entry{display:block;padding:0;background:var(--veil-soft,#0b0e1255)}
+.entry-card{
+  position:fixed;width:min(340px, calc(100vw - 16px));
+  background:var(--bg);border:1px solid var(--paper-edge,#3a4756);border-radius:14px;
+  padding:10px;display:flex;flex-direction:column;gap:8px;
+  box-shadow:0 12px 30px var(--shadow,#000c);
+}
+.entry-card::before{
+  content:'';position:absolute;left:calc(var(--ax, 50%) - 8px);width:16px;height:16px;
+  background:var(--bg);border:1px solid var(--paper-edge,#3a4756);transform:rotate(45deg);
+}
+.entry-card.below::before{top:-9px;border-right:none;border-bottom:none}
+.entry-card.above::before{bottom:-9px;border-left:none;border-top:none}
+.entry-top{display:flex;justify-content:space-between;align-items:flex-start}
+.entry-top b{display:block;font-size:16px}
+.entry-top small{color:var(--dim);font-size:12.5px}
+.entry-x{font-size:26px;line-height:1;color:var(--dim);padding:0 6px}
+.entry-card .key{padding:12px 0}
+.entry-card .quickpad.named .key{padding:8px 4px}
+
+/* a score changed since it was entered: a small mark in its corner */
+.sheet .cell.edited{position:relative}
+.sheet .cell.edited::after{
+  content:'';position:absolute;top:5px;right:5px;width:6px;height:6px;border-radius:50%;
+  background:var(--gold);
+}

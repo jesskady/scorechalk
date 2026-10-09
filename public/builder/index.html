@@ -15,7 +15,7 @@
 <link rel="stylesheet" href="../shared.css?v=29">
 <!-- the rooms a game can be played in; app.js sets data-room on the body -->
 <link rel="stylesheet" href="../themes.css?v=6">
-<link rel="stylesheet" href="style.css?v=24">
+<link rel="stylesheet" href="style.css?v=28">
 </head>
 <body data-room="workshop">
 
@@ -174,12 +174,24 @@
   <header class="brand compact gamebar">
     <a class="backlink" href="/">&lsaquo; All games</a>
     <h1 id="gTitle" class="room-title">Scores</h1>
+    <!-- games taken in turns: the scoreboard, or a scoresheet of rounds -->
+    <div class="viewrow hidden" id="viewRow">
+      <button class="vseg" data-view="board">Board</button>
+      <button class="vseg" data-view="sheet">Sheet</button>
+    </div>
   </header>
 
   <div id="badges" class="badges"></div>
 
   <div class="scoreboard" id="scoreboard"></div>
 
+  <!-- the scoresheet view: a row a round, a column a player; built by
+       buildSheet(), filled by renderSheet() -->
+  <div class="sheet-wrap hidden" id="sheetWrap"><div class="sheet" id="sheet"></div></div>
+
+  <!-- Entering a score. In the sheet view the whole of it moves into the
+       bubble beside the tapped cell, and back again when it closes. -->
+  <div class="entry" id="entry">
   <!-- what is about to be entered, and for whom -->
   <div class="entrybar">
     <div class="sign" id="signRow">
@@ -200,8 +212,10 @@
     <button class="key" id="typedAdd">Add</button>
   </div>
 
+  <button id="commitBtn" class="primary big">Enter score</button>
+  </div>
+
   <div class="actions">
-    <button id="commitBtn" class="primary big">Enter score</button>
     <div class="mini-row two">
       <button id="undoBtn" class="ghost">Undo</button>
       <!-- games with no ending of their own; see showGame -->
@@ -215,6 +229,22 @@
   <!-- the entries so far, on the room's paper -->
   <div class="history paper" id="history"></div>
 </section>
+
+<!-- ============ SCORING A CELL ============ -->
+<!-- the sheet view's bubble, placed beside the tapped cell by placeEntry();
+     #entry is moved into it while it is open -->
+<div id="entryOverlay" class="overlay sheet-entry hidden">
+  <div class="entry-card" id="entryCard">
+    <div class="entry-top">
+      <div>
+        <b id="entryTitle"></b>
+        <small id="entryWho"></small>
+      </div>
+      <button class="entry-x" id="entryClose" aria-label="Close">&times;</button>
+    </div>
+    <div id="entrySlot"></div>
+  </div>
+</div>
 
 <!-- ============ CONFIRM ============ -->
 <div id="confirmOverlay" class="overlay confirm hidden">
@@ -255,6 +285,6 @@
 <script src="/account.js?v=29" defer></script>
 <script src="rules.js?v=8"></script>
 <script src="/cloud.js?v=2"></script>
-<script src="app.js?v=25"></script>
+<script src="app.js?v=29"></script>
 </body>
 </html>
