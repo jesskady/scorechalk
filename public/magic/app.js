@@ -479,6 +479,10 @@ document.addEventListener('visibilitychange', () => {
    opened from this device or, signed in, from the profile; ?resume=<id>
    asks for the profile's copy first, as it has been played on elsewhere. */
 async function openFromUrl() {
+  // ?s=<token>: a shared game, to score in together or to watch
+  const shared = await SCShare.fromUrl(TYPE);
+  if (shared && shared.kind === 'edit') { SCStore.show(shared.state.id, '#play'); route(); return; }
+  if (shared) { S = shared.state; showGame(); return; }
   const at = SCStore.urlId();
   if (!at) { route(); return; }
   const st = await SCStore.open(TYPE, at.id, at.fresh);
@@ -487,6 +491,13 @@ async function openFromUrl() {
   route();
   SCStore.notice("That game isn't on this device. Sign in to open games saved to your profile.");
 }
+
+
+/* Shared by link (see /share.js): the game on screen, and how to show a
+   newer one when it comes in from another phone. */
+SCShare.attach({ type: TYPE, get: () => S, apply: (st) => { S = st; save(); showGame(); } });
+
+$('shareBtn').onclick = () => { $('menuOverlay').classList.add('hidden'); SCShare.open(); };
 
 /* ---------------- boot ---------------- */
 

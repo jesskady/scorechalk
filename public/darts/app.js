@@ -212,6 +212,10 @@ function buildSetup() {
    state. ?resume=<id> asks for the profile's copy first, as it has been
    played on elsewhere. */
 async function openFromUrl() {
+  // ?s=<token>: a shared game, to score in together or to watch
+  const shared = await SCShare.fromUrl(TYPE);
+  if (shared && shared.kind === 'edit') { openGame(shared.state); return; }
+  if (shared) { S = shared.state; showGame(); return; }
   const at = SCStore.urlId();
   if (!at) return;
   const st = await SCStore.open(TYPE, at.id, at.fresh, window.SCSync ? (id) => window.SCSync.load(id) : null);
@@ -220,39 +224,6 @@ async function openFromUrl() {
   SCStore.notice("That game isn't on this device. Sign in to open games saved to your profile.");
 }
 
-/* The Save button keeps an unfinished game on the profile so it can be picked
-   up later, or on another device. It only appears when there is a profile to
-   save to, which also keeps the row at three buttons for anyone playing
-   signed out. */
-async function buildSaveButton() {
-  const btn = $('saveBtn');
-  if (!btn || !window.SCSync) return;
-
-  const who = await window.SCSync.me();
-  if (!who || !who.user) return;
-
-  btn.classList.remove('hidden');
-  $('miniRow').classList.add('has-save');
-
-  btn.addEventListener('click', async () => {
-    if (!S) return;
-    btn.disabled = true;
-    const was = btn.textContent;
-    btn.textContent = 'Saving…';
-    try {
-      await window.SCSync.saveNow(S);
-      save();                      // persist the new savedTurns mark
-      btn.textContent = 'Saved';
-      say('Saved to your profile');
-      setTimeout(() => { btn.textContent = was; btn.disabled = false; }, 1600);
-    } catch (e) {
-      // the user asked for this, so a failure has to be visible
-      btn.textContent = was;
-      btn.disabled = false;
-      say('Could not save — check your connection');
-    }
-  });
-}
 
 /* Unfinished games saved to the profile. Offered alongside the local resume
    rather than instead of it: if both exist they are usually different games,
@@ -312,7 +283,7 @@ function buildBoard() {
   document.querySelector('[data-bull]').addEventListener('click', () => addDart(25, true));
   document.querySelector('[data-miss]').addEventListener('click', () => addDart(0));
   $('undoDart').addEventListener('click', undoDart);
-  buildSaveButton();
+  $('shareBtn').addEventListener('click', () => SCShare.open());
 
   // the checkout box is rebuilt on every render, so its arrows are delegated
   $('checkout').addEventListener('click', e => {
@@ -912,4 +883,9 @@ function render() {
 
 buildSetup();
 buildBoard();
+
+/* Shared by link (see /share.js): the game on screen, and how to show a
+   newer one when it comes in from another phone. */
+SCShare.attach({ type: TYPE, get: () => S, apply: (st) => { S = st; save(); showGame(); } });
+
 openFromUrl();

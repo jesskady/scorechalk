@@ -15,7 +15,7 @@
 <link rel="stylesheet" href="../shared.css?v=29">
 <!-- the rooms a game can be played in; app.js sets data-room on the body -->
 <link rel="stylesheet" href="../themes.css?v=6">
-<link rel="stylesheet" href="style.css?v=36">
+<link rel="stylesheet" href="style.css?v=38">
 </head>
 <body data-room="workshop">
 
@@ -216,8 +216,9 @@
   </div>
 
   <div class="actions">
-    <div class="mini-row two">
+    <div class="mini-row">
       <button id="undoBtn" class="ghost">Undo</button>
+      <button id="shareBtn" class="ghost">Share</button>
       <!-- games with no ending of their own; see showGame -->
       <button id="finishBtn" class="ghost hidden">Finish</button>
       <button id="quitBtn" class="ghost">New game</button>
@@ -284,8 +285,9 @@
 
 <script src="/account.js?v=29" defer></script>
 <script src="rules.js?v=8"></script>
-<script src="/store.js?v=1"></script>
-<script src="/cloud.js?v=2"></script>
-<script src="app.js?v=41"></script>
+<script src="/store.js?v=3"></script>
+<script src="/share.js?v=2"></script>
+<script src="/cloud.js?v=3"></script>
+<script src="app.js?v=43"></script>
 </body>
 </html>

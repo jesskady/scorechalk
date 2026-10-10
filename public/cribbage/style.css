@@ -184,6 +184,7 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 /* ---------- Actions ---------- */
 .actions{display:flex;flex-direction:column;gap:20px;padding-top:4px}
 .mini-row{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.mini-row.three{grid-template-columns:1fr 1fr 1fr}
 .primary:disabled{cursor:default}
 
 .msg{text-align:center;font-size:13px;font-weight:600;color:var(--gold);min-height:16px;line-height:1.2}

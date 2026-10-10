@@ -232,6 +232,8 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 .actions{display:flex;flex-direction:column;gap:22px;padding-top:18px}
 .mini-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
 .mini-row.two{grid-template-columns:1fr 1fr}
+.mini-row.four{grid-template-columns:repeat(4,1fr)}
+.mini-row.four .ghost{font-size:13px;padding:9px 2px}
 
 .msg{
   text-align:center;font-size:13px;font-weight:600;color:var(--gold);

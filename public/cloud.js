@@ -85,13 +85,16 @@ window.SCCloud = (function () {
   return {
     me,
 
+    // Watching someone else's game by link (see /share.js) saves nothing.
     keep(build) {
+      if (window.SCWatching) return;
       pending = build;
       clearTimeout(timer);
       timer = setTimeout(flush, 800);
     },
 
     now(build) {
+      if (window.SCWatching) return Promise.resolve(false);
       clearTimeout(timer);
       pending = null;
       return queue(() => send(build));

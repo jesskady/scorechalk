@@ -736,8 +736,11 @@ function showGame() {
   // only a game with no ending of its own needs telling when it is over
   const open = S.cfg.win === 'none' && !S.cfg.useRounds;
   $('finishBtn').classList.toggle('hidden', !open);
-  document.querySelector('.mini-row').classList.toggle('two', !open);
+  // Undo, Share, New game — and Finish, for a game with no end of its own
+  document.querySelector('.mini-row').classList.toggle('four', open);
   closeEntry();
+  // a phone that joined by seat is always on its own player
+  if (SCShare.seat() !== null) S.cur = SCShare.seat();
   applyView();
   buildBoard();
   buildPad();
@@ -765,7 +768,7 @@ function buildBoard() {
     b.className = 'player';
     b.innerHTML = '<span class="pname"></span><span class="pscore"><b class="pnum"></b><i class="ppend"></i></span><span class="pmeta"></span>';
     b.querySelector('.pname').textContent = name;
-    b.onclick = () => { if (S.cur !== i) { S.cur = i; save(); render(); } };
+    b.onclick = () => { if (S.cur !== i && mayScore(i)) { S.cur = i; save(); render(); } };
     board.appendChild(b);
   });
   layoutBoard();
@@ -942,6 +945,7 @@ function flash(text) {
 
 function commit(d) {
   const p = S.cur;
+  if (!mayScore(p)) return;
   const crossedBefore = lineCrossed();
   S.log.push({ p, d, cur: S.cur, parts: S.parts || [] });
   S.scores[p] += d;
@@ -950,6 +954,8 @@ function commit(d) {
   S.sign = S.cfg.mode === 'down' ? -1 : 1;
   if (isOut(p)) flash(`${S.cfg.names[p]} is out`);
   if (S.cfg.turns) S.cur = nextPlayer(p);
+  // a phone scoring one player stays on that player
+  if (SCShare.seat() !== null) S.cur = SCShare.seat();
   save();
   closeEntry();
   render();
@@ -998,8 +1004,9 @@ $('commitBtn').onclick = () => {
 $('undoBtn').onclick = () => {
   if (S.pend || (S.parts && S.parts.length)) { S.pend = 0; S.parts = []; save(); render(); return; }
   // the last thing done was changing a score: put it back as it was
+  const seat = SCShare.seat();
   const x = S.edits && S.edits[S.edits.length - 1];
-  if (x && x.after === S.log.length) {
+  if (x && x.after === S.log.length && (seat === null || x.p === seat)) {
     const t = S.log[x.i];
     S.scores[t.p] += x.from - t.d;
     t.d = x.from;
@@ -1008,6 +1015,21 @@ $('undoBtn').onclick = () => {
     settleEnd();
     save(); render();
     flash(`Undid the change to ${S.cfg.names[x.p]}${S.cfg.turns ? `'s round ${x.r}` : ''}`);
+    return;
+  }
+  // A phone scoring one player takes back that player's last score, wherever
+  // it is in the log: everyone else's are theirs to take back.
+  if (seat !== null) {
+    let j = -1;
+    for (let k = S.log.length - 1; k >= 0; k--) if (S.log[k].p === seat) { j = k; break; }
+    if (j < 0) { flash('Nothing to undo'); return; }
+    const [mine] = S.log.splice(j, 1);
+    S.scores[mine.p] -= mine.d;
+    S.edits = (S.edits || []).filter((y) => y.i !== j)
+      .map((y) => ({ ...y, i: y.i > j ? y.i - 1 : y.i, after: y.after > j ? y.after - 1 : y.after }));
+    if (S.endedAt && !result()) { S.endedAt = null; S.winnerIdx = null; }
+    save(); render();
+    flash(`Undid ${S.cfg.names[mine.p]} ${signed(mine.d)}`);
     return;
   }
   const e = S.log.pop();
@@ -1204,6 +1226,7 @@ $('sheet').addEventListener('click', (e) => {
   const cell = e.target.closest('button.cell');
   if (!cell) return;
   const p = Number(cell.dataset.p), r = Number(cell.dataset.r);
+  if ((cell.classList.contains('open') || cell.textContent) && !mayScore(p)) return;
   if (cell.classList.contains('open')) { openEntry(p, r); return; }
   if (cell.textContent) {
     openEdit(S.log.indexOf(turnsBySide()[p][r - 1]), `#sheet button.cell[data-p="${p}"][data-r="${r}"]`);
@@ -1325,7 +1348,7 @@ function settleEnd() {
 
 $('history').addEventListener('click', (e) => {
   const row = e.target.closest('[data-i]');
-  if (row) openEdit(Number(row.dataset.i), `#history [data-i="${row.dataset.i}"]`);
+  if (row && S.log[row.dataset.i] && mayScore(S.log[row.dataset.i].p)) openEdit(Number(row.dataset.i), `#history [data-i="${row.dataset.i}"]`);
 });
 
 // Back to the page, and anything half-entered with it is let go.
@@ -1435,6 +1458,10 @@ function askConfirm(text, yesLabel, altLabel) {
    opened from this device or, signed in, from the profile; ?resume=<id>
    asks for the profile's copy first, as it has been played on elsewhere. */
 async function openFromUrl() {
+  // ?s=<token>: a shared game, to score in together or to watch
+  const shared = await SCShare.fromUrl(TYPE);
+  if (shared && shared.kind === 'edit') { openGame(shared.state); return; }
+  if (shared) { S = shared.state; showGame(); return; }
   const at = SCStore.urlId();
   if (at && !location.hash) {
     const st = await SCStore.open(TYPE, at.id, at.fresh);
@@ -1444,6 +1471,91 @@ async function openFromUrl() {
   }
   route();
 }
+
+
+/* Shared by link (see /share.js): the game on screen, and how to show a
+   newer one when it comes in from another phone. */
+SCShare.attach({
+  type: TYPE,
+  get: () => S,
+  apply: (st) => {
+    closeEntry();
+    S = st;
+    settleEnd();
+    save();
+    showGame();
+    // the score that came in decided the game
+    const r = result();
+    if (r && !S.endedAt) showWin(r);
+  },
+  // Shared by seat: a cell a score, '<player>:<round>'.
+  cells: {
+    names: (st) => st.cfg.names,
+    of: (st) => {
+      const out = {}, seen = [];
+      for (const e of st.log) {
+        const r = (seen[e.p] = (seen[e.p] || 0) + 1);
+        out[`${e.p}:${r}`] = { d: e.d, parts: e.parts || [] };
+      }
+      return out;
+    },
+    build: fromCells,
+  },
+});
+
+/* A game rebuilt from its cells (see /share.js), on what this phone had.
+   The log runs round by round, each round in the order its scores came;
+   the totals, whose turn it is and the changes made since a score went in
+   all follow from it. A score that has changed since this phone last saw
+   it goes in the history as a change, as one made here would. */
+function fromCells(base, list) {
+  const c = base.cfg, n = c.names.length;
+  const before = {};
+  { const seen = []; for (const e of base.log || []) before[`${e.p}:${(seen[e.p] = (seen[e.p] || 0) + 1)}`] = e; }
+
+  const log = [];
+  list.forEach(({ key, value }, k) => {
+    const [p, r] = key.split(':').map(Number);
+    if (p >= 0 && p < n && value) log.push({ p, r, k, d: Number(value.d) || 0, parts: value.parts || [] });
+  });
+  log.sort((a, b) => a.r - b.r || a.k - b.k);
+
+  const scores = c.names.map(() => c.start);
+  for (const e of log) scores[e.p] += e.d;
+  const at = (p, r) => log.findIndex((e) => e.p === p && e.r === r);
+
+  // changes already known here keep their place; new ones from elsewhere join them
+  const edits = (base.edits || []).map((x) => ({ ...x, i: at(x.p, x.r) })).filter((x) => x.i >= 0);
+  log.forEach((e, i) => {
+    const was = before[`${e.p}:${e.r}`];
+    if (was && was.d !== e.d) edits.push({ i, p: e.p, r: e.r, from: was.d, to: e.d, fromParts: was.parts || [], after: log.length });
+  });
+
+  // whose turn: the first still in the game without a score this round
+  let cur = base.cur;
+  if (c.turns) {
+    const counts = c.names.map((_, p) => log.filter((e) => e.p === p).length);
+    const live = counts.map((_, p) => p).filter((p) => !(c.win === 'zero' && scores[p] <= 0));
+    const round = live.length ? Math.min(...live.map((p) => counts[p])) : 0;
+    const next = live.find((p) => counts[p] === round);
+    if (next !== undefined) cur = next;
+  }
+  return {
+    ...base,
+    log: log.map(({ p, d, parts }) => ({ p, d, parts, cur: p })),
+    scores, edits, cur, pend: 0, parts: [],
+  };
+}
+
+// Whether this phone may score player p: one that joined by seat scores
+// its own player only.
+function mayScore(p) {
+  if (SCShare.canScore(p)) return true;
+  flash(`${S.cfg.names[p]} is scored on their own phone`);
+  return false;
+}
+
+$('shareBtn').onclick = () => SCShare.open();
 
 /* ---------------- boot ---------------- */
 

@@ -198,6 +198,8 @@ function showGame() {
   $('game').classList.remove('hidden');
   // the sign-in bubble would sit on the top bar's buttons
   document.body.classList.add('playing');
+  // a phone that joined by seat keeps its own player's column picked out
+  if (SCShare.seat() !== null) S.sel = SCShare.seat();
   buildSheet();
   render();
   if (S.over) showWin();
@@ -237,6 +239,7 @@ $('sheet').addEventListener('click', (e) => {
   const tile = e.target.closest('.ptile');
   if (tile) { S.sel = Number(tile.dataset.p); save(); render(); return; }
   const cell = e.target.closest('button.cell');
+  if (cell && !S.over && !mayScore(Number(cell.dataset.p))) return;
   if (cell && !S.over) openEntry(Number(cell.dataset.p), cell.dataset.id);
   else if (cell && S.over) flash('The game is over — Undo to change a score');
 });
@@ -459,12 +462,17 @@ $('entryEmpty').onclick = () => { setBox(entry.p, entry.id, null); done('Box emp
 /* ---------------- undo, new game ---------------- */
 
 $('undoBtn').onclick = () => {
-  const e = S.log.pop();
+  // A phone scoring one player takes back that player's last score, wherever
+  // it is in the log: everyone else's are theirs to take back.
+  const seat = SCShare.seat();
+  let j = S.log.length - 1;
+  if (seat !== null) while (j >= 0 && S.log[j].p !== seat) j--;
+  const e = j >= 0 ? S.log.splice(j, 1)[0] : null;
   if (!e) { flash('Nothing to undo'); return; }
   if (e.id === 'ybonus') S.ybonus[e.p] = e.prev;
   else if (e.prev == null) delete S.cells[e.p][e.id];
   else S.cells[e.p][e.id] = e.prev;
-  S.cur = e.cur; S.sel = e.sel;
+  if (seat === null) { S.cur = e.cur; S.sel = e.sel; }
   S.over = gameDone();
   $('winOverlay').classList.add('hidden');
   save(); render();
@@ -589,6 +597,10 @@ renderSetup();
    opened from this device or, signed in, from the profile; ?resume=<id>
    asks for the profile's copy first, as it has been played on elsewhere. */
 async function openFromUrl() {
+  // ?s=<token>: a shared game, to score in together or to watch
+  const shared = await SCShare.fromUrl(TYPE);
+  if (shared && shared.kind === 'edit') { openGame(shared.state); return; }
+  if (shared) { S = shared.state; showGame(); return; }
   const at = SCStore.urlId();
   if (!at) return;
   const st = await SCStore.open(TYPE, at.id, at.fresh);
@@ -596,4 +608,64 @@ async function openFromUrl() {
   SCStore.leave();
   SCStore.notice("That game isn't on this device. Sign in to open games saved to your profile.");
 }
+
+/* Shared by link (see /share.js): the game on screen, and how to show a
+   newer one when it comes in from another phone. */
+SCShare.attach({
+  type: TYPE,
+  get: () => S,
+  apply: (st) => {
+    $('entryOverlay').classList.add('hidden');
+    S = st;
+    S.over = gameDone();
+    save();
+    showGame();
+  },
+  // Shared by seat: a cell a box, '<player>:<box>', and '<player>:ybonus'
+  // for the extra Yahtzees.
+  cells: {
+    names: (st) => st.names,
+    of: (st) => {
+      const out = {};
+      st.names.forEach((_, p) => {
+        for (const [id, v] of Object.entries(st.cells[p] || {})) out[`${p}:${id}`] = v;
+        if (st.ybonus && st.ybonus[p]) out[`${p}:ybonus`] = st.ybonus[p];
+      });
+      return out;
+    },
+    build: fromCells,
+  },
+});
+
+/* A game rebuilt from its cells (see /share.js), on what this phone had:
+   the boxes, the extra Yahtzees, and Undo's list in the order the scores
+   came. Whose turn it is follows: the first with the fewest boxes filled.
+   A phone scoring one player keeps that player's column picked out. */
+function fromCells(base, list) {
+  const n = base.names.length;
+  const cells = base.names.map(() => ({})), ybonus = base.names.map(() => 0), log = [];
+  for (const { key, value } of list) {
+    const [ps, id] = key.split(':');
+    const p = Number(ps);
+    if (!(p >= 0 && p < n) || value == null) continue;
+    if (id === 'ybonus') { log.push({ p, id, prev: 0, v: value, cur: p, sel: p }); ybonus[p] = Number(value) || 0; }
+    else { log.push({ p, id, prev: null, v: value, cur: p, sel: p }); cells[p][id] = Number(value); }
+  }
+  const filled = cells.map((c) => Object.keys(c).length);
+  const fewest = Math.min(...filled);
+  const cur = filled.indexOf(fewest);
+  const seat = SCShare.seat();
+  return { ...base, cells, ybonus, log, cur, sel: seat !== null ? seat : base.sel };
+}
+
+// Whether this phone may score player p: one that joined by seat scores
+// its own player only.
+function mayScore(p) {
+  if (SCShare.canScore(p)) return true;
+  flash(`${S.names[p]} is scored on their own phone`);
+  return false;
+}
+
+$('shareBtn').onclick = () => SCShare.open();
+
 openFromUrl();

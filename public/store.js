@@ -18,6 +18,7 @@
      SCStore.open(type, id, fresh)   a game's state: from this device, or
                                      from the profile when signed in
      SCStore.notice(text)            a passing note at the top of the page
+     SCStore.setShare(id, share)     a shared game's links: see /share.js
 
    Each game used to keep one game in progress under a key of its own;
    those move in here the first time any page loads this file. A finished
@@ -50,7 +51,13 @@ window.SCStore = (function () {
 
   function put(type, state, done) {
     if (!state || !state.id) return;
-    write(PREFIX + state.id, { id: state.id, type, done: !!done, at: Date.now(), state });
+    // watching someone else's game by link keeps nothing here
+    if (window.SCWatching) return;
+    const was = read(PREFIX + state.id);
+    const share = was && was.share;
+    write(PREFIX + state.id, { id: state.id, type, done: !!done, at: Date.now(), state, ...(share ? { share } : {}) });
+    // a game shared to score together sends each change on
+    if (share && (share.edit || share.seatToken) && window.SCShare) SCShare.changed(state.id);
   }
 
   /* ---------------- moving the old one-a-kind keys in ---------------- */
@@ -97,7 +104,20 @@ window.SCStore = (function () {
   return {
     put,
     get: (id) => (id ? read(PREFIX + id) : null),
-    remove: (id) => { if (id) write(PREFIX + id, null); },
+    // A game given up while shared stops being shared — when this device
+    // shared it. A finished one stays shared, so its links show the result.
+    remove: (id) => {
+      if (!id) return;
+      const g = read(PREFIX + id);
+      if (g && g.share && g.share.owner && g.share.edit && !g.done && window.SCShare) SCShare.stop(g.share.edit);
+      write(PREFIX + id, null);
+    },
+    setShare(id, share) {
+      const g = read(PREFIX + id);
+      if (!g) return;
+      if (share) g.share = share; else delete g.share;
+      write(PREFIX + id, g);
+    },
     list: (type) => all().filter((g) => !type || g.type === type),
     latest: (type, match) => all().find((g) => g.type === type && !g.done && (!match || match(g.state))) || null,
 

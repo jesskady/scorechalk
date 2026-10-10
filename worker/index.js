@@ -1,14 +1,15 @@
 /* Request router.
  *
  * Almost everything here is static: the games live in public/ and are served
- * straight from the asset store. This Worker exists for the www redirect and
- * for the handful of /auth and /api routes behind sign-in.
+ * straight from the asset store. This Worker exists for the www redirect,
+ * the handful of /auth and /api routes behind sign-in, and shared games.
  */
 
 import { authConfigured, startGoogle, callbackGoogle, logout, me } from './auth.js';
 import { saveGame, listGames, getGame, patchGame, deleteGame } from './games.js';
 import { getStats } from './stats.js';
 import { listCustomGames, putCustomGame, deleteCustomGame } from './custom-games.js';
+import { createShare, getShare, putShare, putCells, claimSeat, freeSeat, deleteShare } from './share.js';
 
 const CANONICAL = 'scorechalk.com';
 
@@ -68,6 +69,33 @@ export default {
       if (!authConfigured(env)) return json({ error: 'Sign-in is not configured.' }, 503);
       if (request.method === 'PUT') return putCustomGame(request, env, custom[1]);
       if (request.method === 'DELETE') return deleteCustomGame(request, env, custom[1]);
+      return json({ error: 'Method not allowed' }, 405);
+    }
+
+    // Shared games: open to anyone holding a link, signed in or not
+    if (url.pathname === '/api/share') {
+      if (request.method === 'POST') return createShare(request, env);
+      return json({ error: 'Method not allowed' }, 405);
+    }
+
+    const share = url.pathname.match(/^\/api\/share\/([A-Za-z0-9_-]{20,64})$/);
+    if (share) {
+      if (request.method === 'GET') return getShare(request, env, share[1], url);
+      if (request.method === 'PUT') return putShare(request, env, share[1]);
+      if (request.method === 'DELETE') return deleteShare(request, env, share[1]);
+      return json({ error: 'Method not allowed' }, 405);
+    }
+
+    // scoring together by seat: the cells, and the seats
+    const cells = url.pathname.match(/^\/api\/share\/([A-Za-z0-9_-]{20,64})\/cells$/);
+    if (cells) {
+      if (request.method === 'PUT') return putCells(request, env, cells[1]);
+      return json({ error: 'Method not allowed' }, 405);
+    }
+    const seat = url.pathname.match(/^\/api\/share\/([A-Za-z0-9_-]{20,64})\/seat(?:\/(\d{1,2}))?$/);
+    if (seat) {
+      if (request.method === 'POST' && !seat[2]) return claimSeat(request, env, seat[1]);
+      if (request.method === 'DELETE' && seat[2]) return freeSeat(request, env, seat[1], Number(seat[2]));
       return json({ error: 'Method not allowed' }, 405);
     }
 

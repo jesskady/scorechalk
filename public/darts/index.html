@@ -182,12 +182,12 @@
 
   <div class="actions">
     <button id="submitBtn" class="primary big">Submit turn</button>
-    <!-- Save is revealed only when signed in: with no profile there is
-         nowhere for it to save to, and a fourth button crowds the row. -->
-    <div class="mini-row" id="miniRow">
+    <!-- Share: links to watch the game or score in it together (/share.js).
+         It took the place of Save, now that every turn is saved. -->
+    <div class="mini-row has-save" id="miniRow">
       <button id="undoTurn" class="ghost">Undo turn</button>
       <button id="bustBtn" class="ghost bust-btn">Bust</button>
-      <button id="saveBtn" class="ghost hidden">Save</button>
+      <button id="shareBtn" class="ghost">Share</button>
       <button id="quitBtn" class="ghost">New game</button>
     </div>
   </div>
@@ -217,9 +217,10 @@
 </div>
 
 <script src="/account.js?v=29" defer></script>
-<script src="/store.js?v=1"></script>
-<script src="/cloud.js?v=2"></script>
+<script src="/store.js?v=3"></script>
+<script src="/share.js?v=2"></script>
+<script src="/cloud.js?v=3"></script>
 <script src="sync.js?v=31"></script>
-<script src="app.js?v=34"></script>
+<script src="app.js?v=35"></script>
 </body>
 </html>
