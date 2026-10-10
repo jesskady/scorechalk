@@ -469,8 +469,16 @@ window.SCShare = (function () {
     if (!st || !st.id) return;
     const { veil, card, body } = sheet('Share this game');
     body.append(el('p', 'margin:0;color:var(--dim,#aaa);font-size:14px', 'Making links…'));
+    // Done closes the sheet — unless a link has just gone out from it, when
+    // whoever shared the game, with a player of their own, is asked once
+    // whether to score only that player (see askLimit)
+    let sentLink = false;
     const done = el('button', BTN, 'Done');
-    done.onclick = () => veil.remove();
+    done.onclick = () => {
+      const now = shareOf(st.id);
+      if (sentLink && now && now.owner && Number.isInteger(now.seat) && !now.askedLimit) askLimit(st, now, card, done, veil);
+      else veil.remove();
+    };
     veil.onclick = (e) => { if (e.target === veil) veil.remove(); };
     card.append(done);
 
@@ -518,6 +526,7 @@ window.SCShare = (function () {
       const btns = el('div', 'display:flex;gap:6px');
       const copy = el('button', BTN, 'Copy link');
       copy.onclick = async () => {
+        sentLink = true;
         try { await navigator.clipboard.writeText(url); copy.textContent = 'Copied'; }
         catch (e) { window.prompt('Copy this link:', url); }
         setTimeout(() => { copy.textContent = 'Copy link'; }, 1600);
@@ -525,7 +534,7 @@ window.SCShare = (function () {
       btns.append(copy);
       if (navigator.share) {
         const send = el('button', BTN, 'Send…');
-        send.onclick = () => navigator.share({ title: 'Score Chalk', url }).catch(() => {});
+        send.onclick = () => { sentLink = true; navigator.share({ title: 'Score Chalk', url }).catch(() => {}); };
         btns.append(send);
       }
       box.append(btns);
@@ -540,7 +549,6 @@ window.SCShare = (function () {
             : 'Each person picks their player and scores only them, at any time.',
           linkFor(page.type, sh.join)));
       }
-      if (sh.owner && Number.isInteger(sh.seat) && !sh.askedLimit) parts.push(askLimit(st, sh));
       if (sh.owner) parts.push(await seatList(st, sh, () => { veil.remove(); open(); }));
     } else {
       parts.push(row('Keep score together', 'Enter and change scores from another phone. Share it only with people at the table.', linkFor(page.type, sh.edit)));
@@ -560,30 +568,31 @@ window.SCShare = (function () {
     body.replaceChildren(...parts);
   }
 
-  /* Once, after sharing, for whoever shared it with a player of their own:
-     score only that player from now on, as everyone who joins does, or
-     everyone? The Scoring switch on the game screen changes it any time;
-     this is where they first hear of it. */
-  function askLimit(st, sh) {
+  /* Once, after a link has gone out, for whoever shared the game with a
+     player of their own: score only that player from now on, as everyone
+     who joins does, or everyone? The sheet clears to the question, and an
+     answer closes it. The Scoring switch on the game screen changes it any
+     time; this is where they first hear of it. */
+  function askLimit(st, sh, card, done, veil) {
     const name = namesOf(st)[sh.seat] || 'Player ' + (sh.seat + 1);
-    const box = el('div', 'display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:12px;' +
-      'border:1px solid var(--gold,#c9a35a);background:var(--bg2,#222)');
-    box.append(el('b', 'font-size:15px', `Score only for ${name}?`),
-      el('span', 'font-size:13px;color:var(--dim,#aaa);line-height:1.35',
-        'Everyone who joins scores only their own player. You can do the same, or keep scoring everyone, to fix a mistake or score for someone without a phone.'));
+    card.querySelector('h2').textContent = `Score only for ${name}?`;
+    const body = card.children[1];
+    done.remove();
     const row = el('div', 'display:flex;gap:6px');
     [[true, `Only ${name}`], [false, 'Everyone']].forEach(([restricted, label]) => {
       const b = el('button', BTN, label);
       b.onclick = () => {
         SCStore.setShare(st.id, { ...shareOf(st.id), restricted, askedLimit: true });
         show(page.get());
-        box.replaceChildren(el('span', 'font-size:13px;color:var(--dim,#aaa);line-height:1.35',
-          `${restricted ? `Scoring only ${name}.` : 'Scoring everyone.'} Change it any time with the Scoring switch at the top of the game.`));
+        veil.remove();
+        SCStore.notice(`${restricted ? `Scoring only ${name}.` : 'Scoring everyone.'} Change it any time with the Scoring switch at the top of the game.`);
       };
       row.append(b);
     });
-    box.append(row);
-    return box;
+    body.replaceChildren(
+      el('p', 'margin:0;font-size:14px;color:var(--dim,#aaa);line-height:1.4',
+        'Everyone who joins scores only their own player. You can do the same, or keep scoring everyone, to fix a mistake or score for someone without a phone.'),
+      row);
   }
 
   /* For whoever shared the game: which player they are — taken for them,
