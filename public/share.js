@@ -34,7 +34,10 @@
      SCShare.fromUrl(type)  a page opened with ?s=<token>: resolves
                             { kind: 'edit' | 'view', state }, or null
      SCShare.open()         the share sheet for the game on screen
-     SCShare.seat()         the player this phone scores, or null for any
+     SCShare.seat()         the player this phone scores, or null for any:
+                            a phone that joined, or whoever shared the game
+                            once they have taken a player and chosen to
+                            score only them
      SCShare.canScore(p)    whether this phone may score player p
      SCShare.changed(id)    from SCStore.put: send the game on
      SCShare.stop(editToken) stop sharing */
@@ -459,7 +462,7 @@ window.SCShare = (function () {
             : 'Each person picks their player and scores only them, at any time.',
           linkFor(page.type, sh.join)));
       }
-      if (sh.owner) parts.push(await seatList(st, sh));
+      if (sh.owner) parts.push(await seatList(st, sh, () => { veil.remove(); open(); }));
     } else {
       parts.push(row('Keep score together', 'Enter and change scores from another phone. Share it only with people at the table.', linkFor(page.type, sh.edit)));
     }
@@ -478,32 +481,96 @@ window.SCShare = (function () {
     body.replaceChildren(...parts);
   }
 
-  // Who has joined as whom, for whoever shared the game: a seat taken by
-  // mistake can be freed for someone else.
-  async function seatList(st, sh) {
-    const box = el('div', 'display:flex;flex-direction:column;gap:6px');
-    box.append(el('b', 'font-size:15px', 'Players joined'));
+  /* For whoever shared the game: which player they are — taken for them,
+     so no one else can join as that player — and whether they score only
+     that player, as everyone who joins does, or everyone; and who has
+     joined as whom, so a seat taken by mistake can be freed. */
+  async function seatList(st, sh, reopen) {
+    const box = el('div', 'display:flex;flex-direction:column;gap:14px');
+    const edit = encodeURIComponent(sh.edit);
     let seats = sh.seats || [];
     try {
-      const res = await api('/' + encodeURIComponent(sh.edit) + '?since=' + (sh.mode === 'cells' ? (sh.seq || 0) : (sh.version || 1)));
+      const res = await api('/' + edit + '?since=' + (sh.mode === 'cells' ? (sh.seq || 0) : (sh.version || 1)));
       if (res.ok) seats = (await res.json()).seats || seats;
     } catch (e) { /* offline: what was last known */ }
     const names = namesOf(st);
-    if (!seats.length) {
-      box.append(el('span', 'font-size:13px;color:var(--dim,#aaa)', 'No one yet.'));
+    const mine = Number.isInteger(sh.seat) ? sh.seat : null;
+    const HINT = 'font-size:13px;color:var(--dim,#aaa);line-height:1.35';
+    const ON = ';border-color:var(--green,#2a7d56);box-shadow:0 0 0 1px var(--green,#2a7d56) inset';
+
+    // the game on screen redrawn as this phone may now score it
+    const refresh = () => { const s = page.get(); if (s) show(s); };
+
+    const choose = async (to) => {
+      if (to === mine) return;
+      try {
+        if (to !== null) {
+          const res = await api('/' + edit + '/seat', { method: 'POST', body: JSON.stringify({ seat: to }) });
+          if (res.status === 409) { SCStore.notice(`${names[to]} has already joined. Free them below first.`); return; }
+          if (!res.ok) throw new Error();
+        }
+        if (mine !== null) await api('/' + edit + '/seat/' + mine, { method: 'DELETE' });
+        const cur = { ...shareOf(st.id) };
+        if (to === null) { delete cur.seat; cur.restricted = false; }
+        else { cur.seat = to; if (mine === null) cur.restricted = true; }
+        SCStore.setShare(st.id, cur);
+        refresh();
+        reopen();
+      } catch (e) { SCStore.notice("Couldn't change that. Check your connection and try again."); }
+    };
+
+    const you = el('div', 'display:flex;flex-direction:column;gap:6px');
+    you.append(el('b', 'font-size:15px', 'You are'),
+      el('span', HINT, 'Your player is taken for you, so no one else can join as them.'));
+    const youRow = el('div', 'display:flex;flex-wrap:wrap;gap:6px');
+    [...names.map((n, i) => i), null].forEach((seat) => {
+      const taken = seat !== null && seats.includes(seat) && seat !== mine;
+      const b = el('button', BTN + ';flex:1 1 40%' + (seat === mine ? ON : ''),
+        seat === null ? 'No one' : (names[seat] || 'Player ' + (seat + 1)) + (taken ? ' · taken' : ''));
+      if (taken) { b.disabled = true; b.style.opacity = '.45'; }
+      b.onclick = () => choose(seat);
+      youRow.append(b);
+    });
+    you.append(youRow);
+    box.append(you);
+
+    if (mine !== null) {
+      const lim = el('div', 'display:flex;flex-direction:column;gap:6px');
+      lim.append(el('b', 'font-size:15px', 'Enter scores for'),
+        el('span', HINT, 'Only your own, as everyone who joins does, or everyone, to fix a mistake or keep score for someone without a phone.'));
+      const row2 = el('div', 'display:flex;gap:6px');
+      [[true, `Only ${names[mine]}`], [false, 'Everyone']].forEach(([restricted, label]) => {
+        const b = el('button', BTN + (!!sh.restricted === restricted ? ON : ''), label);
+        b.onclick = () => {
+          SCStore.setShare(st.id, { ...shareOf(st.id), restricted });
+          refresh();
+          reopen();
+        };
+        row2.append(b);
+      });
+      lim.append(row2);
+      box.append(lim);
+    }
+
+    const joined = el('div', 'display:flex;flex-direction:column;gap:6px');
+    joined.append(el('b', 'font-size:15px', 'Players joined'));
+    box.append(joined);
+    const others = seats.filter((s) => s !== mine);
+    if (!others.length) {
+      joined.append(el('span', 'font-size:13px;color:var(--dim,#aaa)', 'No one yet.'));
       return box;
     }
-    for (const seat of seats) {
+    for (const seat of others) {
       const line = el('div', 'display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:14px');
       const free = el('button', 'background:none;border:1px solid var(--line,#444);border-radius:8px;color:var(--dim,#aaa);' +
         'font-size:12.5px;font-weight:600;padding:5px 9px;cursor:pointer', 'Free');
       free.onclick = async () => {
         free.disabled = true;
-        try { await api('/' + encodeURIComponent(sh.edit) + '/seat/' + seat, { method: 'DELETE' }); line.remove(); }
+        try { await api('/' + edit + '/seat/' + seat, { method: 'DELETE' }); line.remove(); }
         catch (e) { free.disabled = false; }
       };
       line.append(el('span', null, names[seat] || 'Player ' + (seat + 1)), free);
-      box.append(line);
+      joined.append(line);
     }
     return box;
   }
@@ -514,7 +581,9 @@ window.SCShare = (function () {
 
   function seat() {
     const s = page && page.get(), sh = s && shareOf(s.id);
-    return sh && !sh.owner && Number.isInteger(sh.seat) ? sh.seat : null;
+    if (!sh || !Number.isInteger(sh.seat)) return null;
+    // whoever shared the game scores everyone, unless they chose their own only
+    return sh.owner && !sh.restricted ? null : sh.seat;
   }
 
   return {
