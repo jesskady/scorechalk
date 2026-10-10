@@ -337,3 +337,9 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 /* a phone that joined by seat, while another player's hand is counted:
    the hand card greyed and out of reach, its button saying whose it is */
 #game.waiting #handCard{opacity:.4;pointer-events:none}
+
+/* in the play, on a phone scoring one player: everyone else's pegging
+   buttons and heels greyed and out of reach */
+.pcol.locked .ppad,
+.pcol.locked .psimple,
+.pcol.locked .heels{opacity:.35;pointer-events:none}

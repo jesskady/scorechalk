@@ -492,6 +492,8 @@ function buildHandPad() {
 // a tap in the play: scores at once
 function peg(p, id, label, pts, kind = 'play') {
   if (S.over) return;
+  // a phone scoring one player pegs that player only
+  if (!SCShare.canScore(p)) { flash(`${S.names[p]} pegs on their own phone`); return; }
   score(p, pts, kind, label, { id });
   save(); render();
   flash(`${S.names[p]} ${label} +${pts}`);
@@ -532,6 +534,8 @@ function render() {
     if (p === lead && !(p === S.dealer && S.heels && !counting)) meta.push(`<span class="lead">+${top - Math.max(...S.scores.filter((_, i) => i !== p))}</span>`);
     col.querySelector('.pmeta').innerHTML = meta.join('');
     col.classList.toggle('counting', !!up && up.p === p);
+    // a phone scoring one player: everyone else's pegging greyed
+    col.classList.toggle('locked', !counting && !SCShare.canScore(p));
     col.querySelector('.ppad').classList.toggle('hidden', counting || playMode !== 'detailed');
     col.querySelector('.psimple').classList.toggle('hidden', counting || playMode !== 'simple');
     // heels is claimed during the play; once counting starts the chance has gone
@@ -905,7 +909,7 @@ function rebaseShared(theirs, mine, base) {
 
 /* A phone that joined by seat counts its own hand, and its own crib, when
    that one is up; the rest of the count it watches, the hand card greyed.
-   The play is everyone's: any phone pegs anyone. */
+   In the play it pegs its own player only (see peg). */
 const waiting = () => S && S.phase === 'count' && !S.over && !SCShare.canScore(countOrder()[S.step].p);
 
 /* A newer game from another phone. The hand this phone is part-way through
