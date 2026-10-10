@@ -31,6 +31,21 @@
     "GOOGLE_CLIENT_ID": "35240829771-8e7dastnmvt8ktfkfg7k225su1k6mr58.apps.googleusercontent.com"
   },
 
+  // Shared games are open to anyone holding a link, signed in or not, so
+  // their API is limited per visitor (by IP address) — see worker/index.js.
+  // A period is 10 or 60 seconds. Several phones on one Wi-Fi share an IP,
+  // which is why reads are generous: during Cribbage's play each phone
+  // looks for news every second.
+  "ratelimits": [
+    { "name": "SHARE_CREATE", "namespace_id": "1001", "simple": { "limit": 20, "period": 60 } },
+    { "name": "SHARE_WRITE", "namespace_id": "1002", "simple": { "limit": 240, "period": 60 } },
+    { "name": "SHARE_READ", "namespace_id": "1003", "simple": { "limit": 600, "period": 60 } }
+  ],
+
+  // Once a day: shared games that have gone 30 days without a change are
+  // deleted (worker/share.js, cleanShares), as the privacy policy says.
+  "triggers": { "crons": ["17 4 * * *"] },
+
   "d1_databases": [
     {
       "binding": "DB",

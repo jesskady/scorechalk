@@ -1,0 +1,16 @@
+/* The privacy policy and terms: plain reading pages, in the site's slate
+   and chalk, sized for reading rather than tapping. */
+body.legal{
+  background:var(--bg,#1c2723);color:var(--txt,#ecebe3);
+  -webkit-user-select:text;user-select:text;
+}
+.legal main{max-width:680px;margin:0 auto;padding:18px 18px 48px;line-height:1.6;font-size:16px}
+.legal .backlink{color:var(--dim,#a7b0a9);font-size:14px;text-decoration:none}
+.legal h1{font-size:30px;margin:14px 0 2px;letter-spacing:-.3px}
+.legal .updated{color:var(--dim,#a7b0a9);font-size:13.5px;margin:0 0 18px}
+.legal h2{font-size:18px;margin:26px 0 6px}
+.legal p,.legal li{color:var(--txt,#ecebe3)}
+.legal ul{padding-left:20px;margin:6px 0}
+.legal li{margin:4px 0}
+.legal a{color:var(--gold,#c9a35a)}
+.legal .also{margin-top:30px;font-size:14px}

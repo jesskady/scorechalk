@@ -383,6 +383,7 @@ function placePegs() {
 /* ---------------- game screen ---------------- */
 
 function showGame() {
+  SCAwake.keep(true);     // the screen stays on through the game: see /awake.js
   // a game saved before Cards mode existed has no cards in its hand yet
   if (!S.pend.cards) S.pend.cards = CribCounter.fresh();
   $('setup').classList.add('hidden');

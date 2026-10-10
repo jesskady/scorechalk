@@ -244,3 +244,7 @@ a.chalk-card:active{transform:translateY(-1px)}
 
 /* on a phone the placeholder would sit alone on its own row: leave it out */
 @media (max-width:599px){.chalk-card.empty{display:none}}
+
+/* the small print, under the workshop */
+.legal-links{text-align:center;font-size:12.5px;margin:22px 0 4px;opacity:.75}
+.legal-links a{color:inherit}

@@ -237,6 +237,8 @@ function show(id) {
   for (const s of ['setup', 'game']) $(s).classList.toggle('hidden', s !== id);
   // in a game, the sign-in button would sit on the view switch
   document.body.classList.toggle('playing', id === 'game');
+  // and the screen stays on through it: see /awake.js
+  SCAwake.keep(id === 'game');
   window.scrollTo(0, 0);
 }
 

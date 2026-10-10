@@ -265,3 +265,53 @@ export async function deleteShare(request, env, t) {
   ]);
   return json({ ok: true });
 }
+
+/* ---------------- letting go ---------------- */
+
+// Shared games that have gone 30 days without a change, with their cells
+// and seats: run once a day (see scheduled() in worker/index.js), as the
+// privacy policy says.
+const KEEP_UNCHANGED = 30 * 24 * 3600e3;
+
+export async function cleanShares(env) {
+  const before = Date.now() - KEEP_UNCHANGED;
+  const stale = 'SELECT id FROM shared_games WHERE updated_at < ?';
+  await env.DB.batch([
+    env.DB.prepare(`DELETE FROM shared_cells WHERE game_id IN (${stale})`).bind(before),
+    env.DB.prepare(`DELETE FROM shared_seats WHERE game_id IN (${stale})`).bind(before),
+    env.DB.prepare('DELETE FROM shared_games WHERE updated_at < ?').bind(before),
+  ]);
+}
+
+/* ---------------- the card a shared link shows ---------------- */
+
+// Who is playing, as a phrase: "Jess and Heather", "Jess, Heather and Sam",
+// "Jess, Heather and 3 others" — or nothing, when they are all still
+// "Player 1", "Player 2"...
+function whoPlays(names) {
+  const real = names.filter((n) => typeof n === 'string' && n.trim());
+  if (!real.length || real.every((n) => /^Player \d+$/.test(n.trim()))) return '';
+  if (real.length === 1) return real[0];
+  if (real.length > 4) return `${real.slice(0, 2).join(', ')} and ${real.length - 2} others`;
+  return `${real.slice(0, -1).join(', ')} and ${real[real.length - 1]}`;
+}
+
+const GAME_LABEL = { darts: 'Darts', cribbage: 'Cribbage', yahtzee: 'Yahtzee', magic: 'Magic' };
+
+/* The title and line a link to a shared game shows in a message: who is
+   playing what, and what the link lets you do. Null when the link no
+   longer opens a game, so the page's own card stands. */
+export async function previewFor(env, t, type) {
+  const found = await resolve(env, t);
+  if (!found || found.row.game_type !== type) return null;
+  const st = parse(found.row.state) || {};
+  const names = type === 'builder' ? (st.cfg && st.cfg.names) || []
+    : type === 'darts' ? (st.players || []).map((p) => p.name) : st.names || [];
+  const game = type === 'builder' ? ((st.cfg && st.cfg.name) || 'scorekeeping').trim() : GAME_LABEL[type];
+  const who = whoPlays(names);
+  const what = who ? `${who}'s ${game} game` : `a ${game} game`;
+  const kind = found.kind;
+  if (kind === 'view') return { title: `Watch ${what}`, description: 'Follow the scores live on Score Chalk.' };
+  if (kind === 'join') return { title: `Join ${what}`, description: 'Pick your player and keep your own score, live on Score Chalk.' };
+  return { title: `Keep score in ${what}`, description: 'Keep score together, live on Score Chalk.' };
+}

@@ -341,6 +341,7 @@ function buildBoard() {
 }
 
 function showGame() {
+  SCAwake.keep(true);     // the screen stays on through the game: see /awake.js
   $('setup').classList.add('hidden');
   $('game').classList.remove('hidden');
   render();

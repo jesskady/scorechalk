@@ -9,7 +9,7 @@ import { authConfigured, startGoogle, callbackGoogle, logout, me } from './auth.
 import { saveGame, listGames, getGame, patchGame, deleteGame } from './games.js';
 import { getStats } from './stats.js';
 import { listCustomGames, putCustomGame, deleteCustomGame } from './custom-games.js';
-import { createShare, getShare, putShare, putCells, claimSeat, freeSeat, deleteShare } from './share.js';
+import { createShare, getShare, putShare, putCells, claimSeat, freeSeat, deleteShare, cleanShares, previewFor } from './share.js';
 
 const CANONICAL = 'scorechalk.com';
 
@@ -20,6 +20,12 @@ const json = (body, status = 200) =>
   });
 
 export default {
+  // Once a day (see "triggers" in wrangler.jsonc): let go of shared games
+  // that have gone 30 days without a change.
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(cleanShares(env));
+  },
+
   async fetch(request, env) {
     const url = new URL(request.url);
 
@@ -72,7 +78,20 @@ export default {
       return json({ error: 'Method not allowed' }, 405);
     }
 
-    // Shared games: open to anyone holding a link, signed in or not
+    // Shared games: open to anyone holding a link, signed in or not, so each
+    // visitor is limited (see "ratelimits" in wrangler.jsonc): making shares
+    // and claiming seats, writing, and reading each have their own allowance.
+    if (url.pathname.startsWith('/api/share')) {
+      const limiter = request.method === 'GET' ? env.SHARE_READ
+        : url.pathname === '/api/share' || url.pathname.includes('/seat') ? env.SHARE_CREATE
+        : env.SHARE_WRITE;
+      if (limiter) {
+        const key = request.headers.get('cf-connecting-ip') || 'local';
+        const { success } = await limiter.limit({ key });
+        if (!success) return json({ error: 'Too many requests. Wait a moment and try again.' }, 429);
+      }
+    }
+
     if (url.pathname === '/api/share') {
       if (request.method === 'POST') return createShare(request, env);
       return json({ error: 'Method not allowed' }, 405);
@@ -107,6 +126,24 @@ export default {
       if (url.pathname === '/auth/google/callback') return callbackGoogle(request, env, url);
       if (url.pathname === '/auth/logout' && request.method === 'POST') return logout(url);
       return json({ error: 'Not found' }, 404);
+    }
+
+    // A link to a shared game — /cribbage/?s=<token> — shows a card in a
+    // message naming who is playing and what the link is for, so the page's
+    // own title and description are filled in for that game.
+    const page = url.pathname.match(/^\/(darts|cribbage|yahtzee|magic|builder)\/$/);
+    const token = url.searchParams.get('s');
+    if (page && token && request.method === 'GET' && /^[A-Za-z0-9_-]{20,64}$/.test(token)) {
+      const res = await env.ASSETS.fetch(request);
+      const card = res.ok ? await previewFor(env, token, page[1]).catch(() => null) : null;
+      if (!card) return res;
+      const content = (value) => ({ element(e) { e.setAttribute('content', value); } });
+      return new HTMLRewriter()
+        .on('title', { element(e) { e.setInnerContent(`${card.title} · Score Chalk`); } })
+        .on('meta[property="og:title"]', content(card.title))
+        .on('meta[property="og:description"]', content(card.description))
+        .on('meta[name="description"]', content(card.description))
+        .transform(res);
     }
 
     return env.ASSETS.fetch(request);

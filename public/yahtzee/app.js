@@ -204,6 +204,7 @@ const ROWS = [
 ];
 
 function showGame() {
+  SCAwake.keep(true);     // the screen stays on through the game: see /awake.js
   $('setup').classList.add('hidden');
   $('game').classList.remove('hidden');
   // the sign-in bubble would sit on the top bar's buttons
