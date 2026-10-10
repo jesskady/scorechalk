@@ -18,12 +18,19 @@
      person who joins picks a seat, a player, and scores that player only;
      whoever shared the game can score anyone, and free a seat.
 
-     SCShare.attach({ type, get, apply, cells? })
+     SCShare.attach({ type, get, apply, cells?, seats?, names?, rebase?, pollEvery? })
                             the page's game: get() the game on screen,
                             apply(state) shows a newer one; cells, for a
                             game shared by seat: { of(S) → { key: value },
                             build(S, list) → S, names(S) → [name] }, where
-                            list is [{ key, value }] in the order they came
+                            list is [{ key, value }] in the order they came;
+                            seats, for a game shared whole that players
+                            still join by seat (Cribbage), with names(S);
+                            rebase(theirs, mine, base), for a game shared
+                            whole: a refused change made again on the game
+                            as it now stands, when that can be done safely
+                            — or null, when the change has to give way;
+                            pollEvery(), how often to look for news, in ms
      SCShare.fromUrl(type)  a page opened with ?s=<token>: resolves
                             { kind: 'edit' | 'view', state }, or null
      SCShare.open()         the share sheet for the game on screen
@@ -48,6 +55,9 @@ window.SCShare = (function () {
   const same = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
   const seatOfKey = (key) => Number(key.split(':')[0]);
   const onScreen = (id) => { const s = page && page.get(); return !!s && s.id === id; };
+  const namesOf = (st) => (page.cells ? page.cells.names(st) : page.names(st));
+  // the token this phone writes with: whoever shared the game's, or its seat's
+  const writer = (sh) => sh && (sh.edit || sh.seatToken);
 
   function show(state) {
     if (!page || !state) return;
@@ -147,15 +157,18 @@ window.SCShare = (function () {
 
   async function send(id) {
     const g = SCStore.get(id), sh = g && g.share;
-    if (!sh || !sh.edit) return;
+    if (!writer(sh)) return;
     try {
-      const res = await api('/' + encodeURIComponent(sh.edit), {
+      const res = await api('/' + encodeURIComponent(writer(sh)), {
         method: 'PUT', body: JSON.stringify({ state: g.state, base: sh.version || 1 }),
       });
       const data = await res.json().catch(() => ({}));
-      if (res.ok) { SCStore.setShare(id, { ...shareOf(id), version: data.version }); return; }
+      if (res.ok) { SCStore.setShare(id, { ...shareOf(id), version: data.version, base: g.state }); return; }
       if (res.status === 409 && data.state) {
-        SCStore.setShare(id, { ...shareOf(id), version: data.version });
+        // what this phone did, made again on the game as it now stands
+        const merged = page && page.rebase && sh.base && onScreen(id) ? page.rebase(data.state, g.state, sh.base) : null;
+        SCStore.setShare(id, { ...shareOf(id), version: data.version, base: data.state });
+        if (merged) { take(g.type, id, merged); send(id); return; }
         take(g.type, id, data.state);
         SCStore.notice("Someone else changed the game at the same moment. Your last change didn't go in. Showing the latest scores.");
         return;
@@ -175,17 +188,20 @@ window.SCShare = (function () {
     const cur = page.get(), sh = cur && shareOf(cur.id);
     if (!sh || pending[cur.id]) return;
     if (sh.mode === 'cells') { if (page.cells) await pollCells(cur.id, sh); return; }
-    if (!sh.edit) return;
+    if (!writer(sh)) return;
     try {
-      const res = await api('/' + encodeURIComponent(sh.edit) + '?since=' + (sh.version || 1));
+      const res = await api('/' + encodeURIComponent(writer(sh)) + '?since=' + (sh.version || 1));
       if (res.status === 404) { gone(cur.id); return; }
       const data = await res.json();
       if (data.unchanged || !data.state || pending[cur.id]) return;
-      SCStore.setShare(cur.id, { ...shareOf(cur.id), version: data.version });
+      SCStore.setShare(cur.id, { ...shareOf(cur.id), version: data.version, base: data.state });
       show(data.state);
     } catch (e) { /* offline: try again next time */ }
   }
-  setInterval(poll, POLL);
+  // every few seconds — or as often as the game asks, as Cribbage does in the play
+  (function tick() {
+    poll().catch(() => {}).finally(() => setTimeout(tick, page && page.pollEvery ? page.pollEvery() : POLL));
+  })();
   document.addEventListener('visibilitychange', poll);
 
   /* ---------------- watching ---------------- */
@@ -259,15 +275,30 @@ window.SCShare = (function () {
       if (data.type !== type || !data.state) throw new Error();
 
       if (data.mode !== 'cells') {
-        if (data.kind === 'view') {
-          startWatching(type, { token: t, mode: 'state', version: data.version });
+        const watchWhole = (token) => {
+          startWatching(type, { token, mode: 'state', version: data.version });
           return { kind: 'view', state: data.state };
+        };
+        if (data.kind === 'view') return watchWhole(t);
+        const had = shareOf(data.state.id);
+        let sh;
+        if (data.kind === 'edit') sh = { edit: t, view: data.view, join: data.join, version: data.version, owner: !!(had || {}).owner };
+        else {
+          // by seat: a seat this phone already holds, or the one picked now
+          if (had && had.seatToken) return { kind: 'edit', state: SCStore.get(data.state.id).state };
+          let seat = data.seat, seatToken = t;
+          if (data.kind === 'join') {
+            const pick = await pickSeat(page.names(data.state), data.seats || [], t);
+            if (!pick) { history.replaceState(null, '', location.pathname + '?s=' + encodeURIComponent(data.view) + location.hash); return watchWhole(data.view); }
+            seat = pick.seat; seatToken = pick.token;
+          }
+          sh = { view: data.view, join: data.kind === 'join' ? t : undefined, seat, seatToken, version: data.version };
         }
         // scoring together: kept here like any other game, and sent on
         applying = true;
         SCStore.put(type, data.state, false);
         applying = false;
-        SCStore.setShare(data.state.id, { edit: t, view: data.view, version: data.version, owner: !!(shareOf(data.state.id) || {}).owner });
+        SCStore.setShare(data.state.id, { ...sh, base: data.state });
         return { kind: 'edit', state: data.state };
       }
 
@@ -380,7 +411,7 @@ window.SCShare = (function () {
       try {
         const cells = page.cells ? page.cells.of(st) : null;
         const res = await api('', { method: 'POST', body: JSON.stringify({
-          id: st.id, type: page.type, state: st, ...(cells ? { mode: 'cells', cells } : {}),
+          id: st.id, type: page.type, state: st, ...(cells ? { mode: 'cells', cells } : {}), ...(page.seats ? { seats: true } : {}),
         }) });
         if (!res.ok) throw new Error();
         const data = await res.json();
@@ -390,7 +421,7 @@ window.SCShare = (function () {
           for (const [key, v] of Object.entries(cells)) if (v !== null && v !== undefined) known[key] = { v, ver: 1, seq: ++seq };
           sh = { mode: 'cells', owner: true, edit: data.edit, view: data.view, join: data.join, seq: data.seq, known, seats: [] };
         } else {
-          sh = { view: data.view, edit: data.edit, version: data.version, owner: true };
+          sh = { view: data.view, edit: data.edit, join: data.join, version: data.version, owner: true, base: st };
         }
         SCStore.setShare(st.id, sh);
       } catch (e) {
@@ -421,7 +452,7 @@ window.SCShare = (function () {
     };
     const parts = [];
     if (sh.view) parts.push(row('Watch', 'Follow the scores live. Nothing can be changed from this link.', linkFor(page.type, sh.view)));
-    if (sh.mode === 'cells') {
+    if (sh.mode === 'cells' || sh.join) {
       if (sh.join) {
         parts.push(row('Join as a player',
           sh.owner ? 'Each person picks their player and scores only them, at any time. You can still score everyone.'
@@ -454,10 +485,10 @@ window.SCShare = (function () {
     box.append(el('b', 'font-size:15px', 'Players joined'));
     let seats = sh.seats || [];
     try {
-      const res = await api('/' + encodeURIComponent(sh.edit) + '?since=' + (sh.seq || 0));
+      const res = await api('/' + encodeURIComponent(sh.edit) + '?since=' + (sh.mode === 'cells' ? (sh.seq || 0) : (sh.version || 1)));
       if (res.ok) seats = (await res.json()).seats || seats;
     } catch (e) { /* offline: what was last known */ }
-    const names = page.cells.names(st);
+    const names = namesOf(st);
     if (!seats.length) {
       box.append(el('span', 'font-size:13px;color:var(--dim,#aaa)', 'No one yet.'));
       return box;
@@ -483,7 +514,7 @@ window.SCShare = (function () {
 
   function seat() {
     const s = page && page.get(), sh = s && shareOf(s.id);
-    return sh && sh.mode === 'cells' && !sh.owner && Number.isInteger(sh.seat) ? sh.seat : null;
+    return sh && !sh.owner && Number.isInteger(sh.seat) ? sh.seat : null;
   }
 
   return {

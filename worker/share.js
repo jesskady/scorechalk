@@ -12,13 +12,16 @@
  * viewer can see):
  *   view   watch only
  *   edit   whoever shared it: change anything, free a seat, stop sharing
- *   join   'cells' only: pick a seat, and be given that seat's token
- *   seat   'cells' only: score one player
+ *   join   pick a seat, and be given that seat's token: every 'cells'
+ *          game, and a 'state' game shared with seats (Cribbage)
+ *   seat   score one player. In a 'cells' game the server holds a seat to
+ *          its own player's cells; a 'state' game goes whole, so there the
+ *          page keeps to it.
  *
  *   POST   /api/share                  share: { id, type, state, mode?, cells? }
  *   GET    /api/share/:token           the game. ?since=<version or seq>
  *                                      answers only what is newer
- *   PUT    /api/share/:token           'state', edit: { state, base }
+ *   PUT    /api/share/:token           'state', edit or seat: { state, base }
  *   PUT    /api/share/:token/cells     'cells', edit or seat: { cells: [{ key, value, base }] }
  *   POST   /api/share/:token/seat      join or edit: { seat } → its token
  *   DELETE /api/share/:token/seat/:n   edit: free a seat
@@ -110,7 +113,7 @@ export async function createShare(request, env) {
     return json({ mode: found.mode, edit: found.edit_token, ...links(found, 'edit'), version: found.version, seq: found.seq });
   }
 
-  const now = Date.now(), view = token(), edit = token(), join = cells ? token() : null;
+  const now = Date.now(), view = token(), edit = token(), join = cells || b.seats ? token() : null;
   const stmts = [env.DB.prepare(
     `INSERT INTO shared_games (id, game_type, state, version, view_token, edit_token, created_at, updated_at, mode, join_token, seq)
      VALUES (?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?)`
@@ -142,16 +145,17 @@ export async function getShare(request, env, t, url) {
   const since = url.searchParams.has('since') ? Number(url.searchParams.get('since')) : null;
   const who = { kind, ...(kind === 'seat' ? { seat: found.seat } : {}), ...links(row, kind) };
 
+  const seats = (await env.DB.prepare('SELECT seat FROM shared_seats WHERE game_id = ? ORDER BY seat')
+    .bind(row.id).all()).results.map((r) => r.seat);
+
   if (row.mode !== 'cells') {
-    if (Number.isInteger(since) && since >= row.version) return json({ unchanged: true, version: row.version, ...who });
+    if (Number.isInteger(since) && since >= row.version) return json({ unchanged: true, version: row.version, seats, ...who });
     return json({
       mode: 'state', type: row.game_type, version: row.version, updated_at: row.updated_at,
-      state: parse(row.state), ...who,
+      state: parse(row.state), seats, ...who,
     });
   }
 
-  const seats = (await env.DB.prepare('SELECT seat FROM shared_seats WHERE game_id = ? ORDER BY seat')
-    .bind(row.id).all()).results.map((r) => r.seat);
   const fresh = !Number.isInteger(since);
   if (!fresh && since >= row.seq) return json({ unchanged: true, mode: 'cells', seq: row.seq, seats, ...who });
   const cells = (await env.DB.prepare(
@@ -168,20 +172,21 @@ export async function getShare(request, env, t, url) {
 
 // 'state': the whole game, refused when made on an old version
 export async function putShare(request, env, t) {
+  const found = await resolve(env, t);
+  if (!found || found.row.mode !== 'state') return json({ error: 'Not shared' }, 404);
+  if (found.kind !== 'edit' && found.kind !== 'seat') return json({ error: 'This link can only watch' }, 403);
   const b = await body(request);
   const text = b && stateText(b.state);
-  if (!text || !Number.isInteger(b.base)) return json({ error: 'Invalid payload' }, 400);
-  const now = Date.now();
+  if (!text || !Number.isInteger(b.base) || b.state.id !== found.row.id) return json({ error: 'Invalid payload' }, 400);
   const res = await env.DB.prepare(
     `UPDATE shared_games SET state = ?, version = version + 1, updated_at = ?
-      WHERE edit_token = ? AND version = ? AND id = ? AND mode = 'state'`
-  ).bind(text, now, t, b.base, b.state.id).run();
+      WHERE id = ? AND version = ? AND mode = 'state'`
+  ).bind(text, Date.now(), found.row.id, b.base).run();
   if (res.meta && res.meta.changes) return json({ version: b.base + 1 });
 
-  // refused: say why, and with what is there now
-  const found = await resolve(env, t);
-  if (!found || found.kind !== 'edit' || found.row.mode !== 'state') return json({ error: 'Not shared' }, 404);
-  return json({ error: 'Changed elsewhere', version: found.row.version, state: parse(found.row.state) }, 409);
+  // refused: with what is there now
+  const now = await env.DB.prepare('SELECT state, version FROM shared_games WHERE id = ?').bind(found.row.id).first();
+  return json({ error: 'Changed elsewhere', version: now.version, state: parse(now.state) }, 409);
 }
 
 // 'cells': each cell on its own. A cell changed since the version it was
@@ -226,7 +231,7 @@ export async function putCells(request, env, t) {
 
 export async function claimSeat(request, env, t) {
   const found = await resolve(env, t);
-  if (!found || found.row.mode !== 'cells') return json({ error: 'Not shared' }, 404);
+  if (!found || !found.row.join_token) return json({ error: 'Not shared' }, 404);
   if (found.kind !== 'join' && found.kind !== 'edit') return json({ error: 'This link can only watch' }, 403);
   const b = await body(request);
   if (!b || !Number.isInteger(b.seat) || b.seat < 0 || b.seat >= MAX_SEATS) return json({ error: 'Invalid seat' }, 400);

@@ -560,7 +560,12 @@ function renderSubmit(up) {
 
   const t = pendTotal();
   const who = up.kind === 'crib' ? `${S.names[up.p]}'s crib` : S.names[up.p];
-  if (t == null) {
+  $('game').classList.toggle('waiting', waiting());
+  if (waiting()) {
+    handSubmit.textContent = `Waiting for ${up.kind === 'crib' ? who : `${who}'s hand`}`;
+    handSubmit.disabled = true;
+    handSubmit.classList.remove('hidden');
+  } else if (t == null) {
     handSubmit.textContent = 'Enter all five cards';
     handSubmit.disabled = true;
   } else {
@@ -663,6 +668,7 @@ $('mainBtn').onclick = () => {
 /* One hand onto the board. If it reaches 121 the game is over there and
    then: whoever is still to count never does. */
 function submitHand() {
+  if (waiting()) return;
   const seq = countOrder(), up = seq[S.step], t = pendTotal();
   if (t == null || t > MAX_HAND || IMPOSSIBLE.has(t)) return;
   const label = up.kind === 'crib' ? 'Crib' : 'Hand';
@@ -697,6 +703,7 @@ $('typedTotal').addEventListener('input', (e) => {
 
 
 $('undoBtn').onclick = () => {
+  if (waiting()) { flash('Waiting for another phone to count'); return; }
   // a hand being built is undone tap by tap before anything on the board
   if (S.phase === 'count' && handMode === 'cards' && CribCounter.undo(S.pend.cards)) { save(); render(); return; }
   if (S.phase === 'count' && handMode === 'buttons' && (S.pend.taps.length || S.pend.typed != null)) {
@@ -706,6 +713,8 @@ $('undoBtn').onclick = () => {
     return;
   }
   const last = S.log[S.log.length - 1], before = S.log.length;
+  // a phone that joined by seat takes back its own player's scores only
+  if (SCShare.seat() !== null && last && last.p !== SCShare.seat()) { flash(`${S.names[last.p]}'s score is theirs to undo`); return; }
   if (!restore()) { flash('Nothing to undo'); return; }
   save(); render();
   // a score coming off is worth naming; a phase change going back speaks for itself
@@ -853,7 +862,41 @@ async function openFromUrl() {
 
 /* Shared by link (see /share.js): the game on screen, and how to show a
    newer one when it comes in from another phone. */
-SCShare.attach({ type: TYPE, get: () => S, apply: applyShared });
+SCShare.attach({
+  type: TYPE, get: () => S, apply: applyShared, seats: true, names: (st) => st.names,
+  // the play moves quickly, so look for news every second while it lasts
+  pollEvery: () => (S && S.phase === 'play' ? 1000 : 3000),
+  rebase: rebaseShared,
+});
+
+/* Two phones pegging at once: the second save is refused, as the game went
+   whole. When all this phone did since was peg — scores in the play, the
+   same deal still in the play on the other phone — those pegs go on again
+   on top of the game as it now stands, and nothing is lost. Anything else
+   (starting the count, counting a hand, Undo) gives way, as before. */
+function rebaseShared(theirs, mine, base) {
+  const n = base.log.length;
+  if (mine.log.length <= n) return null;
+  if (JSON.stringify(mine.log.slice(0, n)) !== JSON.stringify(base.log)) return null;
+  const added = mine.log.slice(n);
+  if (!added.every((e) => e.kind === 'play')) return null;
+  for (const k of ['phase', 'hand', 'dealer']) if (mine[k] !== base[k] || theirs[k] !== mine[k]) return null;
+  if (theirs.phase !== 'play' || theirs.over) return null;
+  const keep = S;
+  S = JSON.parse(JSON.stringify(theirs));
+  for (const e of added) {
+    if (S.over) break;
+    score(e.p, e.pts, e.kind, e.label, e.id ? { id: e.id } : undefined);
+  }
+  const merged = S;
+  S = keep;
+  return merged;
+}
+
+/* A phone that joined by seat counts its own hand, and its own crib, when
+   that one is up; the rest of the count it watches, the hand card greyed.
+   The play is everyone's: any phone pegs anyone. */
+const waiting = () => S && S.phase === 'count' && !S.over && !SCShare.canScore(countOrder()[S.step].p);
 
 /* A newer game from another phone. The hand this phone is part-way through
    counting — buttons tapped, a total typed, cards entered — carries over

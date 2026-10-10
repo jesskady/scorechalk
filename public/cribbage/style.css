@@ -333,3 +333,7 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 .handcard.paper .ct-items li{border-top-color:var(--paper-edge)}
 .handcard.paper .ct-items,.handcard.paper .ct-items b{color:var(--paper-ink)}
 .handcard.paper .ct-items i,.handcard.paper .ct-items span small{color:var(--paper-dim)}
+
+/* a phone that joined by seat, while another player's hand is counted:
+   the hand card greyed and out of reach, its button saying whose it is */
+#game.waiting #handCard{opacity:.4;pointer-events:none}
