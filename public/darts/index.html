@@ -61,9 +61,9 @@
     </label>
 
     <!-- Which player the account holder is. Statistics depend on it, so it is
-         asked rather than guessed. Only shown when signed in and playing
-         against others — there is nothing to record otherwise, and in practice
-         mode there is only one player to be. -->
+         asked rather than guessed, and taken for you when the game is shared.
+         Shown when playing against others; in practice mode there is only
+         one player to be. -->
     <div class="field hidden" id="meRow">
       <span>You are</span>
       <div class="preset-row" id="meSel">
@@ -159,6 +159,8 @@
     <div class="turntotal"><span id="turnTotal">0</span><small>this turn</small></div>
   </div>
 
+  <!-- for whoever shared the game: score all players, or their own only -->
+  <div class="sc-edit-slot"></div>
   <div id="checkout" class="checkout"></div>
 
   <!-- Darts entry -->
@@ -218,9 +220,9 @@
 
 <script src="/account.js?v=29" defer></script>
 <script src="/store.js?v=3"></script>
-<script src="/share.js?v=5"></script>
+<script src="/share.js?v=7"></script>
 <script src="/cloud.js?v=3"></script>
 <script src="sync.js?v=31"></script>
-<script src="app.js?v=38"></script>
+<script src="app.js?v=39"></script>
 </body>
 </html>

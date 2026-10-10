@@ -39,6 +39,12 @@
   </div>
 
   <div class="card">
+    <span class="field-label" style="color:var(--dim);font-size:14px">You are</span>
+    <!-- taken for you when the game is shared, so no one else joins as you -->
+    <div class="preset-row" id="youRow" style="flex-wrap:wrap"></div>
+  </div>
+
+  <div class="card">
     <span class="field-label">First deal</span>
     <!-- usually decided by cutting the deck; after this the deal rotates -->
     <div class="preset-row" id="dealRow"></div>
@@ -77,6 +83,8 @@
 
   <!-- one column per player: header, then that player's play buttons -->
   <div class="players" id="players"></div>
+  <!-- for whoever shared the game: score all players, or their own only -->
+  <div class="sc-edit-slot"></div>
 
   <!-- Simple mode's reminder, once for everyone -->
   <dl class="play-legend hidden" id="playLegend">
@@ -163,8 +171,8 @@
 <script src="/account.js?v=29" defer></script>
 <script src="counter.js?v=8"></script>
 <script src="/store.js?v=3"></script>
-<script src="/share.js?v=5"></script>
+<script src="/share.js?v=7"></script>
 <script src="/cloud.js?v=3"></script>
-<script src="app.js?v=23"></script>
+<script src="app.js?v=24"></script>
 </body>
 </html>

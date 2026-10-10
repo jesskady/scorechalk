@@ -164,6 +164,12 @@
     </div>
   </div>
 
+  <div class="card">
+    <span class="field-label" style="color:var(--dim);font-size:14px">You are</span>
+    <!-- taken for you when the game is shared, so no one else joins as you -->
+    <div class="preset-row" id="youRow" style="flex-wrap:wrap"></div>
+  </div>
+
   <button id="startBtn" class="primary big">Start Game</button>
   <!-- signed in only; shown by renderRulesCard -->
   <button id="saveMine" class="ghost hidden">Save to My games</button>
@@ -182,6 +188,8 @@
   </header>
 
   <div id="badges" class="badges"></div>
+  <!-- for whoever shared the game: score all players, or their own only -->
+  <div class="sc-edit-slot"></div>
 
   <div class="scoreboard" id="scoreboard"></div>
 
@@ -286,8 +294,8 @@
 <script src="/account.js?v=29" defer></script>
 <script src="rules.js?v=8"></script>
 <script src="/store.js?v=3"></script>
-<script src="/share.js?v=5"></script>
+<script src="/share.js?v=7"></script>
 <script src="/cloud.js?v=3"></script>
-<script src="app.js?v=45"></script>
+<script src="app.js?v=46"></script>
 </body>
 </html>

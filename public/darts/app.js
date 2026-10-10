@@ -120,7 +120,9 @@ function buildSetup() {
   const meRow = $('meRow');
   const meBtns = [...document.querySelectorAll('#meSel .seg')];
 
-  const showMeRow = () => meRow.classList.toggle('hidden', !signedIn || playerCount < 2);
+  // asked whenever there are others to play: it records whose stats the
+  // darts are, and is the player taken for you when the game is shared
+  const showMeRow = () => meRow.classList.toggle('hidden', playerCount < 2);
 
   meBtns.forEach(btn => {
     btn.addEventListener('click', () => {
@@ -904,6 +906,7 @@ buildBoard();
 SCShare.attach({
   type: TYPE,
   get: () => S,
+  me: (st) => (st.players.length > 1 ? st.meIdx : null),
   apply: applyShared,
   // Shared by seat: a cell a turn, '<player>:<turn>', counted per player.
   cells: {

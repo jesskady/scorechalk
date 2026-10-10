@@ -18,7 +18,7 @@
      person who joins picks a seat, a player, and scores that player only;
      whoever shared the game can score anyone, and free a seat.
 
-     SCShare.attach({ type, get, apply, cells?, seats?, names?, rebase?, pollEvery? })
+     SCShare.attach({ type, get, apply, cells?, seats?, names?, me?, rebase?, pollEvery? })
                             the page's game: get() the game on screen,
                             apply(state) shows a newer one; cells, for a
                             game shared by seat: { of(S) → { key: value },
@@ -30,7 +30,12 @@
                             whole: a refused change made again on the game
                             as it now stands, when that can be done safely
                             — or null, when the change has to give way;
-                            pollEvery(), how often to look for news, in ms
+                            pollEvery(), how often to look for news, in ms;
+                            me(S), the player whoever set the game up said
+                            they are, taken for them when it is shared
+     SCShare.youAre(box, names, current, onPick)
+                            the setup screens' "You are" row; lastMe() and
+                            rememberMe(i) keep the choice for the next game
      SCShare.fromUrl(type)  a page opened with ?s=<token>: resolves
                             { kind: 'edit' | 'view', state }, or null
      SCShare.open()         the share sheet for the game on screen
@@ -66,6 +71,66 @@ window.SCShare = (function () {
     if (!page || !state) return;
     applying = true;
     try { page.apply(state); } finally { applying = false; }
+    renderSlots();
+  }
+
+  /* ---------------- whoever shared the game: all players, or theirs only ----------------
+
+     On the game screen, for whoever shared the game once they have a player:
+     score every player, or only their own, as everyone who joins does. The
+     page puts an empty .sc-edit-slot where the switch belongs. */
+  function renderSlots() {
+    const slots = document.querySelectorAll('.sc-edit-slot');
+    if (!slots.length || !page) return;
+    const st = page.get(), sh = st && shareOf(st.id);
+    const on = !!(sh && sh.owner && Number.isInteger(sh.seat) && !window.SCWatching);
+    for (const slot of slots) {
+      if (!on) { slot.style.display = 'none'; slot.dataset.key = ''; continue; }
+      const name = namesOf(st)[sh.seat] || 'Player ' + (sh.seat + 1);
+      const key = `${sh.seat}:${!!sh.restricted}:${name}`;
+      slot.style.cssText = 'display:flex;justify-content:center;align-items:center;gap:8px;font-size:12px;color:var(--dim,#aaa)';
+      if (slot.dataset.key === key) continue;
+      slot.dataset.key = key;
+      slot.replaceChildren(el('span', null, 'Scoring'));
+      const seg = el('div', 'display:flex;border:1px solid var(--line,#444);border-radius:999px;overflow:hidden');
+      [[false, 'All players'], [true, `Only ${name}`]].forEach(([restricted, label]) => {
+        const lit = !!sh.restricted === restricted;
+        const b = el('button', 'font-size:12px;font-weight:700;padding:5px 11px;border:none;cursor:pointer;' +
+          (lit ? 'background:var(--green-d,#1f5e41);color:var(--on-primary,#fff)' : 'background:none;color:var(--dim,#aaa)'), label);
+        b.type = 'button';
+        b.onclick = () => {
+          SCStore.setShare(st.id, { ...shareOf(st.id), restricted });
+          show(page.get());
+        };
+        seg.append(b);
+      });
+      slot.append(seg);
+    }
+  }
+
+  /* ---------------- the setup screens: who you are ---------------- */
+
+  const ME_KEY = 'sc-me-v1';
+  // the last choice, or the first player until there has been one
+  function lastMe() {
+    try {
+      const raw = localStorage.getItem(ME_KEY);
+      if (raw === null) return 0;
+      const v = JSON.parse(raw);
+      return v === null || Number.isInteger(v) ? v : 0;
+    } catch (e) { return 0; }
+  }
+  function rememberMe(i) { try { localStorage.setItem(ME_KEY, JSON.stringify(i)); } catch (e) { /* private mode */ } }
+  function youAre(box, names, current, onPick) {
+    box.innerHTML = '';
+    [...names.map((_, i) => i), null].forEach((i) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'seg' + (i === current ? ' is-on' : '');
+      b.textContent = i === null ? 'No one' : names[i];
+      b.onclick = () => onPick(i);
+      box.append(b);
+    });
   }
 
   // Keep a newer game: shown when it is the one on screen, else just kept.
@@ -186,6 +251,7 @@ window.SCShare = (function () {
   }
 
   async function poll() {
+    renderSlots();
     if (document.visibilityState !== 'visible' || !page) return;
     if (watch) { await pollWatch(); return; }
     const cur = page.get(), sh = cur && shareOf(cur.id);
@@ -418,15 +484,27 @@ window.SCShare = (function () {
         }) });
         if (!res.ok) throw new Error();
         const data = await res.json();
+        // the player whoever set the game up said they are: taken for them
+        const me = page.me ? page.me(st) : null;
+        let mySeat;
+        if (data.join && Number.isInteger(me) && me >= 0 && me < namesOf(st).length) {
+          try {
+            const r = await api('/' + encodeURIComponent(data.edit) + '/seat', { method: 'POST', body: JSON.stringify({ seat: me }) });
+            if (r.ok) mySeat = me;
+          } catch (e) { /* offline: chosen in the sheet instead */ }
+        }
         if (data.mode === 'cells') {
           const known = {};
           let seq = 0;
           for (const [key, v] of Object.entries(cells)) if (v !== null && v !== undefined) known[key] = { v, ver: 1, seq: ++seq };
           sh = { mode: 'cells', owner: true, edit: data.edit, view: data.view, join: data.join, seq: data.seq, known, seats: [] };
+          if (mySeat !== undefined) sh.seat = mySeat;
         } else {
           sh = { view: data.view, edit: data.edit, join: data.join, version: data.version, owner: true, base: st };
+          if (mySeat !== undefined) sh.seat = mySeat;
         }
         SCStore.setShare(st.id, sh);
+        renderSlots();
       } catch (e) {
         body.replaceChildren(el('p', 'margin:0;color:var(--neg,#e2857a);font-size:14px',
           "Couldn't make the links. Check your connection and try again."));
@@ -458,7 +536,7 @@ window.SCShare = (function () {
     if (sh.mode === 'cells' || sh.join) {
       if (sh.join) {
         parts.push(row('Join as a player',
-          sh.owner ? 'Each person picks their player and scores only them, at any time. You can still score everyone.'
+          sh.owner ? 'Each person picks their player and scores only them, at any time. Your own player is taken for you.'
             : 'Each person picks their player and scores only them, at any time.',
           linkFor(page.type, sh.join)));
       }
@@ -512,7 +590,7 @@ window.SCShare = (function () {
         if (mine !== null) await api('/' + edit + '/seat/' + mine, { method: 'DELETE' });
         const cur = { ...shareOf(st.id) };
         if (to === null) { delete cur.seat; cur.restricted = false; }
-        else { cur.seat = to; if (mine === null) cur.restricted = true; }
+        else cur.seat = to;
         SCStore.setShare(st.id, cur);
         refresh();
         reopen();
@@ -521,7 +599,7 @@ window.SCShare = (function () {
 
     const you = el('div', 'display:flex;flex-direction:column;gap:6px');
     you.append(el('b', 'font-size:15px', 'You are'),
-      el('span', HINT, 'Your player is taken for you, so no one else can join as them.'));
+      el('span', HINT, 'Your player is taken for you, so no one else can join as them. You can still score everyone; the switch on the game screen limits you to your own.'));
     const youRow = el('div', 'display:flex;flex-wrap:wrap;gap:6px');
     [...names.map((n, i) => i), null].forEach((seat) => {
       const taken = seat !== null && seats.includes(seat) && seat !== mine;
@@ -534,23 +612,6 @@ window.SCShare = (function () {
     you.append(youRow);
     box.append(you);
 
-    if (mine !== null) {
-      const lim = el('div', 'display:flex;flex-direction:column;gap:6px');
-      lim.append(el('b', 'font-size:15px', 'Enter scores for'),
-        el('span', HINT, 'Only your own, as everyone who joins does, or everyone, to fix a mistake or keep score for someone without a phone.'));
-      const row2 = el('div', 'display:flex;gap:6px');
-      [[true, `Only ${names[mine]}`], [false, 'Everyone']].forEach(([restricted, label]) => {
-        const b = el('button', BTN + (!!sh.restricted === restricted ? ON : ''), label);
-        b.onclick = () => {
-          SCStore.setShare(st.id, { ...shareOf(st.id), restricted });
-          refresh();
-          reopen();
-        };
-        row2.append(b);
-      });
-      lim.append(row2);
-      box.append(lim);
-    }
 
     const joined = el('div', 'display:flex;flex-direction:column;gap:6px');
     joined.append(el('b', 'font-size:15px', 'Players joined'));
@@ -588,6 +649,7 @@ window.SCShare = (function () {
 
   return {
     attach(p) { page = p; },
+    youAre, lastMe, rememberMe,
     fromUrl, open, changed, stop, seat,
     canScore: (p) => { const s = seat(); return s === null || s === p; },
     get watching() { return !!watch; },

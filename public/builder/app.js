@@ -330,6 +330,14 @@ function renderThemes() {
   }
 }
 
+let setupMe = SCShare.lastMe();   // who is holding the phone: see /share.js
+function renderYou() {
+  const n = cfg.names.length;
+  if (setupMe !== null && setupMe >= n) setupMe = 0;
+  const names = cfg.names.map((s, i) => s.trim() || `Player ${i + 1}`);
+  SCShare.youAre($('youRow'), names, setupMe, (i) => { setupMe = i; SCShare.rememberMe(i); renderYou(); });
+}
+
 function renderSetup() {
   renderRulesCard();
   setRoom(themeOf(cfg));
@@ -340,6 +348,7 @@ function renderSetup() {
   $('pCount').textContent = n;
   $('pMinus').disabled = n <= 1;
   $('pPlus').disabled = n >= MAX_PLAYERS;
+  renderYou();
   const box = $('names');
   const teamed = teamsOn(cfg, n), teams = teamed ? teamsFor(cfg) : null;
   box.classList.toggle('one', n === 1);
@@ -349,7 +358,7 @@ function renderSetup() {
     const inp = document.createElement('input');
     inp.type = 'text'; inp.maxLength = 14; inp.autocomplete = 'off';
     inp.placeholder = `Player ${i + 1}`; inp.value = name;
-    inp.addEventListener('input', () => { cfg.names[i] = inp.value; saveCfg(); });
+    inp.addEventListener('input', () => { cfg.names[i] = inp.value; saveCfg(); renderYou(); });
     if (!teamed) { box.appendChild(inp); return; }
     // in teams, each player has a chip for their side: tap it to move them
     const row = document.createElement('div');
@@ -575,6 +584,8 @@ $('startBtn').onclick = async () => {
   }
   saveCfg();
   S = newGame({ ...cfg, source });
+  // in teams, you are the side your player is on
+  S.me = setupMe === null ? null : (S.cfg.playerTeams ? S.cfg.playerTeams[setupMe] : setupMe);
   save();
   openGame(S);
 };
@@ -1479,6 +1490,7 @@ async function openFromUrl() {
 SCShare.attach({
   type: TYPE,
   get: () => S,
+  me: (st) => st.me,
   /* A newer game from another phone. Whatever this phone is in the middle
      of carries over: the points tapped so far, and an open bubble, which
      stays open and points at its cell wherever it now is. Only when that

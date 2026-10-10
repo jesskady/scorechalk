@@ -41,6 +41,12 @@
     <div id="names" class="names"></div>
   </div>
 
+  <div class="card">
+    <span class="field-label" style="color:var(--dim);font-size:14px">You are</span>
+    <!-- taken for you when the game is shared, so no one else joins as you -->
+    <div class="preset-row" id="youRow" style="flex-wrap:wrap"></div>
+  </div>
+
   <button id="startBtn" class="primary big">Start Game</button>
   <button id="resumeBtn" class="ghost hidden">Resume saved game</button>
 </section>
@@ -61,6 +67,8 @@
 
   <!-- the scoresheet: built by buildSheet(), filled by render(); it fills
        the rest of the screen, the box rows sharing whatever height is left -->
+  <!-- for whoever shared the game: score all players, or their own only -->
+  <div class="sc-edit-slot"></div>
   <div class="sheet-wrap"><div class="sheet" id="sheet"></div></div>
 
 </section>
@@ -108,8 +116,8 @@
 
 <script src="/account.js?v=29" defer></script>
 <script src="/store.js?v=3"></script>
-<script src="/share.js?v=5"></script>
+<script src="/share.js?v=7"></script>
 <script src="/cloud.js?v=3"></script>
-<script src="app.js?v=20"></script>
+<script src="app.js?v=21"></script>
 </body>
 </html>

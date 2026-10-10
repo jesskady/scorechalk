@@ -213,6 +213,7 @@ function score(p, pts, kind, label, extra) {
 /* ---------------- setup ---------------- */
 
 let setupN = 2, setupDealer = 0;
+let setupMe = SCShare.lastMe();   // who is holding the phone: see /share.js
 let setupNames = (() => {
   try { return JSON.parse(localStorage.getItem(NAMES_KEY)) || ['', '', '']; }
   catch (e) { return ['', '', '']; }
@@ -239,12 +240,20 @@ function renderSetup() {
       setupNames[i] = inp.value;
       try { localStorage.setItem(NAMES_KEY, JSON.stringify(setupNames)); } catch (e) {}
       renderDealRow();
+      renderYou();
     });
     row.appendChild(inp);
     box.appendChild(row);
   }
   renderDealRow();
+  renderYou();
   $('resumeBtn').classList.toggle('hidden', !load());
+}
+
+function renderYou() {
+  if (setupMe !== null && setupMe >= setupN) setupMe = 0;
+  const names = Array.from({ length: setupN }, (_, i) => nameOf(i));
+  SCShare.youAre($('youRow'), names, setupMe, (i) => { setupMe = i; SCShare.rememberMe(i); renderYou(); });
 }
 
 function renderDealRow() {
@@ -270,6 +279,7 @@ $('countRow').addEventListener('click', (e) => {
 $('startBtn').onclick = async () => {
   // a new game of its own: any in progress stay, under Pick up where you left off
   S = newGame(Array.from({ length: setupN }, (_, i) => nameOf(i)), setupDealer);
+  S.me = setupMe;
   save();
   openGame(S);
 };
@@ -863,7 +873,7 @@ async function openFromUrl() {
 /* Shared by link (see /share.js): the game on screen, and how to show a
    newer one when it comes in from another phone. */
 SCShare.attach({
-  type: TYPE, get: () => S, apply: applyShared, seats: true, names: (st) => st.names,
+  type: TYPE, get: () => S, apply: applyShared, seats: true, names: (st) => st.names, me: (st) => st.me,
   // the play moves quickly, so look for news every second while it lasts
   pollEvery: () => (S && S.phase === 'play' ? 1000 : 3000),
   rebase: rebaseShared,

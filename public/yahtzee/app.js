@@ -142,6 +142,13 @@ let setupN = (() => {
   catch (e) { return 2; }
 })();
 
+let setupMe = SCShare.lastMe();   // who is holding the phone: see /share.js
+function renderYou() {
+  if (setupMe !== null && setupMe >= setupN) setupMe = 0;
+  const names = Array.from({ length: setupN }, (_, i) => (setupNames[i] || '').trim() || `Player ${i + 1}`);
+  SCShare.youAre($('youRow'), names, setupMe, (i) => { setupMe = i; SCShare.rememberMe(i); renderYou(); });
+}
+
 function renderSetup() {
   $('pCount').textContent = setupN;
   $('pMinus').disabled = setupN <= 1;
@@ -157,9 +164,11 @@ function renderSetup() {
     inp.addEventListener('input', () => {
       setupNames[i] = inp.value;
       try { localStorage.setItem(NAMES_KEY, JSON.stringify(setupNames)); } catch (e) {}
+      renderYou();
     });
     box.appendChild(inp);
   }
+  renderYou();
   $('resumeBtn').classList.toggle('hidden', !load());
 }
 
@@ -170,6 +179,7 @@ $('startBtn').onclick = async () => {
   // a new game of its own: any in progress stay, under Pick up where you left off
   const names = Array.from({ length: setupN }, (_, i) => (setupNames[i] || '').trim() || `Player ${i + 1}`);
   S = newGame(names);
+  S.me = setupMe;
   try { localStorage.setItem(COUNT_KEY, String(setupN)); } catch (e) {}
   save();
   openGame(S);
@@ -615,6 +625,7 @@ async function openFromUrl() {
 SCShare.attach({
   type: TYPE,
   get: () => S,
+  me: (st) => st.me,
   // A newer game from another phone: an open bubble stays open, pointing
   // at its box wherever it now is.
   apply: (st) => {
