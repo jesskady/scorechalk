@@ -1151,7 +1151,8 @@ function renderSheet() {
       return `<button class="cell${here ? ' cur done' : ''}${e.d === 0 ? ' zero' : neg ? ' neg' : ''}${changed.has(e) ? ' edited' : ''}" ${at}>${turnText(e.d)}</button>`;
     }
     if (isOut(p)) return `<div class="cell gone${here ? ' cur' : ''}">—</div>`;
-    const open = here && t[p].length === r - 1;
+    // open to score here: on a phone that joined by seat, only its own player's
+    const open = here && t[p].length === r - 1 && SCShare.canScore(p);
     return `<button class="cell${here ? ' cur' : ''}${open ? ' open' : ''}${open && p === S.cur ? ' turn' : ''}" ${at}></button>`;
   };
   const name = (p) => `<div class="ptile${p === S.cur && !over ? ' turn' : ''}${isOut(p) ? ' out' : ''}" data-p="${p}"><span class="pname">${esc(c.names[p])}</span></div>`;
@@ -1226,7 +1227,7 @@ $('sheet').addEventListener('click', (e) => {
   const cell = e.target.closest('button.cell');
   if (!cell) return;
   const p = Number(cell.dataset.p), r = Number(cell.dataset.r);
-  if ((cell.classList.contains('open') || cell.textContent) && !mayScore(p)) return;
+  if (!mayScore(p)) return;
   if (cell.classList.contains('open')) { openEntry(p, r); return; }
   if (cell.textContent) {
     openEdit(S.log.indexOf(turnsBySide()[p][r - 1]), `#sheet button.cell[data-p="${p}"][data-r="${r}"]`);

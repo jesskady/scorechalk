@@ -330,6 +330,7 @@ function buildBoard() {
   [0, 1, 2, 3].forEach(i => {
     $('p' + i).addEventListener('click', () => {
       if (S.over || S.cur === i || i >= S.players.length) return;
+      if (!SCShare.canScore(i)) { say(`${S.players[i].name} enters their turns on their own phone`); return; }
       if (S.darts.length) { say('Clear the current turn first'); return; }
       S.cur = i;
       render(); save();
@@ -338,6 +339,8 @@ function buildBoard() {
 }
 
 function showGame() {
+  // a phone that joined by seat is always on its own player
+  if (SCShare.seat() !== null) S.cur = SCShare.seat();
   $('setup').classList.add('hidden');
   $('game').classList.remove('hidden');
   render();
@@ -578,6 +581,7 @@ function maxFinish(dartsLeft, needDouble) {
 
 function submitTurn() {
   if (S.over) return;
+  if (!SCShare.canScore(S.cur)) return;
 
   const { pts, open } = breakdown();
   if (pts > 180) { say('Max 180 in three darts'); return; }
@@ -629,6 +633,7 @@ function submitTurn() {
    can't infer on its own — a bounce-out, a mis-entry, a throw out of turn. */
 function bustTurn() {
   if (S.over) return;
+  if (!SCShare.canScore(S.cur)) return;
 
   const p = S.players[S.cur];
   const { open } = breakdown();
@@ -678,9 +683,10 @@ async function autoSave() {
   if (saveAgain) { saveAgain = false; autoSave(); }
 }
 
-// play goes round the players in order
+// play goes round the players in order — but a phone that joined by seat
+// stays on its own player
 function passTurn() {
-  S.cur = (S.cur + 1) % S.players.length;
+  S.cur = SCShare.seat() !== null ? SCShare.seat() : (S.cur + 1) % S.players.length;
 }
 
 async function undoTurn() {
@@ -697,9 +703,14 @@ async function undoTurn() {
     return;
   }
 
-  if (!S.log.length) { say('Nothing to undo'); return; }
+  // A phone that joined by seat takes back its own player's last turn,
+  // wherever it is in the log: everyone else's are theirs to take back.
+  const seat = SCShare.seat();
+  let j = S.log.length - 1;
+  if (seat !== null) while (j >= 0 && S.log[j].player !== seat) j--;
+  if (j < 0) { say('Nothing to undo'); return; }
 
-  const prev = S.log[S.log.length - 1];
+  const prev = S.log[j];
   const who = S.players[prev.player];
   const okUndo = await askConfirm(
     `This rolls back ${who.name}'s last turn of ${prev.pts}` +
@@ -707,7 +718,7 @@ async function undoTurn() {
     'Undo turn');
   if (!okUndo) return;
 
-  const last = S.log.pop();
+  const last = S.log.splice(j, 1)[0];
   const p = S.players[last.player];
   p.score = last.before;
   p.turns -= 1;
@@ -886,26 +897,77 @@ buildBoard();
 
 /* Shared by link (see /share.js): the game on screen, and how to show a
    newer one when it comes in from another phone. */
-SCShare.attach({ type: TYPE, get: () => S, apply: applyShared });
+SCShare.attach({
+  type: TYPE,
+  get: () => S,
+  apply: applyShared,
+  // Shared by seat: a cell a turn, '<player>:<turn>', counted per player.
+  cells: {
+    names: (st) => st.players.map((p) => p.name),
+    of: (st) => {
+      const out = {}, seen = [];
+      for (const t of st.log) {
+        const n = (seen[t.player] = (seen[t.player] || 0) + 1);
+        out[`${t.player}:${n}`] = { darts: t.darts || [], pts: t.pts, bust: !!t.bust };
+      }
+      return out;
+    },
+    build: fromCells,
+  },
+});
+
+/* A game rebuilt from its turns (see /share.js), by the same rebuild that
+   opens a game from the profile (SCSync.rebuild): each player's turns in
+   order, the scores, who is in under double in, and whose turn it is. The
+   log runs turn by turn round the table. A player on 0 has won. */
+function fromCells(base, list) {
+  const n = base.players.length;
+  const turns = [];
+  list.forEach(({ key, value }, k) => {
+    const [p, t] = key.split(':').map(Number);
+    if (p >= 0 && p < n && value) turns.push({ p, t, k, v: value });
+  });
+  turns.sort((a, b) => a.t - b.t || a.k - b.k);
+  const left = base.players.map(() => base.start);
+  const g = {
+    id: base.id, started_at: base.startedAt, ended_at: null, me_idx: base.meIdx,
+    config: { start: base.start, doubleIn: base.doubleIn, doubleOut: base.doubleOut },
+    players: base.players.map((p) => ({ name: p.name })),
+    turns: turns.map(({ p, v }) => {
+      const pts = v.bust ? 0 : Number(v.pts) || 0;
+      left[p] -= pts;
+      return { player_idx: p, detail: v.darts || [], points: pts, bust: !!v.bust, score_after: left[p] };
+    }),
+  };
+  const st = window.SCSync.rebuild(g);
+  const w = st.players.findIndex((p) => p.score === 0);
+  if (w >= 0) { st.over = true; st.winner = w; }
+  return { ...st, darts: base.darts || [], mult: base.mult || 1, savedTurns: base.savedTurns };
+}
 
 /* A newer game from another phone. The darts this phone has entered for
    the turn on the oche carry over, while that turn is still waiting: the
    same player up, no turn entered since. If the turn has been entered on
    the other phone meanwhile, these darts are let go, and it says so. */
 function applyShared(st) {
+  const wasOver = S && S.over;
   const mine = S && !S.over && (S.darts.length || S.mult !== 1)
-    ? { darts: S.darts, mult: S.mult, cur: S.cur, turns: S.log.length } : null;
+    ? { darts: S.darts, mult: S.mult, cur: S.cur, turns: S.players[S.cur].turns } : null;
   S = st;
   if (mine) {
-    if (!S.over && S.cur === mine.cur && S.log.length === mine.turns) {
+    // still that player's turn to throw: no turn of theirs entered since
+    if (!S.over && S.players[mine.cur].turns === mine.turns) {
       S.darts = mine.darts;
       S.mult = mine.mult;
+      S.cur = mine.cur;
     } else if (mine.darts.length) {
       say(`${S.players[mine.cur].name}'s turn was entered on another phone`);
     }
   }
   save();
   showGame();
+  // the turn that came in won the game
+  if (S.over && !wasOver && S.winner != null) showWin(S.players[S.winner]);
 }
 
 openFromUrl();

@@ -6,7 +6,7 @@
  *            old version is refused. Darts, Cribbage, Magic.
  *   'cells'  each score is a cell of its own with its own version, so only
  *            changes to the same cell clash; and players join by seat,
- *            each scoring only their own. The Builder and Yahtzee.
+ *            each scoring only their own. The Builder, Yahtzee, Darts.
  *
  * Tokens, all long and random, none derived from the game's id (which a
  * viewer can see):
@@ -32,7 +32,7 @@ const json = (body, status = 200) =>
   });
 
 const TYPES = ['darts', 'cribbage', 'yahtzee', 'magic', 'builder'];
-const CELL_TYPES = ['builder', 'yahtzee'];
+const CELL_TYPES = ['builder', 'yahtzee', 'darts'];
 const MAX_STATE = 256 * 1024;   // as for a game saved to a profile
 const MAX_CELL = 4 * 1024;
 const MAX_SEATS = 12;

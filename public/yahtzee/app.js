@@ -237,7 +237,8 @@ function buildSheet() {
 
 $('sheet').addEventListener('click', (e) => {
   const tile = e.target.closest('.ptile');
-  if (tile) { S.sel = Number(tile.dataset.p); save(); render(); return; }
+  // a phone that joined by seat keeps its own column picked out
+  if (tile) { if (SCShare.seat() === null) { S.sel = Number(tile.dataset.p); save(); render(); } return; }
   const cell = e.target.closest('button.cell');
   if (cell && !S.over && !mayScore(Number(cell.dataset.p))) return;
   if (cell && !S.over) openEntry(Number(cell.dataset.p), cell.dataset.id);
