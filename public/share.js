@@ -540,6 +540,7 @@ window.SCShare = (function () {
             : 'Each person picks their player and scores only them, at any time.',
           linkFor(page.type, sh.join)));
       }
+      if (sh.owner && Number.isInteger(sh.seat) && !sh.askedLimit) parts.push(askLimit(st, sh));
       if (sh.owner) parts.push(await seatList(st, sh, () => { veil.remove(); open(); }));
     } else {
       parts.push(row('Keep score together', 'Enter and change scores from another phone. Share it only with people at the table.', linkFor(page.type, sh.edit)));
@@ -557,6 +558,32 @@ window.SCShare = (function () {
       parts.push(stopBtn);
     }
     body.replaceChildren(...parts);
+  }
+
+  /* Once, after sharing, for whoever shared it with a player of their own:
+     score only that player from now on, as everyone who joins does, or
+     everyone? The Scoring switch on the game screen changes it any time;
+     this is where they first hear of it. */
+  function askLimit(st, sh) {
+    const name = namesOf(st)[sh.seat] || 'Player ' + (sh.seat + 1);
+    const box = el('div', 'display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:12px;' +
+      'border:1px solid var(--gold,#c9a35a);background:var(--bg2,#222)');
+    box.append(el('b', 'font-size:15px', `Score only for ${name}?`),
+      el('span', 'font-size:13px;color:var(--dim,#aaa);line-height:1.35',
+        'Everyone who joins scores only their own player. You can do the same, or keep scoring everyone, to fix a mistake or score for someone without a phone.'));
+    const row = el('div', 'display:flex;gap:6px');
+    [[true, `Only ${name}`], [false, 'Everyone']].forEach(([restricted, label]) => {
+      const b = el('button', BTN, label);
+      b.onclick = () => {
+        SCStore.setShare(st.id, { ...shareOf(st.id), restricted, askedLimit: true });
+        show(page.get());
+        box.replaceChildren(el('span', 'font-size:13px;color:var(--dim,#aaa);line-height:1.35',
+          `${restricted ? `Scoring only ${name}.` : 'Scoring everyone.'} Change it any time with the Scoring switch at the top of the game.`));
+      };
+      row.append(b);
+    });
+    box.append(row);
+    return box;
   }
 
   /* For whoever shared the game: which player they are — taken for them,
