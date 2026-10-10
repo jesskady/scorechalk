@@ -886,6 +886,26 @@ buildBoard();
 
 /* Shared by link (see /share.js): the game on screen, and how to show a
    newer one when it comes in from another phone. */
-SCShare.attach({ type: TYPE, get: () => S, apply: (st) => { S = st; save(); showGame(); } });
+SCShare.attach({ type: TYPE, get: () => S, apply: applyShared });
+
+/* A newer game from another phone. The darts this phone has entered for
+   the turn on the oche carry over, while that turn is still waiting: the
+   same player up, no turn entered since. If the turn has been entered on
+   the other phone meanwhile, these darts are let go, and it says so. */
+function applyShared(st) {
+  const mine = S && !S.over && (S.darts.length || S.mult !== 1)
+    ? { darts: S.darts, mult: S.mult, cur: S.cur, turns: S.log.length } : null;
+  S = st;
+  if (mine) {
+    if (!S.over && S.cur === mine.cur && S.log.length === mine.turns) {
+      S.darts = mine.darts;
+      S.mult = mine.mult;
+    } else if (mine.darts.length) {
+      say(`${S.players[mine.cur].name}'s turn was entered on another phone`);
+    }
+  }
+  save();
+  showGame();
+}
 
 openFromUrl();

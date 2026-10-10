@@ -853,7 +853,26 @@ async function openFromUrl() {
 
 /* Shared by link (see /share.js): the game on screen, and how to show a
    newer one when it comes in from another phone. */
-SCShare.attach({ type: TYPE, get: () => S, apply: (st) => { S = st; save(); showGame(); } });
+SCShare.attach({ type: TYPE, get: () => S, apply: applyShared });
+
+/* A newer game from another phone. The hand this phone is part-way through
+   counting — buttons tapped, a total typed, cards entered — carries over
+   while that hand is still the one up: the same deal, the same place in the
+   count. If it has been entered on the other phone meanwhile, this count
+   is let go, and it says so. */
+function applyShared(st) {
+  const p = S && S.pend, c = p && p.cards;
+  const counting = S && S.phase === 'count' && p &&
+    (p.taps.length || p.typed != null || (c && c.order && c.order.length));
+  const mine = counting ? { pend: p, hand: S.hand, step: S.step } : null;
+  S = st;
+  if (mine) {
+    if (S.phase === 'count' && S.hand === mine.hand && S.step === mine.step) S.pend = mine.pend;
+    else flash('That hand was counted on another phone');
+  }
+  save();
+  showGame();
+}
 
 $('shareBtn').onclick = () => SCShare.open();
 
