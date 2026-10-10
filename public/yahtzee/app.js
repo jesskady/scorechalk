@@ -614,12 +614,14 @@ async function openFromUrl() {
 SCShare.attach({
   type: TYPE,
   get: () => S,
+  // A newer game from another phone: an open bubble stays open, pointing
+  // at its box wherever it now is.
   apply: (st) => {
-    $('entryOverlay').classList.add('hidden');
     S = st;
     S.over = gameDone();
+    if (SCShare.seat() !== null) S.sel = SCShare.seat();
     save();
-    showGame();
+    if (entry) { buildSheet(); render(); placeEntry(); } else showGame();
   },
   // Shared by seat: a cell a box, '<player>:<box>', and '<player>:ybonus'
   // for the extra Yahtzees.

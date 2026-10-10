@@ -1478,12 +1478,32 @@ async function openFromUrl() {
 SCShare.attach({
   type: TYPE,
   get: () => S,
+  /* A newer game from another phone. Whatever this phone is in the middle
+     of carries over: the points tapped so far, and an open bubble, which
+     stays open and points at its cell wherever it now is. Only when that
+     very score has come in from elsewhere does the bubble close, saying so. */
   apply: (st) => {
-    closeEntry();
+    const mid = { pend: S.pend, parts: S.parts, sign: S.sign, cur: S.cur };
+    const busy = !!entry || S.pend !== 0 || !!(S.parts && S.parts.length);
+    const editing = entry && entry.i != null ? { p: entry.p, r: entry.r } : null;
     S = st;
+    if (busy) Object.assign(S, mid);
     settleEnd();
+    if (editing) {
+      // the score being changed, wherever the log now has it
+      const rounds = roundsOfLog();
+      const i = S.log.findIndex((e, k) => e.p === editing.p && rounds[k] === editing.r);
+      if (i < 0) { closeEntry(); flash('That score was taken back on another phone'); }
+      else {
+        entry.i = i;
+        if (entry.sel && entry.sel.startsWith('#history')) entry.sel = `#history [data-i="${i}"]`;
+      }
+    } else if (entry && turnsBySide()[entry.p].length >= entry.r) {
+      closeEntry();
+      flash(`${S.cfg.names[entry.p]}'s round ${entry.r} just came in from another phone`);
+    }
     save();
-    showGame();
+    if (entry) { render(); placeEntry(); } else if (busy) render(); else showGame();
     // the score that came in decided the game
     const r = result();
     if (r && !S.endedAt) showWin(r);
