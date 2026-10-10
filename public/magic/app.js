@@ -10,7 +10,8 @@
    A player is out at 0 life, 10 poison, or 21 damage from any one
    commander; when one player is left standing they win. */
 
-const KEY = 'magic-v1';
+// games are kept by id, every kind together: see /store.js
+const TYPE = 'magic';
 const NAMES_KEY = 'magic-names-v1';
 const POISON_OUT = 10, CMDR_OUT = 21;
 const COLORS = ['#d9534f', '#3b82f6', '#2e9e63', '#e0b341', '#a066d3', '#e07b39'];
@@ -46,10 +47,10 @@ function newGame(format, names, life) {
 }
 
 function save() {
-  try { S ? localStorage.setItem(KEY, JSON.stringify(S)) : localStorage.removeItem(KEY); }
-  catch (e) { /* private mode, ignore */ }
+  if (!S) return;
+  SCStore.put(TYPE, S, !!S.won);
   // and to the profile, when signed in (see /cloud.js)
-  if (S && window.SCCloud) SCCloud.keep(cloudGame);
+  if (window.SCCloud) SCCloud.keep(cloudGame);
 }
 
 /* The game as the profile keeps it, while it is being played: its own state,
@@ -62,7 +63,7 @@ function cloudGame() {
   if (!S.id) {
     S.id = crypto.randomUUID();
     S.startedAt = Date.now();
-    try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* private mode */ }
+    SCStore.put(TYPE, S, false);
   }
   return {
     id: S.id,
@@ -77,8 +78,12 @@ function cloudGame() {
     state: S,
   };
 }
+/* The game for #play: the one whose id is in the address — a link to it,
+   or a reload — or else the newest in progress here, for Resume. */
 function load() {
-  try { return JSON.parse(localStorage.getItem(KEY)); } catch (e) { return null; }
+  const at = SCStore.urlId();
+  const g = at ? SCStore.get(at.id) : SCStore.latest(TYPE);
+  return g && g.type === TYPE ? g.state : null;
 }
 
 // Why a player is out, or null while they are still in.
@@ -128,11 +133,14 @@ function route() {
   for (const o of ['menuOverlay', 'winOverlay', 'confirmOverlay']) $(o).classList.add('hidden');
   if (h === 'play') {
     S = load();
-    if (S) { showGame(); return; }
+    // its id in the address, so a link to the page is a link to the game
+    if (S) { SCStore.show(S.id, '#play'); showGame(); return; }
   }
   releaseWake();
   if (FORMATS[h]) { openSetup(h); return; }
-  $('resumeBtn').classList.toggle('hidden', !load());
+  $('resumeBtn').classList.toggle('hidden', !SCStore.latest(TYPE));
+  // Resume: the newest game in progress, whatever game was last in the address
+  if (SCStore.urlId()) SCStore.leave();
   show('formats');
 }
 window.addEventListener('hashchange', route);
@@ -184,15 +192,13 @@ $('pMinus').onclick = () => { if (setupN > FORMATS[fmt].min) { setupN--; renderS
 $('pPlus').onclick = () => { if (setupN < FORMATS[fmt].max) { setupN++; renderSetup(); } };
 
 $('startBtn').onclick = async () => {
-  const old = load();
-  if (old && !(await askConfirm('This discards the game in progress.', 'Start new game'))) return;
-  // given up unfinished: off the profile too
-  if (old && !old.won) SCCloud.drop(old.id);
+  // a new game of its own: any in progress stay, under Pick up where you left off
   const life = Math.max(1, Math.round(Number($('life').value)) || FORMATS[fmt].life);
   const names = Array.from({ length: setupN }, (_, i) => (setupNames[i] || '').trim() || `Player ${i + 1}`);
   S = newGame(fmt, names, life);
   save();
-  location.hash = 'play';
+  SCStore.show(S.id, '#play');
+  route();
 };
 
 /* ---------------- the table ----------------
@@ -417,11 +423,15 @@ $('restartBtn').onclick = async () => {
 };
 $('setupLink').onclick = (e) => { e.preventDefault(); $('menuOverlay').classList.add('hidden'); location.hash = S.format; };
 
+// Starting over at full life is a new game: the old one goes, from the
+// profile too while it was still in progress.
 function restart() {
   if (!S.won) SCCloud.drop(S.id);
+  SCStore.remove(S.id);
   S = newGame(S.format, S.names, S.start);
   for (const k of Object.keys(deltas)) delete deltas[k];
   save();
+  SCStore.show(S.id, '#play');
   $('winOverlay').classList.add('hidden');
   buildTable(); render();
 }
@@ -465,29 +475,19 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && location.hash === '#play' && S) keepAwake();
 });
 
-/* ?resume=<id> — a game picked up from the profile, saved on this device or
-   another. It takes the place of the one here, which is put on the profile
-   first so that it can be picked up again too. */
-async function resumeFromProfile(id) {
-  const here = load();
-  if (here && here.id !== id && !here.won && here.log.length) {
-    S = here;
-    let kept = false;
-    try { kept = await SCCloud.now(cloudGame); } catch (e) { /* offline */ }
-    S = null;
-    if (!kept && !(await askConfirm('Your game in progress here isn\'t saved to your profile, and opening this one replaces it.', 'Open it'))) return;
-  }
-  try {
-    const st = (await SCCloud.load(id)).state;
-    if (!st) return;
-    S = st;
-    save();
-    if (location.hash === '#play') route(); else location.hash = 'play';
-  } catch (e) { /* offline, or gone: where it was */ }
+/* ?g=<id> — a game's own address: a link to it, or a reload. The game is
+   opened from this device or, signed in, from the profile; ?resume=<id>
+   asks for the profile's copy first, as it has been played on elsewhere. */
+async function openFromUrl() {
+  const at = SCStore.urlId();
+  if (!at) { route(); return; }
+  const st = await SCStore.open(TYPE, at.id, at.fresh);
+  if (st) { SCStore.show(st.id, '#play'); route(); return; }
+  SCStore.leave();
+  route();
+  SCStore.notice("That game isn't on this device. Sign in to open games saved to your profile.");
 }
 
 /* ---------------- boot ---------------- */
 
-route();
-const resumeId = window.SCCloud && SCCloud.resumeId();
-if (resumeId) resumeFromProfile(resumeId);
+openFromUrl();

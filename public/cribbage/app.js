@@ -7,7 +7,8 @@
    game ends the moment anyone reaches 121, so a non-dealer who counts out
    wins before the dealer's hand or crib is ever counted. */
 
-const KEY = 'cribbage-v1';
+// games are kept by id, every kind together: see /store.js
+const TYPE = 'cribbage';
 const NAMES_KEY = 'cribbage-names-v1';
 const WIN = 121;
 const COLORS = ['#d9534f', '#2e9e63', '#3b82f6'];   // red, green, blue
@@ -143,17 +144,31 @@ const PLAY_MODE_KEY = 'cribbage-play-mode';
 let playMode = (() => { try { return localStorage.getItem(PLAY_MODE_KEY) || 'detailed'; } catch (e) { return 'detailed'; } })();
 
 function save() {
-  try { S ? localStorage.setItem(KEY, JSON.stringify(S)) : localStorage.removeItem(KEY); }
-  catch (e) { /* private mode, ignore */ }
+  if (!S) return;
+  SCStore.put(TYPE, S, !!S.over);
   // and to the profile, when signed in (see /cloud.js)
-  if (S && window.SCCloud) SCCloud.keep(cloudGame);
+  if (window.SCCloud) SCCloud.keep(cloudGame);
 }
 
 // The game as the profile keeps it: its history, and its own state to pick
 // it up again by. Nothing until there is a score in it.
 const cloudGame = () => (S && S.log.length ? { ...toPayload(), state: S } : null);
+// The newest game of this kind in progress here, for the setup's Resume.
 function load() {
-  try { return JSON.parse(localStorage.getItem(KEY)); } catch (e) { return null; }
+  const g = SCStore.latest(TYPE);
+  return g ? g.state : null;
+}
+
+// A game on screen has its id in the address: a link to it opens it.
+function openGame(state) {
+  S = state;
+  SCStore.show(S.id);
+  showGame();
+}
+
+// Leaving a game: back to the setup, the address without it.
+function leaveGame() {
+  location.replace(location.pathname);
 }
 
 // The count, in order: each player left of the dealer, the dealer, the crib.
@@ -253,16 +268,13 @@ $('countRow').addEventListener('click', (e) => {
 });
 
 $('startBtn').onclick = async () => {
-  const old = load();
-  if (old && !(await askConfirm('This discards the game in progress.', 'Start new game'))) return;
-  // given up unfinished: off the profile too
-  if (old && !old.over) SCCloud.drop(old.id);
+  // a new game of its own: any in progress stay, under Pick up where you left off
   S = newGame(Array.from({ length: setupN }, (_, i) => nameOf(i)), setupDealer);
   save();
-  showGame();
+  openGame(S);
 };
 
-$('resumeBtn').onclick = () => { S = load(); if (S) showGame(); };
+$('resumeBtn').onclick = () => { const s = load(); if (s) openGame(s); };
 
 /* ---------------- the board ----------------
 
@@ -702,9 +714,10 @@ $('undoBtn').onclick = () => {
 
 $('quitBtn').onclick = async () => {
   if (S.log.length && !(await askConfirm('This ends the current game and its scores.', 'New game'))) return;
+  // given up unfinished: off the profile too
   if (!S.over) SCCloud.drop(S.id);
-  S = null; save();
-  location.reload();
+  SCStore.remove(S.id);
+  leaveGame();
 };
 
 /* ---------------- the end ---------------- */
@@ -738,12 +751,14 @@ $('winUndo').onclick = () => {
 // The loser of a game deals the first hand of the next.
 $('rematchBtn').onclick = () => {
   const loser = S.scores.indexOf(Math.min(...S.scores));
+  SCStore.remove(S.id);      // finished, and on the profile when signed in
   S = newGame(S.names, loser);
   save();
+  SCStore.show(S.id);
   $('winOverlay').classList.add('hidden');
   buildBoard(); buildPlayers(); render();
 };
-$('newBtn').onclick = () => { S = null; save(); location.reload(); };
+$('newBtn').onclick = () => { SCStore.remove(S.id); leaveGame(); };
 
 function askConfirm(text, yesLabel) {
   return new Promise((resolve) => {
@@ -820,34 +835,15 @@ fetch('/api/me', { headers: { accept: 'application/json' } })
 
 renderSetup();
 
-/* #play — arriving from a game in progress on the home page: straight back
-   to it, past the setup. The hash is used up, so a reload or a later visit
-   opens the setup as usual. */
-if (location.hash === '#play') {
-  history.replaceState(null, '', location.pathname + location.search);
-  if (!$('resumeBtn').classList.contains('hidden')) $('resumeBtn').click();
+/* ?g=<id> — a game's own address: a link to it, or a reload. The game is
+   opened from this device or, signed in, from the profile; ?resume=<id>
+   asks for the profile's copy first, as it has been played on elsewhere. */
+async function openFromUrl() {
+  const at = SCStore.urlId();
+  if (!at) return;
+  const st = await SCStore.open(TYPE, at.id, at.fresh);
+  if (st) { openGame(st); return; }
+  SCStore.leave();
+  SCStore.notice("That game isn't on this device. Sign in to open games saved to your profile.");
 }
-
-/* ?resume=<id> — a game picked up from the profile, saved on this device or
-   another. It takes the place of the one here, which is put on the profile
-   first so that it can be picked up again too. */
-async function resumeFromProfile() {
-  const id = SCCloud.resumeId();
-  if (!id) return;
-  const here = load();
-  if (here && here.id !== id && !here.over && here.log.length) {
-    S = here;
-    let kept = false;
-    try { kept = await SCCloud.now(cloudGame); } catch (e) { /* offline */ }
-    S = null;
-    if (!kept && !(await askConfirm('Your game in progress here isn\'t saved to your profile, and opening this one replaces it.', 'Open it'))) return;
-  }
-  try {
-    const g = await SCCloud.load(id);
-    if (!g.state) return;          // finished since: nothing to pick up
-    S = g.state;
-    save();
-    showGame();
-  } catch (e) { /* offline, or gone: the setup stays */ }
-}
-resumeFromProfile();
+openFromUrl();

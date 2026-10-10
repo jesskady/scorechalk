@@ -18,17 +18,13 @@
     return n;
   };
 
-  const read = (key) => {
-    try { return JSON.parse(localStorage.getItem(key)); } catch (e) { return null; }
-  };
-
   const list = (xs) => xs.join(' · ');
   const many = (n) => ['', 'One player', 'Two players', 'Three players', 'Four players', 'Five players', 'Six players'][n] || `${n} players`;
 
   /* ---------------- games in progress ----------------
 
-     Each game keeps its game under its own key, in its own shape; these turn
-     each one into a line worth reading. A finished game is not in progress.
+     Every game on this device is kept by id (see /store.js), each kind in its
+     own shape; these turn each one into a line worth reading. A finished game is not in progress.
      The profile keeps the same shape (see /cloud.js), so a game saved there
      is read the same way. */
 
@@ -49,28 +45,9 @@
       line: (g) => (g.endedAt ? null : list(g.cfg.names.map((n, i) => `${n} ${g.scores[i]}`))) },
   };
 
-  const GAMES = [
-    { ...SPEC.darts, key: 'dart-tracker-v1', href: '/darts/#play' },
-    { ...SPEC.cribbage, key: 'cribbage-v1', href: '/cribbage/#play' },
-    { ...SPEC.yahtzee, key: 'yahtzee-v1', href: '/yahtzee/#play' },
-    { ...SPEC.magic, key: 'magic-v1', href: '/magic/#play' },
-  ];
-
-  /* Builder games, one in progress per game: 'builder-game-v1:<source>' —
-     custom, a template's id, or 'my:<id>' — and 'builder-v1', the one game
-     kept before each had its own. Each takes its own room, as chosen on its
-     setup screen. */
-  const playHash = (src) =>
-    'play/' + (src === 'custom' ? 'custom' : src.startsWith('my:') ? 'my/' + src.slice(3) : src);
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (!key.startsWith('builder-game-v1:') && key !== 'builder-v1') continue;
-    const src = key === 'builder-v1' ? null : key.slice('builder-game-v1:'.length);
-    GAMES.push({
-      ...SPEC.builder, key,
-      href: (g) => '/builder/#' + playHash(src || (g.cfg && g.cfg.source) || 'custom'),
-    });
-  }
+  // A game's own address: its page, and its id. Magic shows its table at #play.
+  const gameHref = (type, id, param) =>
+    `/${type}/?${param || 'g'}=${encodeURIComponent(id)}${type === 'magic' ? '#play' : ''}`;
 
   const found = [];
   // the ids of games saved unfinished to the profile: discarding one of
@@ -79,14 +56,15 @@
   const pick = (v, g) => (typeof v === 'function' ? v(g) : v);
   const moves = (g) => (g && Array.isArray(g.log) ? g.log.length : 0);
 
+  // Every game on this device, any number of each kind (see /store.js).
   function local() {
-    for (const G of GAMES) {
-      const g = read(G.key);
-      if (!g) continue;
+    for (const k of SCStore.list()) {
+      const G = SPEC[k.type], g = k.state;
+      if (!G || k.done) continue;
       let line = null;
       try { line = G.line(g); } catch (e) { /* an older shape: skip it rather than break the page */ }
       if (!line) continue;
-      found.push({ ...G, id: g.id, href: pick(G.href, g), room: pick(G.room, g), name: pick(G.name, g), line, at: g.startedAt || 0, n: moves(g) });
+      found.push({ id: k.id, local: true, href: gameHref(k.type, k.id), room: pick(G.room, g), name: pick(G.name, g), line, at: k.at || g.startedAt || 0, n: moves(g) });
     }
   }
 
@@ -111,9 +89,10 @@
       }
       if (!line) continue;
       const card = {
-        key: here >= 0 ? found[here].key : null,
+        local: here >= 0,
         room: pick(G.room, g.state || {}), name: pick(G.name, g.state || {}), id: g.id,
-        href: `/${g.game_type}/?resume=${encodeURIComponent(g.id)}`,
+        // from the profile, as it is newer than any copy here
+        href: gameHref(g.game_type, g.id, 'resume'),
         line, at: g.updated_at || g.started_at || 0,
       };
       if (here >= 0) found[here] = card; else found.push(card);
@@ -156,7 +135,7 @@
   }
 
   function discard(f) {
-    if (f.key) { try { localStorage.removeItem(f.key); } catch (e) { /* private mode */ } }
+    SCStore.remove(f.id);
     if (f.id && saved.has(f.id)) {
       fetch('/api/games/' + encodeURIComponent(f.id), { method: 'DELETE' }).catch(() => {});
       saved.delete(f.id);

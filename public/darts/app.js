@@ -1,6 +1,7 @@
 /* Score Chalk — countdown scoring for one to four players */
 
-const KEY = 'dart-tracker-v1';
+// games are kept by id, every kind together: see /store.js
+const TYPE = 'darts';
 const MAX_DARTS = 3;
 
 const $ = (id) => document.getElementById(id);
@@ -36,43 +37,28 @@ function newGame(names, start, rules) {
 }
 
 function save() {
-  try {
-    if (S) localStorage.setItem(KEY, JSON.stringify(S));
-    else localStorage.removeItem(KEY);
-  } catch (e) { /* private mode, ignore */ }
+  if (S) SCStore.put(TYPE, S, !!S.over);
 }
 
+// The newest darts game in progress here, for the setup's Resume.
 function load() {
-  try { return JSON.parse(localStorage.getItem(KEY)); }
-  catch (e) { return null; }
+  const g = SCStore.latest(TYPE);
+  return g ? g.state : null;
 }
 
-/* ---------------- what clearing a game actually costs ----------------
-
-   Only one game is held on this device, so several things replace it. What
-   that loses depends on whether the game is also on the profile: a game
-   saved there survives being cleared here, and only the turns played since
-   that save are at risk. `savedTurns` is how many turns the profile has —
-   set when a game is saved, and when one is opened from the profile. */
-
-function savedState(g) {
-  if (!g) return { known: false, behind: 0 };
-  if (typeof g.savedTurns !== 'number') return { known: false, behind: 0 };
-  return { known: true, behind: Math.max(0, (g.log ? g.log.length : 0) - g.savedTurns) };
+// A game on screen has its id in the address: a link to it opens it.
+function openGame(state) {
+  S = state;
+  // a game saved before ids existed still needs one to sync
+  if (!S.id) { S.id = crypto.randomUUID(); S.startedAt = S.startedAt || Date.now(); }
+  save();
+  SCStore.show(S.id);
+  showGame();
 }
 
-/* The sentence to put in front of someone before their local copy goes. */
-function clearingCost(g, lead) {
-  const { known, behind } = savedState(g);
-
-  if (!known) {
-    return `${lead} It is not saved to your profile, so it will be gone.`;
-  }
-  if (behind === 0) {
-    return `${lead} It is saved to your profile — you can pick it up again from there.`;
-  }
-  return `${lead} It is saved to your profile, but the ${behind} turn${behind === 1 ? '' : 's'} ` +
-         `played since that save will be lost.`;
+// Leaving a game: back to the setup, the address without it.
+function leaveGame() {
+  location.replace(location.pathname);
 }
 
 /* ---------------- messages ---------------- */
@@ -195,20 +181,7 @@ function buildSetup() {
       return;
     }
 
-    // Only one game is held locally, so starting a new one replaces whatever
-    // is there. That used to require pressing New game, which asks first —
-    // now that the game screen has a way out, this is reachable without it.
-    const open = load();
-    if (open && !open.over) {
-      const who = open.players.map(p => p.name).join(' vs ');
-      const ok = await askConfirm(
-        `Your game in progress — ${who} — will be discarded${signedIn ? ', from your profile too' : ''}.`,
-        'Start new game'
-      );
-      if (!ok) return;
-      window.SCCloud && SCCloud.drop(open.id);
-    }
-
+    // a new game of its own: any in progress stay, under Pick up where you left off
     const names = playerCount === 1
       ? [$('name1').value.trim() || 'You']
       : nameInputs.slice(0, playerCount).map((input, i) => input.value.trim() || `Player ${i + 1}`);
@@ -218,8 +191,7 @@ function buildSetup() {
       doubleOut: toggles.doubleOut.classList.contains('is-on'),
       meIdx: playerCount === 1 ? 0 : meIdx
     });
-    save();
-    showGame();
+    openGame(S);
   });
 
   const saved = load();
@@ -227,57 +199,25 @@ function buildSetup() {
     const btn = $('resumeBtn');
     btn.textContent = 'Resume: ' + saved.players.map(p => p.name).join(' vs ');
     btn.classList.remove('hidden');
-    btn.addEventListener('click', () => {
-      S = saved;
-      // a game saved before ids existed still needs one to sync
-      if (!S.id) { S.id = crypto.randomUUID(); S.startedAt = S.startedAt || Date.now(); }
-      showGame();
-    });
+    btn.addEventListener('click', () => openGame(saved));
   }
 
-  buildCloudResume(saved);
+  buildCloudResume();
 }
 
 
-/* ?resume=<id> — arriving from a game tapped on the profile.
-   Only one game is held locally, so opening one from the profile replaces
-   whatever is here. It asks first when that would lose an unfinished game
-   the player has not saved anywhere. */
-async function resumeFromQuery() {
-  const id = new URLSearchParams(location.search).get('resume');
-  if (!id) return;
-
-  // drop the parameter straight away, so a refresh does not re-open the game
-  // over whatever the player has done since
-  history.replaceState(null, '', location.pathname);
-
-  if (!window.SCSync) return;
-
-  const open = load();
-  if (open && !open.over && open.id !== id) {
-    const who = open.players.map(p => p.name).join(' vs ');
-    const ok = await askConfirm(
-      clearingCost(open, `Opening that game replaces your game in progress on this device — ${who}.`),
-      'Open it'
-    );
-    if (!ok) return;
-  }
-
-  try {
-    S = await window.SCSync.load(id);
-    save();
-    showGame();
-  } catch (e) {
-    // say() writes to the game screen, which is not showing — put it where
-    // the player actually is, next to the other resume options
-    const box = $('cloudResume');
-    if (box) {
-      const p = document.createElement('p');
-      p.className = 'cloud-error';
-      p.textContent = 'Could not open that game. Try it from the list below.';
-      box.prepend(p);
-    }
-  }
+/* ?g=<id> — a game's own address: a link to it, or a reload. The game is
+   opened from this device or, signed in, from the profile — through
+   SCSync.load, which also rebuilds games saved before they kept their
+   state. ?resume=<id> asks for the profile's copy first, as it has been
+   played on elsewhere. */
+async function openFromUrl() {
+  const at = SCStore.urlId();
+  if (!at) return;
+  const st = await SCStore.open(TYPE, at.id, at.fresh, window.SCSync ? (id) => window.SCSync.load(id) : null);
+  if (st) { openGame(st); return; }
+  SCStore.leave();
+  SCStore.notice("That game isn't on this device. Sign in to open games saved to your profile.");
 }
 
 /* The Save button keeps an unfinished game on the profile so it can be picked
@@ -317,7 +257,7 @@ async function buildSaveButton() {
 /* Unfinished games saved to the profile. Offered alongside the local resume
    rather than instead of it: if both exist they are usually different games,
    and picking one silently is how someone loses a leg. */
-async function buildCloudResume(localSaved) {
+async function buildCloudResume() {
   const box = $('cloudResume');
   if (!box || !window.SCSync) return;
 
@@ -327,8 +267,8 @@ async function buildCloudResume(localSaved) {
   let games = [];
   try { games = await window.SCSync.unfinished(); } catch (e) { return; }
 
-  // the one already open on this device is not worth offering twice
-  games = games.filter(g => !localSaved || g.id !== localSaved.id);
+  // the ones already on this device are under Resume, not worth offering twice
+  games = games.filter(g => !SCStore.get(g.id));
   if (!games.length) return;
 
   for (const g of games) {
@@ -338,9 +278,7 @@ async function buildCloudResume(localSaved) {
     btn.addEventListener('click', async () => {
       btn.disabled = true;
       try {
-        S = await window.SCSync.load(g.id);
-        save();
-        showGame();
+        openGame(await window.SCSync.load(g.id));
       } catch (e) {
         btn.disabled = false;
         say('Could not load that game');
@@ -401,18 +339,21 @@ function buildBoard() {
       'End game');
     if (!ok) return;
     if (!S.over && window.SCCloud) SCCloud.drop(S.id);
-    S = null; save(); location.reload();
+    SCStore.remove(S.id);
+    leaveGame();
   });
 
   $('rematchBtn').addEventListener('click', () => {
+    SCStore.remove(S.id);      // finished, and on the profile when signed in
     S = newGame(S.players.map(p => p.name), S.start,
                 { doubleIn: S.doubleIn, doubleOut: S.doubleOut, meIdx: S.meIdx });
     save();
+    SCStore.show(S.id);
     $('winOverlay').classList.add('hidden');
     render();
   });
 
-  $('newBtn').addEventListener('click', () => { S = null; save(); location.reload(); });
+  $('newBtn').addEventListener('click', () => { SCStore.remove(S.id); leaveGame(); });
 
   // tapping a player card switches whose turn it is (fixes mis-taps)
   [0, 1, 2, 3].forEach(i => {
@@ -971,12 +912,4 @@ function render() {
 
 buildSetup();
 buildBoard();
-resumeFromQuery();
-
-/* #play — arriving from a game in progress on the home page: straight back
-   to it, past the setup. The hash is used up, so a reload or a later visit
-   opens the setup as usual. */
-if (location.hash === '#play') {
-  history.replaceState(null, '', location.pathname + location.search);
-  if (!$('resumeBtn').classList.contains('hidden')) $('resumeBtn').click();
-}
+openFromUrl();

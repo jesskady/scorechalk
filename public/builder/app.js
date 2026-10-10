@@ -1,17 +1,13 @@
 /* Score Chalk — Builder: a configurable scorekeeper for any game */
 
-// Each game keeps its own game in progress: 'builder-game-v1:custom',
-// 'builder-game-v1:farkle', 'builder-game-v1:my:<id>'... so starting one
-// never touches another.
-const GAME_KEY = 'builder-game-v1:';
-const OLD_KEY = 'builder-v1';        // before, one game in progress for them all
+// Games are kept by id, every kind together (see /store.js), and a game's
+// address carries its id: /builder/?g=<id>. Its kind — Custom, a template,
+// one of My games — is its cfg.source.
+const TYPE = 'builder';
 const RULES_KEY = 'builder-rules-v1';     // { custom: {...}, farkle: {...} }
 const PLAYERS_KEY = 'builder-players-v1'; // names, shared by every game
 const TEAMS_KEY = 'builder-teams-v1';     // each player's team, with the names
 const OLD_CFG_KEY = 'builder-cfg-v1';     // before per-game rules; names only
-// 'board' or 'sheet': the view new games open in, as last chosen. The sheet
-// until one is; v2 starts everyone there.
-const VIEW_KEY = 'builder-view-v2';
 const MAX_PLAYERS = 8;
 
 // Team chips on the setup screen, and nothing else: in the game a team is
@@ -65,9 +61,11 @@ const baseRules = (src) => {
 
 // the hash that opens a source's setup
 const sourceHash = (src) => src === 'custom' ? '' : src.startsWith('my:') ? 'my/' + src.slice(3) : src;
-// A game in progress: 'play/custom', 'play/farkle', 'play/my/<id>'.
-const playHash = (src) => 'play/' + (sourceHash(src) || 'custom');
-const slotKey = (src) => GAME_KEY + (src || 'custom');
+// The newest game in progress of one kind: Custom, a template, one of My games.
+function latestOf(src) {
+  const g = SCStore.latest(TYPE, (st) => (st.cfg && st.cfg.source || 'custom') === src);
+  return g ? g.state : null;
+}
 
 // whether the rules on screen differ from where they came from
 const rulesChanged = () => RULE_KEYS.some(k => cfg[k] !== baseRules(source)[k]);
@@ -145,8 +143,9 @@ function newGame(c) {
     pend: 0,
     parts: [],        // what made pend: { label, d } per tap, for the breakdown
     sign: c.mode === 'down' ? -1 : 1,
-    // the scoreboard or the scoresheet, as the last game was played
-    view: loadJSON(VIEW_KEY) === 'board' ? 'board' : 'sheet',
+    // the scoresheet, for a game taken in turns; the switch changes this
+    // game only, and every new game opens in the sheet again
+    view: 'sheet',
   };
 }
 
@@ -173,7 +172,7 @@ function saveJSON(k, v) {
   catch (e) { /* private mode, ignore */ }
 }
 const save = () => {
-  saveJSON(slotKey(S.cfg.source), S);
+  SCStore.put(TYPE, S, !!S.endedAt);
   // and to the profile, when signed in (see /cloud.js)
   if (window.SCCloud) SCCloud.keep(cloudGame);
 };
@@ -181,13 +180,6 @@ const save = () => {
 // The game as the profile keeps it: its history, and its own state to pick
 // it up again by. Nothing until there is a score in it.
 const cloudGame = () => (S && S.log.length ? { ...toPayload(), state: S } : null);
-
-// The one game in progress from before moves into its own game's slot.
-(function migrate() {
-  const old = loadJSON(OLD_KEY);
-  if (old && old.cfg && !loadJSON(slotKey(old.cfg.source))) saveJSON(slotKey(old.cfg.source), old);
-  saveJSON(OLD_KEY, null);
-})();
 
 const isOut = (i) => S.cfg.win === 'zero' && S.scores[i] <= 0;
 
@@ -248,22 +240,30 @@ function show(id) {
   window.scrollTo(0, 0);
 }
 
-// The hash decides the screen, so back and forward move between them:
-// '' the custom setup, a template id that template's setup, 'my/<id>' one of
-// My games, 'play/<game>' that game in progress.
+// The address decides the screen. A game is ?g=<id>; the setups are the
+// hash: '' the custom setup, a template id that template's setup, 'my/<id>'
+// one of My games. 'play/<game>', from before games had addresses of their
+// own, opens the newest game in progress of that kind.
 function route() {
   const h = location.hash.slice(1);
   $('winOverlay').classList.add('hidden');
   $('confirmOverlay').classList.add('hidden');
   $('nameOverlay').classList.add('hidden');
+  const at = SCStore.urlId();
+  if (at && !h) {
+    const g = SCStore.get(at.id);
+    if (g && g.type === TYPE) { S = g.state; showGame(); return; }
+  }
   if (h.startsWith('play/')) {
     const g = h.slice(5);
     const src = g.startsWith('my/') ? 'my:' + g.slice(3) : g;
-    S = loadJSON(slotKey(src));
-    if (S) { showGame(); return; }
+    const st = latestOf(src);
+    if (st) { openGame(st); return; }
     location.replace('#' + sourceHash(src));   // nothing in progress: its setup
     return;
   }
+  // a setup: the address no longer names a game
+  if (at) SCStore.leave(location.hash);
   if (h.startsWith('my/')) {
     if (myGames === null) return;        // loadMine() routes again when it lands
     if (myGame('my:' + h.slice(3))) { openSetup('my:' + h.slice(3)); return; }
@@ -563,22 +563,28 @@ $('startBtn').onclick = async () => {
       if (!t.includes(k)) { flashSetup(`Team ${TEAM_LETTERS[k]} has no players yet.`); return; }
     }
   }
-  // only this game's own game in progress is in the way
-  const prior = loadJSON(slotKey(source));
+  // A game of this kind already in progress: picking it back up may be what
+  // was meant. Starting another keeps it, under Pick up where you left off.
+  const prior = latestOf(source);
   if (prior) {
     const name = (prior.cfg && prior.cfg.name) || cfg.name;
-    const a = await askConfirm(name ? `You have a game of ${name} in progress.` : 'You have a game in progress.',
+    const a = await askConfirm(`You have a game${name ? ` of ${name}` : ''} in progress. It stays in progress if you start another.`,
       'Start a new one', 'Resume it');
-    if (a === 'alt') { location.hash = playHash(source); return; }
+    if (a === 'alt') { openGame(prior); return; }
     if (!a) return;
-    // given up unfinished: off the profile too
-    if (!prior.endedAt) SCCloud.drop(prior.id);
   }
   saveCfg();
   S = newGame({ ...cfg, source });
   save();
-  location.hash = playHash(source);
+  openGame(S);
 };
+
+// A game on screen has its id in the address: a link to it opens it.
+function openGame(state) {
+  S = state;
+  SCStore.show(S.id);
+  route();
+}
 
 /* ---------------- game history ----------------
 
@@ -1060,7 +1066,6 @@ $('viewRow').addEventListener('click', (e) => {
   const b = e.target.closest('[data-view]');
   if (!b || b.dataset.view === S.view) return;
   S.view = b.dataset.view;
-  saveJSON(VIEW_KEY, S.view);
   save(); applyView(); render();
   if (sheetOn()) requestAnimationFrame(() => showCurrent(false));
 });
@@ -1379,7 +1384,7 @@ function showWin(r) {
   // the game is over: kept on it, so every save from here says so
   if (!S.endedAt) S.endedAt = Date.now();
   S.winnerIdx = r.winners && r.winners.length === 1 ? r.winners[0] : null;
-  saveJSON(slotKey(S.cfg.source), S);
+  SCStore.put(TYPE, S, true);
   saveToProfile(r);
 }
 
@@ -1387,8 +1392,10 @@ $('rematchBtn').onclick = () => {
   const { quickVals, quickKeys, members, ...c } = S.cfg;
   // a game in teams is rebuilt from its players, not from the team names
   if (c.playerNames) { c.names = c.playerNames; c.teamOf = c.playerTeams || []; }
+  SCStore.remove(S.id);      // finished, and on the profile when signed in
   S = newGame(c);
   save();
+  SCStore.show(S.id);
   $('winOverlay').classList.add('hidden');
   render();
 };
@@ -1398,10 +1405,10 @@ $('newBtn').onclick = endGame;
 // Clear the game and go back to the setup it came from.
 function endGame() {
   const back = sourceHash(S.cfg.source || 'custom');
-  saveJSON(slotKey(S.cfg.source), null);
+  SCStore.remove(S.id);
   S = null;
-  // a bare '#' rather than no hash, so leaving is a hash change, not a reload
-  location.hash = back;
+  SCStore.leave(back ? '#' + back : '');
+  route();
 }
 
 // Resolves true for yes, false for cancel, and 'alt' for the middle choice
@@ -1424,31 +1431,21 @@ function askConfirm(text, yesLabel, altLabel) {
   });
 }
 
-/* ?resume=<id> — a game picked up from the profile, saved on this device or
-   another. It goes into its own game's slot, in place of any game there,
-   which is put on the profile first so that it can be picked up again too. */
-async function resumeFromProfile(id) {
-  try {
-    const st = (await SCCloud.load(id)).state;
-    if (st && st.cfg) {
-      const src = st.cfg.source || 'custom';
-      const here = loadJSON(slotKey(src));
-      if (here && here.id !== id && !here.endedAt && here.log.length) {
-        S = here;
-        let kept = false;
-        try { kept = await SCCloud.now(cloudGame); } catch (e) { /* offline */ }
-        S = null;
-        if (!kept && !(await askConfirm('Your game in progress here isn\'t saved to your profile, and opening this one replaces it.', 'Open it'))) { route(); return; }
-      }
-      saveJSON(slotKey(src), st);
-      history.replaceState(null, '', '#' + playHash(src));
-    }
-  } catch (e) { /* offline, or gone: the setup instead */ }
+/* ?g=<id> — a game's own address: a link to it, or a reload. The game is
+   opened from this device or, signed in, from the profile; ?resume=<id>
+   asks for the profile's copy first, as it has been played on elsewhere. */
+async function openFromUrl() {
+  const at = SCStore.urlId();
+  if (at && !location.hash) {
+    const st = await SCStore.open(TYPE, at.id, at.fresh);
+    if (st && st.cfg) { openGame(st); return; }
+    SCStore.leave();
+    SCStore.notice("That game isn't on this device. Sign in to open games saved to your profile.");
+  }
   route();
 }
 
 /* ---------------- boot ---------------- */
 
-const resumeId = window.SCCloud && SCCloud.resumeId();
-if (resumeId) resumeFromProfile(resumeId); else route();
+openFromUrl();
 loadMine();
