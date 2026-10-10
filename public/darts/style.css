@@ -322,3 +322,9 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 }
 [data-room="parlor"] .co-label{color:var(--gold)}
 [data-room="parlor"] .checkout{border-style:dashed}
+
+/* a phone that joined by seat, waiting for its player's turn to come round:
+   the pad and the turn's buttons greyed, and out of reach */
+#game.waiting #dartsPad,
+#game.waiting #submitBtn,
+#game.waiting #bustBtn{opacity:.35;pointer-events:none}

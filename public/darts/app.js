@@ -339,8 +339,6 @@ function buildBoard() {
 }
 
 function showGame() {
-  // a phone that joined by seat is always on its own player
-  if (SCShare.seat() !== null) S.cur = SCShare.seat();
   $('setup').classList.add('hidden');
   $('game').classList.remove('hidden');
   render();
@@ -349,7 +347,7 @@ function showGame() {
 /* ---------------- dart entry ---------------- */
 
 function addDart(n, isBull = false) {
-  if (S.over) return;
+  if (S.over || waiting()) return;
   if (S.darts.length >= MAX_DARTS) { say('3 darts thrown — submit the turn'); return; }
 
   let m = S.mult;
@@ -683,11 +681,14 @@ async function autoSave() {
   if (saveAgain) { saveAgain = false; autoSave(); }
 }
 
-// play goes round the players in order — but a phone that joined by seat
-// stays on its own player
+// play goes round the players in order
 function passTurn() {
-  S.cur = SCShare.seat() !== null ? SCShare.seat() : (S.cur + 1) % S.players.length;
+  S.cur = (S.cur + 1) % S.players.length;
 }
+
+// A phone that joined by seat throws for its own player, on that player's
+// turn only; otherwise it waits, the pad greyed, for the turn to come round.
+const waiting = () => !S.over && !SCShare.canScore(S.cur);
 
 async function undoTurn() {
   // a turn in progress is discarded first, whether or not anything is logged
@@ -879,8 +880,11 @@ function render() {
   // submit button
   const btn = $('submitBtn');
   const o = outcome(pts);
+  $('game').classList.toggle('waiting', waiting());
   if (S.over) {
     btn.textContent = 'Game over';
+  } else if (waiting()) {
+    btn.textContent = `${p0.name}'s turn`;
   } else if (pts > 0 && o.bust) {
     btn.textContent = `Submit ${pts} — bust`;
   } else if (o.win) {
