@@ -7,6 +7,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Cribbage · Score Chalk</title>
+<!-- Score Chalk as an app: installable, and working offline (see /pwa.js) -->
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="Score Chalk">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="description" content="A cribbage board and hand counter: peg the play, count every hand, and score together from every phone.">
 <!-- the card a link shows in messages and posts; for a shared game's link the
      Worker fills in who is playing (see previewFor in worker/share.js) -->
@@ -186,5 +191,6 @@
 <script src="/share.js?v=9"></script>
 <script src="/cloud.js?v=3"></script>
 <script src="app.js?v=26"></script>
+<script src="/pwa.js?v=1" defer></script>
 </body>
 </html>

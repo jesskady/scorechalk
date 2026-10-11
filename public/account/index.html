@@ -7,6 +7,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Your profile · Score Chalk</title>
+<!-- Score Chalk as an app: installable, and working offline (see /pwa.js) -->
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="Score Chalk">
+<meta name="mobile-web-app-capable" content="yes">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='15' fill='%23182029'/><circle cx='16' cy='16' r='11' fill='%232e7d4f'/><circle cx='16' cy='16' r='7' fill='%23182029'/><circle cx='16' cy='16' r='3.5' fill='%23c0392b'/></svg>">
 <link rel="stylesheet" href="/shared.css?v=29">
 <link rel="stylesheet" href="/home.css?v=29">
@@ -25,5 +30,6 @@
 <script src="/account.js?v=29" defer></script>
 <script src="/builder/rules.js?v=8" defer></script>
 <script src="/account/profile.js?v=35" defer></script>
+<script src="/pwa.js?v=1" defer></script>
 </body>
 </html>

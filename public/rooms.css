@@ -248,3 +248,10 @@ a.chalk-card:active{transform:translateY(-1px)}
 /* the small print, under the workshop */
 .legal-links{text-align:center;font-size:12.5px;margin:22px 0 4px;opacity:.75}
 .legal-links a{color:inherit}
+
+/* the offer to install the app, where the browser makes one (see /pwa.js) */
+.install{
+  font:700 13px/1 var(--f-body);color:var(--slate);background:var(--brass);
+  border:none;border-radius:999px;padding:9px 16px;margin:0 0 12px;cursor:pointer;
+}
+.install[hidden]{display:none}

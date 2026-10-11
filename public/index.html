@@ -7,6 +7,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Score Chalk</title>
+<!-- Score Chalk as an app: installable, and working offline (see /pwa.js) -->
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="Score Chalk">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="description" content="Scorekeeping for the games you play — at the bar, or at the kitchen table.">
 <!-- the card a link shows in messages and posts; for a shared game's link the
      Worker fills in who is playing (see previewFor in worker/share.js) -->
@@ -24,7 +29,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredericka+the+Great&family=Josefin+Sans:wght@400;600;700&family=Bree+Serif&family=Kalam:wght@400;700&family=Karla:wght@400;500;700&display=swap">
 <link rel="stylesheet" href="shared.css?v=29">
 <!-- the home page's own: home.css still serves the account pages -->
-<link rel="stylesheet" href="rooms.css?v=5">
+<link rel="stylesheet" href="rooms.css?v=6">
 </head>
 <body class="home-rooms">
 
@@ -41,6 +46,8 @@
       <h1>Score Chalk</h1>
       <svg class="tally" viewBox="0 0 54 40" aria-hidden="true"><path class="chalk-line" d="M8 6v30M18 5v31M28 6v30M38 5v31M2 30 48 10"/></svg>
       <p>Scorekeeping for the games you play — at the bar, or at the kitchen table.</p>
+      <!-- shown by /pwa.js where the browser offers installing -->
+      <button id="installBtn" class="install" type="button" hidden>Install the app</button>
     </div>
 
     <!-- games in progress on this device, filled by home.js; hidden when none -->
@@ -168,5 +175,6 @@
 <script src="/builder/rules.js?v=8" defer></script>
 <script src="/store.js?v=3" defer></script>
 <script src="/home.js?v=10" defer></script>
+<script src="/pwa.js?v=1" defer></script>
 </body>
 </html>
