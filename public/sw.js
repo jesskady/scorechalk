@@ -17,7 +17,7 @@
    VERSION is changed when this file changes in a way the old copies can't
    carry over; the old ones are then let go. */
 
-const VERSION = 'sc-v1';
+const VERSION = 'sc-v2';
 const FONTS = 'sc-fonts';
 const PAGES = ['/', '/darts/', '/cribbage/', '/yahtzee/', '/magic/', '/builder/', '/privacy/', '/terms/'];
 

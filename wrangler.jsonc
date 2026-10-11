@@ -39,11 +39,20 @@
   "ratelimits": [
     { "name": "SHARE_CREATE", "namespace_id": "1001", "simple": { "limit": 20, "period": 60 } },
     { "name": "SHARE_WRITE", "namespace_id": "1002", "simple": { "limit": 240, "period": 60 } },
-    { "name": "SHARE_READ", "namespace_id": "1003", "simple": { "limit": 600, "period": 60 } }
+    { "name": "SHARE_READ", "namespace_id": "1003", "simple": { "limit": 600, "period": 60 } },
+    // error reports from the pages (/api/errors)
+    { "name": "ERRORS", "namespace_id": "1004", "simple": { "limit": 30, "period": 60 } }
   ],
 
+  // Workers Logs, in the dashboard under the Worker's Logs tab: a tenth of
+  // requests, which keeps well inside the free allowance while the pages
+  // look for news every few seconds. Errors don't rely on it — they are
+  // kept in the errors table (see worker/errors.js).
+  "observability": { "enabled": true, "head_sampling_rate": 0.1 },
+
   // Once a day: shared games that have gone 30 days without a change are
-  // deleted (worker/share.js, cleanShares), as the privacy policy says.
+  // deleted (worker/share.js, cleanShares), as the privacy policy says, and
+  // errors unseen for 30 days (worker/errors.js).
   "triggers": { "crons": ["17 4 * * *"] },
 
   "d1_databases": [

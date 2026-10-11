@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1c2723">
 <title>Privacy · Score Chalk</title>
+<!-- visits, and errors on these pages: see /report.js -->
+<script src="/report.js?v=1"></script>
 <!-- Score Chalk as an app: installable, and working offline (see /pwa.js) -->
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
@@ -20,7 +22,7 @@
 <main>
   <a class="backlink" href="/">&lsaquo; All games</a>
   <h1>Privacy</h1>
-  <p class="updated">Last updated 10 October 2026</p>
+  <p class="updated">Last updated 11 October 2026</p>
 
   <p>Score Chalk keeps score for card, dice, board and pub games. It is built to need as little about you as possible: you can use every game without an account, and nothing is sold, advertised against, or tracked.</p>
 
@@ -36,9 +38,12 @@
   <h2>Cookies</h2>
   <p>When you sign in we set one cookie to keep you signed in, and a short-lived one during the sign-in itself. There are no advertising or analytics cookies. Without signing in, Score Chalk sets no cookies at all.</p>
 
+  <h2>Visits and errors</h2>
+  <p>We count visits with Cloudflare Web Analytics, which tells us which pages are used, from which countries and on what kinds of device, without cookies and without identifying anyone. If a page's script fails in your browser, it tells us what failed, where, on which page and in which browser, so we can fix it — nothing about you.</p>
+
   <h2>Who else is involved</h2>
   <ul>
-    <li><b>Cloudflare</b> hosts the site and its database. Like any web host it handles each request, which includes your IP address.</li>
+    <li><b>Cloudflare</b> hosts the site and its database, and counts visits. Like any web host it handles each request, which includes your IP address.</li>
     <li><b>Google</b> provides sign-in, if you use it, and the site's fonts: your browser fetches the fonts from Google, which sees your IP address when it does.</li>
   </ul>
   <p>We don't sell or rent your information, and we don't share it with anyone else unless the law requires us to.</p>

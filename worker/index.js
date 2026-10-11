@@ -9,6 +9,7 @@ import { authConfigured, startGoogle, callbackGoogle, logout, me } from './auth.
 import { saveGame, listGames, getGame, patchGame, deleteGame } from './games.js';
 import { getStats } from './stats.js';
 import { listCustomGames, putCustomGame, deleteCustomGame } from './custom-games.js';
+import { reportError, recordError, cleanErrors } from './errors.js';
 import { createShare, getShare, putShare, putCells, claimSeat, freeSeat, deleteShare, cleanShares, previewFor } from './share.js';
 
 const CANONICAL = 'scorechalk.com';
@@ -21,13 +22,36 @@ const json = (body, status = 200) =>
 
 export default {
   // Once a day (see "triggers" in wrangler.jsonc): let go of shared games
-  // that have gone 30 days without a change.
+  // that have gone 30 days without a change, and errors unseen as long.
   async scheduled(event, env, ctx) {
-    ctx.waitUntil(cleanShares(env));
+    ctx.waitUntil(Promise.all([cleanShares(env), cleanErrors(env)]));
   },
 
+  // Every request, with any that throws kept as an error (see errors.js)
+  // rather than left to the log's sampling.
   async fetch(request, env) {
+    try {
+      return await route(request, env);
+    } catch (err) {
+      await recordError(env, err, new URL(request.url));
+      return json({ error: 'Something went wrong. Try again in a moment.' }, 500);
+    }
+  },
+};
+
+async function route(request, env) {
     const url = new URL(request.url);
+
+    // a page's script error, from /report.js: limited per visitor like the
+    // shared games, so it can't be used to fill the table
+    if (url.pathname === '/api/errors') {
+      if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
+      if (env.ERRORS) {
+        const { success } = await env.ERRORS.limit({ key: request.headers.get('cf-connecting-ip') || 'local' });
+        if (!success) return json({ error: 'Too many requests' }, 429);
+      }
+      return reportError(request, env);
+    }
 
     if (url.hostname === 'www.' + CANONICAL) {
       url.hostname = CANONICAL;
@@ -147,5 +171,4 @@ export default {
     }
 
     return env.ASSETS.fetch(request);
-  },
-};
+}
