@@ -50,6 +50,22 @@ describe('the server', () => {
     assert.equal((await api(`/api/share/${made.data.view}`)).status, 200);
   });
 
+  test('the scoring guides are there, each leading to its game, with data search engines can read', async () => {
+    const guides = { 'cribbage-score-keeper': '/cribbage/', 'yahtzee-score-sheet': '/yahtzee/', 'darts-scorer': '/darts/',
+      'mtg-life-counter': '/magic/', 'canasta-score-keeper': '/builder/#canasta', 'farkle-score-sheet': '/builder/#farkle', 'score-keeper': '/builder/' };
+    const sitemap = await (await fetch(U + '/sitemap.xml')).text();
+    for (const [slug, game] of Object.entries(guides)) {
+      const r = await fetch(`${U}/${slug}/`);
+      assert.equal(r.status, 200, slug);
+      const html = await r.text();
+      assert.ok(html.includes(`class="start" href="${game}"`), slug + ' starts its game');
+      const ld = JSON.parse(html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)[1]);
+      assert.deepEqual(ld.map((x) => x['@type']), ['WebApplication', 'FAQPage'], slug);
+      assert.ok(sitemap.includes(`/${slug}/`), slug + ' is in the sitemap');
+    }
+    assert.match(await (await fetch(U + '/robots.txt')).text(), /Sitemap: https:\/\/scorechalk\.com\/sitemap\.xml/);
+  });
+
   test('the policy pages are there', async () => {
     for (const path of ['/privacy/', '/terms/']) {
       const r = await fetch(U + path);

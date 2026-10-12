@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1c2723">
+<title>Cribbage Score Keeper — Free Online Board &amp; Hand Counter</title>
+<!-- visits, and errors on these pages: see /report.js -->
+<script src="/report.js?v=1"></script>
+<!-- Score Chalk as an app: installable, and working offline (see /pwa.js) -->
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="Score Chalk">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="A free cribbage score keeper with a board, pegging buttons and a hand counter. How cribbage scoring works — fifteens, pairs, runs, flushes, nobs — and how to keep score on every phone at the table.">
+<link rel="canonical" href="https://scorechalk.com/cribbage-score-keeper/">
+<meta property="og:site_name" content="Score Chalk">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://scorechalk.com/cribbage-score-keeper/">
+<meta property="og:title" content="Cribbage Score Keeper — Free Online Board &amp; Hand Counter">
+<meta property="og:description" content="A free cribbage score keeper with a board, pegging buttons and a hand counter. How cribbage scoring works — fifteens, pairs, runs, flushes, nobs — and how to keep score on every phone at the table.">
+<meta property="og:image" content="https://scorechalk.com/og/cribbage.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredericka+the+Great&display=swap">
+<link rel="stylesheet" href="/shared.css?v=29">
+<link rel="stylesheet" href="/guide.css?v=1">
+<script type="application/ld+json">[{"@context":"https://schema.org","@type":"WebApplication","name":"Score Chalk — Cribbage score keeper","url":"https://scorechalk.com/cribbage-score-keeper/","applicationCategory":"GameApplication","operatingSystem":"Any (web browser)","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"A free cribbage score keeper with a board, pegging buttons and a hand counter. How cribbage scoring works — fifteens, pairs, runs, flushes, nobs — and how to keep score on every phone at the table."},{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How many points is a cribbage game?","acceptedAnswer":{"@type":"Answer","text":"121 points for a standard game, or 61 for a short one."}},{"@type":"Question","name":"Who counts first in cribbage?","acceptedAnswer":{"@type":"Answer","text":"The player to the dealer's left counts first and the dealer last; the dealer then counts the crib. Being first to count can win the game before the others count at all."}},{"@type":"Question","name":"Can it count my hand for me?","acceptedAnswer":{"@type":"Answer","text":"Yes. Enter the five cards — the four in your hand and the starter — and it works out the fifteens, pairs, runs, flush and nobs."}},{"@type":"Question","name":"Does it work for three players?","acceptedAnswer":{"@type":"Answer","text":"Yes, two or three players."}}]}]</script>
+</head>
+<body class="guide">
+<!-- A scoring guide: written for people searching how to score Cribbage,
+     with the way straight into the game. -->
+<main>
+  <a class="backlink" href="/">&lsaquo; All games</a>
+  <section class="hero">
+    <span class="kicker">Score Chalk</span>
+    <h1>Cribbage score keeper</h1>
+    <p class="lede">A cribbage board on your phone: peg the play with a tap, count every hand — or let it count the hand from the cards — and race to 121.</p>
+    <a class="start" href="/cribbage/">Start a cribbage game</a>
+    <span class="free">Free · no account · works on any phone</span>
+  </section>
+
+<h2>How cribbage scoring works</h2>
+<p>A game of cribbage is played to <b>121 points</b> (or 61 for a short game). Points come at three moments: during the play, when the hands are counted, and once a deal if the starter card is a jack.</p>
+
+<h3>The play (pegging)</h3>
+<p>Players lay cards in turn, keeping a running total that can't go past 31. You score as you play:</p>
+<table><thead><tr><th>Scoring play</th><th>Points</th></tr></thead><tbody><tr><td>Bringing the total to exactly 15</td><td>2</td></tr><tr><td>A pair (same rank as the card before)</td><td>2</td></tr><tr><td>Three of a kind ("pair royal")</td><td>6</td></tr><tr><td>Four of a kind ("double pair royal")</td><td>12</td></tr><tr><td>A run of three or more, in any order</td><td>1 per card</td></tr><tr><td>Bringing the total to exactly 31</td><td>2</td></tr><tr><td>Go, or the last card of the play (under 31)</td><td>1</td></tr></tbody></table>
+<p><b>His heels:</b> if the starter card turned up is a jack, the dealer scores 2 straight away.</p>
+
+<h3>Counting the hands</h3>
+<p>After the play, each hand is counted with the starter card as a fifth card: first the player to the dealer's left, the dealer last, and then the dealer's crib.</p>
+<table><thead><tr><th>In the hand</th><th>Points</th></tr></thead><tbody><tr><td>Each combination of cards adding to 15</td><td>2</td></tr><tr><td>Each pair</td><td>2</td></tr><tr><td>Three of a kind</td><td>6</td></tr><tr><td>Four of a kind</td><td>12</td></tr><tr><td>Each run of three or more</td><td>1 per card</td></tr><tr><td>Flush: four cards of one suit in the hand</td><td>4 (5 with the starter)</td></tr><tr><td>Flush in the crib: all five cards one suit</td><td>5</td></tr><tr><td>His nobs: the jack of the starter's suit</td><td>1</td></tr></tbody></table>
+<p>Runs with pairs count every run: 3-4-4-5 is two runs of three plus a pair, for 8. The highest hand possible is 29; a hand of nothing is jokingly called a "nineteen", since no hand can actually score 19.</p>
+<p><b>Skunks:</b> winning while the loser is still short of 91 is a skunk; short of 61, a double skunk.</p>
+  <h2>Keeping score with Score Chalk</h2>
+  <div class="features"><div class="feature"><b>A board that pegs itself</b>Tap 15, Pair, Run of 4 or Go during the play, and both pegs move — the back peg showing where you were.</div><div class="feature"><b>Hand counting, two ways</b>Tap what's in the hand — fifteens, pairs, runs, nobs — or enter the five cards and let it count them for you, asking about the jack and the flush when it needs to.</div><div class="feature"><b>Keep score together</b>Share the game and everyone joins from their own phone, picking which player they are. Each person scores their own, everyone sees the whole table live, and someone can watch from anywhere with a read-only link.</div><div class="feature"><b>Free, nothing to install</b>Opens in any phone or computer browser. No account, no ads. Add it to your home screen and it works offline too.</div></div>
+
+  <h2>Questions</h2>
+  <details><summary>How many points is a cribbage game?</summary><p>121 points for a standard game, or 61 for a short one.</p></details>
+  <details><summary>Who counts first in cribbage?</summary><p>The player to the dealer's left counts first and the dealer last; the dealer then counts the crib. Being first to count can win the game before the others count at all.</p></details>
+  <details><summary>Can it count my hand for me?</summary><p>Yes. Enter the five cards — the four in your hand and the starter — and it works out the fifteens, pairs, runs, flush and nobs.</p></details>
+  <details><summary>Does it work for three players?</summary><p>Yes, two or three players.</p></details>
+
+  <p class="again"><a class="start" href="/cribbage/">Start a cribbage game</a></p>
+  <p class="others">Other scorekeepers: <a href="/yahtzee-score-sheet/">Yahtzee score sheet</a> <a href="/darts-scorer/">Darts scorer</a> <a href="/mtg-life-counter/">MTG life counter</a> <a href="/canasta-score-keeper/">Canasta score keeper</a> <a href="/farkle-score-sheet/">Farkle score sheet</a> <a href="/score-keeper/">Any game</a></p>
+</main>
+<script src="/pwa.js?v=1" defer></script>
+</body>
+</html>

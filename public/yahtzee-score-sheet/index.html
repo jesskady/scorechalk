@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1c2723">
+<title>Yahtzee Score Sheet — Free Online Scorecard for Up to 10 Players</title>
+<!-- visits, and errors on these pages: see /report.js -->
+<script src="/report.js?v=1"></script>
+<!-- Score Chalk as an app: installable, and working offline (see /pwa.js) -->
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="Score Chalk">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="A free online Yahtzee score sheet that adds up as you go, upper bonus and Yahtzee bonuses included. How Yahtzee scoring works, box by box, and how to fill in one sheet from every phone.">
+<link rel="canonical" href="https://scorechalk.com/yahtzee-score-sheet/">
+<meta property="og:site_name" content="Score Chalk">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://scorechalk.com/yahtzee-score-sheet/">
+<meta property="og:title" content="Yahtzee Score Sheet — Free Online Scorecard for Up to 10 Players">
+<meta property="og:description" content="A free online Yahtzee score sheet that adds up as you go, upper bonus and Yahtzee bonuses included. How Yahtzee scoring works, box by box, and how to fill in one sheet from every phone.">
+<meta property="og:image" content="https://scorechalk.com/og/yahtzee.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredericka+the+Great&display=swap">
+<link rel="stylesheet" href="/shared.css?v=29">
+<link rel="stylesheet" href="/guide.css?v=1">
+<script type="application/ld+json">[{"@context":"https://schema.org","@type":"WebApplication","name":"Score Chalk — Yahtzee score sheet","url":"https://scorechalk.com/yahtzee-score-sheet/","applicationCategory":"GameApplication","operatingSystem":"Any (web browser)","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"A free online Yahtzee score sheet that adds up as you go, upper bonus and Yahtzee bonuses included. How Yahtzee scoring works, box by box, and how to fill in one sheet from every phone."},{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How do you get the Yahtzee upper bonus?","acceptedAnswer":{"@type":"Answer","text":"Score 63 or more across Aces to Sixes — three of each number makes exactly 63 — and you get a 35-point bonus."}},{"@type":"Question","name":"What happens if you roll a second Yahtzee?","acceptedAnswer":{"@type":"Answer","text":"If your Yahtzee box already has 50, each extra Yahtzee earns a 100-point bonus, and you also score it in another box."}},{"@type":"Question","name":"What is the highest possible Yahtzee score?","acceptedAnswer":{"@type":"Answer","text":"1,575 — with every box at its best and twelve Yahtzee bonuses — though real games rarely pass 400."}},{"@type":"Question","name":"How many players can it handle?","acceptedAnswer":{"@type":"Answer","text":"From one to ten, each with their own column."}}]}]</script>
+</head>
+<body class="guide">
+<!-- A scoring guide: written for people searching how to score Yahtzee,
+     with the way straight into the game. -->
+<main>
+  <a class="backlink" href="/">&lsaquo; All games</a>
+  <section class="hero">
+    <span class="kicker">Score Chalk</span>
+    <h1>Yahtzee score sheet</h1>
+    <p class="lede">The whole Yahtzee scorecard on your phone, adding up as you play: tap a box, pick the score, and the bonus and totals take care of themselves.</p>
+    <a class="start" href="/yahtzee/">Start a Yahtzee game</a>
+    <span class="free">Free · no account · works on any phone</span>
+  </section>
+
+<h2>How Yahtzee scoring works</h2>
+<p>Each turn you roll five dice up to three times, then score the result in one empty box. Every box is filled once — if nothing fits, you score 0 in a box of your choice ("scratch" it). After 13 turns the sheet is full and the highest total wins.</p>
+
+<h3>Upper section</h3>
+<table><thead><tr><th>Box</th><th>Scores</th></tr></thead><tbody><tr><td>Aces, Twos, Threes, Fours, Fives, Sixes</td><td>The total of that number only</td></tr><tr><td>Bonus, if the upper section totals 63 or more</td><td>35</td></tr></tbody></table>
+<p>63 is three of each number — three aces, three twos and so on — so getting more than three of a high number makes up for fewer elsewhere.</p>
+
+<h3>Lower section</h3>
+<table><thead><tr><th>Box</th><th>Scores</th></tr></thead><tbody><tr><td>Three of a kind</td><td>Total of all five dice</td></tr><tr><td>Four of a kind</td><td>Total of all five dice</td></tr><tr><td>Full house (three and two of a kind)</td><td>25</td></tr><tr><td>Small straight (four in a row)</td><td>30</td></tr><tr><td>Large straight (five in a row)</td><td>40</td></tr><tr><td>Yahtzee (five of a kind)</td><td>50</td></tr><tr><td>Chance (anything)</td><td>Total of all five dice</td></tr></tbody></table>
+<p><b>Yahtzee bonus:</b> each further Yahtzee, once the Yahtzee box holds 50, scores a bonus of 100 — and is also scored in another box as usual.</p>
+  <h2>Keeping score with Score Chalk</h2>
+  <div class="features"><div class="feature"><b>Each box offers only what it can be</b>Sixes offers 6, 12, 18, 24 or 30; a full house offers 25; three of a kind asks for the dice total. Scratching is one tap.</div><div class="feature"><b>Totals and the bonus, live</b>Upper total, the 35 bonus and how far you are from it, Yahtzee bonuses and the grand total, always up to date.</div><div class="feature"><b>Up to 10 players</b>Four share a phone screen; more scroll sideways with the box names kept in view.</div><div class="feature"><b>Keep score together</b>Share the game and everyone joins from their own phone, picking which player they are. Each person scores their own, everyone sees the whole table live, and someone can watch from anywhere with a read-only link.</div><div class="feature"><b>Free, nothing to install</b>Opens in any phone or computer browser. No account, no ads. Add it to your home screen and it works offline too.</div></div>
+
+  <h2>Questions</h2>
+  <details><summary>How do you get the Yahtzee upper bonus?</summary><p>Score 63 or more across Aces to Sixes — three of each number makes exactly 63 — and you get a 35-point bonus.</p></details>
+  <details><summary>What happens if you roll a second Yahtzee?</summary><p>If your Yahtzee box already has 50, each extra Yahtzee earns a 100-point bonus, and you also score it in another box.</p></details>
+  <details><summary>What is the highest possible Yahtzee score?</summary><p>1,575 — with every box at its best and twelve Yahtzee bonuses — though real games rarely pass 400.</p></details>
+  <details><summary>How many players can it handle?</summary><p>From one to ten, each with their own column.</p></details>
+
+  <p class="again"><a class="start" href="/yahtzee/">Start a Yahtzee game</a></p>
+  <p class="others">Other scorekeepers: <a href="/cribbage-score-keeper/">Cribbage score keeper</a> <a href="/darts-scorer/">Darts scorer</a> <a href="/mtg-life-counter/">MTG life counter</a> <a href="/canasta-score-keeper/">Canasta score keeper</a> <a href="/farkle-score-sheet/">Farkle score sheet</a> <a href="/score-keeper/">Any game</a></p>
+</main>
+<script src="/pwa.js?v=1" defer></script>
+</body>
+</html>

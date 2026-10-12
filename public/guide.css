@@ -1,0 +1,51 @@
+/* The scoring guides (/cribbage-score-keeper/ and the rest): reading pages
+   in the site's slate and chalk, each with a way straight into the game. */
+body.guide{
+  background:var(--bg,#1c2723);color:var(--txt,#ecebe3);
+  -webkit-user-select:text;user-select:text;
+}
+.guide main{max-width:720px;margin:0 auto;padding:18px 18px 56px;line-height:1.6;font-size:16.5px}
+.guide .backlink{color:var(--dim,#a7b0a9);font-size:14px;text-decoration:none}
+.guide a{color:var(--gold,#c9a35a)}
+
+/* the top: what this is, and the way in */
+.guide .hero{
+  margin:14px 0 26px;padding:22px 20px 24px;border-radius:14px;
+  background:radial-gradient(110% 80% at 50% 0%, #2f3f38 0%, #1c2723 75%);
+  border:6px solid #6b4a2b;
+}
+.guide .kicker{font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--gold,#c9a35a)}
+.guide h1{font-family:"Fredericka the Great",Georgia,serif;font-weight:400;font-size:38px;line-height:1.1;margin:6px 0 10px}
+.guide .lede{font-size:17.5px;color:#d6dcd7;margin:0 0 18px}
+.guide .start{
+  display:inline-block;background:var(--green,#2a7d56);color:#fff;text-decoration:none;
+  font-weight:700;font-size:18px;padding:13px 22px;border-radius:12px;
+}
+.guide .start:active{filter:brightness(.92)}
+.guide .free{display:block;margin-top:10px;font-size:13.5px;color:var(--dim,#a7b0a9)}
+
+.guide h2{font-size:22px;margin:32px 0 8px}
+.guide h3{font-size:17px;margin:20px 0 4px}
+.guide p,.guide li{color:var(--txt,#ecebe3)}
+.guide ul{padding-left:22px;margin:6px 0}
+.guide li{margin:5px 0}
+.guide .note{font-size:14.5px;color:var(--dim,#a7b0a9)}
+
+/* scoring tables */
+.guide table{width:100%;border-collapse:collapse;margin:8px 0 6px;font-size:15.5px}
+.guide th,.guide td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line,#3a4a43)}
+.guide th{color:var(--dim,#a7b0a9);font-weight:600;font-size:13.5px;text-transform:uppercase;letter-spacing:.05em}
+.guide td:last-child{font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* what Score Chalk does for this game */
+.guide .features{display:grid;gap:10px;margin:10px 0}
+.guide .feature{background:var(--card,#26342e);border:1px solid var(--line,#3a4a43);border-radius:12px;padding:12px 14px}
+.guide .feature b{display:block;margin-bottom:2px}
+
+.guide details{border-top:1px solid var(--line,#3a4a43);padding:10px 0}
+.guide summary{cursor:pointer;font-weight:700}
+.guide details p{margin:6px 0 0}
+
+.guide .again{margin:34px 0 0;text-align:center}
+.guide .others{margin-top:30px;font-size:14.5px;color:var(--dim,#a7b0a9)}
+.guide .others a{margin-right:12px;white-space:nowrap}
