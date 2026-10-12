@@ -153,24 +153,48 @@ with a short block at the top of its own stylesheet that redefines values only
 everything it leaves alone still follows the room.
 
 A game
-that saves a game in progress can also be listed under *Pick up where you left
-off* by adding its storage key to `GAMES` in `home.js`. Games share `shared.css` — the palette and the reset — and nothing
+kept with `SCStore.put` (see `public/store.js`) can also be listed under *Pick
+up where you left off* by adding a line for its type to `SPEC` in `home.js`. Games share `shared.css` — the palette and the reset — and nothing
 else, so one game's layout can never break another's. Keep game-specific rules
 in that game's own stylesheet.
 
 ## Running locally
 
-Either a plain static server:
+Once per clone, `npm install` — it brings wrangler and the test browser
+driver into `node_modules/`, so nothing depends on a global or `npx` copy.
+Then the real Workers runtime, which is what production serves:
 
 ```sh
-npx http-server public -p 8080
+npm run dev            # wrangler dev --port 8790
 ```
 
-or the real Workers runtime, which is what production serves:
+## Tests
 
 ```sh
-npx wrangler dev --port 8790
+npm test
 ```
+
+`tests/` plays the site the way people do, in a real browser: phones of their
+own, sharing links between them, scoring at the same moment, going offline.
+One run starts its own `wrangler dev` on port 8799 (`TEST_PORT` to change it)
+with a fresh database in a temporary folder — every migration applied, nothing
+from your dev database — and stops it at the end. The per-visitor limits on
+shared games are switched off for that server only (`LIMITS=off`), as one run
+makes more shares than any visitor would.
+
+It needs Chrome or Edge installed; it looks in the usual places, or set
+`BROWSER_PATH`. A run takes three to five minutes: phones look for news from
+each other every few seconds, and the tests wait as a person would.
+
+| File | Covers |
+| --- | --- |
+| `links.mjs` | games by id and link; several of a kind at once; the old keys moving in |
+| `builder.mjs` | the sheet, scoring in its bubble, changing a score and undoing it, flip, the board's rows |
+| `sharing.mjs` | joining by seat, scoring only your own, scoring at once, the same cell from two phones, watching, Yahtzee |
+| `darts.mjs` | turns round the table by seat, darts mid-turn kept, a win reaching every phone |
+| `cribbage.mjs` | pegging by seat and at once, counting your own hand |
+| `server.mjs` | who may write, link cards, error reports, the daily job, the policy pages |
+| `offline.mjs` | every game opening with no signal, a game in progress by its link |
 
 ## Accounts
 
@@ -272,16 +296,22 @@ restart `wrangler dev` after editing it.
 
 ## Deploying
 
-Hosted on Cloudflare as a **Worker with static assets** — not Pages. The site
-itself is static; `worker/index.js` exists only to 301 `www.scorechalk.com` to
-the apex, and hands every other request to `public/` untouched. Both hostnames
+Hosted on Cloudflare as a **Worker with static assets** — not Pages. The games
+themselves are static; `worker/index.js` 301s `www.scorechalk.com` to the
+apex, answers `/auth` and `/api` (accounts, saved games, shared games, error
+reports), fills in the card for a link to a shared game, and hands every other
+request to `public/` untouched. Both hostnames
 are declared in `wrangler.jsonc`, so a fresh clone can rebuild the whole
 deployment from that file.
 
 ```sh
 npx wrangler login     # once per machine
-npx wrangler deploy
+npm test               # before deploying
+npm run deploy         # wrangler deploy
 ```
+
+A new migration goes to the live database *before* the deploy that needs it
+(see Migrations above).
 
 Unknown paths 404 (`not_found_handling: "none"`). There is no client-side
 routing to rescue, so a wrong path is genuinely not found.

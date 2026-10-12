@@ -46,7 +46,7 @@ async function route(request, env) {
     // shared games, so it can't be used to fill the table
     if (url.pathname === '/api/errors') {
       if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
-      if (env.ERRORS) {
+      if (env.ERRORS && env.LIMITS !== 'off') {
         const { success } = await env.ERRORS.limit({ key: request.headers.get('cf-connecting-ip') || 'local' });
         if (!success) return json({ error: 'Too many requests' }, 429);
       }
@@ -109,7 +109,7 @@ async function route(request, env) {
       const limiter = request.method === 'GET' ? env.SHARE_READ
         : url.pathname === '/api/share' || url.pathname.includes('/seat') ? env.SHARE_CREATE
         : env.SHARE_WRITE;
-      if (limiter) {
+      if (limiter && env.LIMITS !== 'off') {   // off only for the tests: see tests/helpers.mjs
         const key = request.headers.get('cf-connecting-ip') || 'local';
         const { success } = await limiter.limit({ key });
         if (!success) return json({ error: 'Too many requests. Wait a moment and try again.' }, 429);

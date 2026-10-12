@@ -1,0 +1,15 @@
+{
+  "name": "scorechalk",
+  "private": true,
+  "description": "Score Chalk: scorekeeping for the games you play. See README.md.",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --port 8790",
+    "deploy": "wrangler deploy",
+    "test": "node --test --test-timeout=600000 tests/all.test.mjs"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^24.0.0",
+    "wrangler": "^4.147.0"
+  }
+}
