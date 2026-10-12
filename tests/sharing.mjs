@@ -116,3 +116,30 @@ describe('sharing Yahtzee by seat', () => {
     await a.close(); await b.close();
   });
 });
+
+describe('guests, when the game ends', () => {
+  test('whoever joined or watched is offered a game of their own; the author is not', async () => {
+    const jess = await phone(), heather = await phone(), watcher = await phone();
+    await open(jess, '/builder/');
+    await jess.evaluate(() => { Object.assign(cfg, { mode: 'up', start: 0, win: 'target', target: 20, turns: true, useRounds: false, names: ['Jess', 'Heather'], players: 2 }); saveCfg(); renderSetup(); });
+    await startGame(jess);
+    const sh = await share(jess);
+    await join(heather, 'builder', sh.join, 'Heather');
+    await open(watcher, `/builder/?s=${sh.view}`);
+
+    await scoreCell(heather, 1, 5);
+    await settle();
+    await scoreCell(jess, 0, 25);          // the round complete, Jess over the line: the game is won
+    await settle();
+
+    const offer = (pg) => pg.evaluate(() => {
+      const a = document.querySelector('#winOverlay:not(.hidden) .sc-invite a');
+      return a ? a.getAttribute('href') : null;
+    });
+    assert.equal(await offer(heather), '/builder/?from=shared');
+    assert.equal(await offer(watcher), '/builder/?from=shared');
+    assert.equal(await jess.evaluate(() => !document.getElementById('winOverlay').classList.contains('hidden')), true, 'the author sees the win…');
+    assert.equal(await offer(jess), null, '…but no offer');
+    for (const pg of [jess, heather, watcher]) { assert.deepEqual(pg.errors, []); await pg.close(); }
+  });
+});

@@ -672,6 +672,42 @@ window.SCShare = (function () {
     return box;
   }
 
+  /* ---------------- guests: start your own ----------------
+
+     Someone who came in by a share link — to play, or to watch — has just
+     seen what Score Chalk does. When the game ends, the end-of-game card
+     (#winOverlay, in every game) offers them a game of their own: the same
+     game's setup, fresh, marked ?from=shared so the visits show where they
+     came from. Never for whoever shared the game. */
+  function inviteGuests() {
+    const ov = document.getElementById('winOverlay');
+    if (!ov) return;
+    new MutationObserver(() => { if (!ov.classList.contains('hidden')) invite(ov); })
+      .observe(ov, { attributes: true, attributeFilter: ['class'] });
+  }
+
+  function guest() {
+    const st = page && page.get(), sh = st && shareOf(st.id);
+    return !!window.SCWatching || !!(sh && !sh.owner);
+  }
+
+  function invite(ov) {
+    if (!guest() || ov.querySelector('.sc-invite')) return;
+    const st = page.get();
+    // the same game, fresh: for the Builder, the template it was made from
+    const src = page.type === 'builder' && st && st.cfg && st.cfg.source;
+    const hash = src && src !== 'custom' && !src.startsWith('my:') ? '#' + src : '';
+    const box = el('div', 'margin-top:6px;padding:12px;border-radius:12px;border:1px solid var(--gold,#c9a35a);' +
+      'display:flex;flex-direction:column;gap:6px;align-items:center;text-align:center');
+    box.className = 'sc-invite sc-share-ui';
+    const go = el('a', 'display:inline-block;background:var(--green,#2a7d56);color:var(--on-primary,#fff);text-decoration:none;' +
+      'font-weight:700;font-size:15px;padding:10px 16px;border-radius:10px', 'Start your own game');
+    go.href = `/${page.type}/?from=shared${hash}`;
+    box.append(el('b', 'font-size:14.5px', 'Liked keeping score this way?'), go,
+      el('span', 'font-size:12px;color:var(--dim,#aaa)', 'Free · no account · works on any phone'));
+    (ov.querySelector('.win-card') || ov).append(box);
+  }
+
   async function stop(editToken) {
     try { await api('/' + encodeURIComponent(editToken), { method: 'DELETE' }); } catch (e) { /* offline */ }
   }
@@ -684,7 +720,7 @@ window.SCShare = (function () {
   }
 
   return {
-    attach(p) { page = p; },
+    attach(p) { page = p; inviteGuests(); },
     youAre, lastMe, rememberMe,
     fromUrl, open, changed, stop, seat,
     canScore: (p) => { const s = seat(); return s === null || s === p; },
