@@ -10,7 +10,8 @@ import { saveGame, listGames, getGame, patchGame, deleteGame } from './games.js'
 import { getStats } from './stats.js';
 import { listCustomGames, putCustomGame, deleteCustomGame } from './custom-games.js';
 import { reportError, recordError, cleanErrors } from './errors.js';
-import { createShare, getShare, putShare, putCells, claimSeat, freeSeat, deleteShare, cleanShares, previewFor } from './share.js';
+import { accountKey } from './guard.js';
+import { shareCheck, createShare, getShare, putShare, putCells, claimSeat, freeSeat, deleteShare, cleanShares, previewFor } from './share.js';
 
 const CANONICAL = 'scorechalk.com';
 
@@ -65,6 +66,18 @@ async function route(request, env) {
       return json({ ...(await me(request, env)), auth: true });
     }
 
+    // Writes from a signed-in account — saving games, My games — are limited
+    // per account, by its session, so a script with many IP addresses gets
+    // no further (see "ratelimits" in wrangler.jsonc).
+    if ((url.pathname.startsWith('/api/games') || url.pathname.startsWith('/api/custom-games')) &&
+        request.method !== 'GET' && env.ACCOUNT_WRITE && env.LIMITS !== 'off') {
+      const key = accountKey(request);
+      if (key) {
+        const { success } = await env.ACCOUNT_WRITE.limit({ key });
+        if (!success) return json({ error: 'Too many changes at once. Wait a moment and try again.' }, 429);
+      }
+    }
+
     if (url.pathname === '/api/stats') {
       if (!authConfigured(env)) return json({ error: 'Sign-in is not configured.' }, 503);
       if (request.method !== 'GET') return json({ error: 'Method not allowed' }, 405);
@@ -115,6 +128,9 @@ async function route(request, env) {
         if (!success) return json({ error: 'Too many requests. Wait a moment and try again.' }, 429);
       }
     }
+
+    // whether to show Turnstile before sharing, and its public site key
+    if (url.pathname === '/api/share/check') return shareCheck(env);
 
     if (url.pathname === '/api/share') {
       if (request.method === 'POST') return createShare(request, env);

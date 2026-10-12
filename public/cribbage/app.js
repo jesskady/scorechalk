@@ -152,7 +152,15 @@ function save() {
 
 // The game as the profile keeps it: its history, and its own state to pick
 // it up again by. Nothing until there is a score in it.
-const cloudGame = () => (S && S.log.length ? { ...toPayload(), state: S } : null);
+const cloudGame = () => (S && S.log.length ? { ...toPayload(), state: outgoing(S) } : null);
+
+/* The game as it leaves this phone — to the profile, or to the phones it
+   is shared with. Undo keeps a copy of the board before every score, up to
+   400 of them, and they are most of a game's size; the phone doing the
+   scoring keeps them all, and everywhere else gets the last 20 — plenty to
+   put right a mistake, and a full game a fraction of the size. */
+const OUTGOING_UNDO = 20;
+const outgoing = (st) => ({ ...st, undo: (st.undo || []).slice(-OUTGOING_UNDO) });
 // The newest game of this kind in progress here, for the setup's Resume.
 function load() {
   const g = SCStore.latest(TYPE);
@@ -879,6 +887,7 @@ async function openFromUrl() {
    newer one when it comes in from another phone. */
 SCShare.attach({
   type: TYPE, get: () => S, apply: applyShared, seats: true, names: (st) => st.names, me: (st) => st.me,
+  trim: outgoing,
   // the play moves quickly, so look for news every second while it lasts
   pollEvery: () => (S && S.phase === 'play' ? 1000 : 3000),
   rebase: rebaseShared,

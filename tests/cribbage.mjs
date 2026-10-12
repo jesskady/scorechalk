@@ -3,7 +3,7 @@
 
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { phone, open, startGame, share, join, settle, wait } from './helpers.mjs';
+import { phone, open, startGame, share, join, settle, wait, U } from './helpers.mjs';
 
 const peg = (pg, p, pts) => pg.evaluate((p, pts) => { score(p, pts, 'play', 'test'); save(); render(); }, p, pts);
 
@@ -42,5 +42,20 @@ describe('Cribbage by seat', () => {
     assert.match(await b.evaluate(() => document.querySelector('.hand-submit').textContent), /Waiting for Player 1's hand/);
     assert.equal(await a.evaluate(() => S.scores[1]), 8);
     await a.close(); await b.close();
+  });
+});
+
+describe('Cribbage, as it leaves the phone', () => {
+  test('a shared game carries the last 20 Undo steps; the phone keeps them all', async () => {
+    const a = await phone();
+    await open(a, '/cribbage/');
+    await startGame(a);
+    await a.evaluate(() => { for (let k = 0; k < 60; k++) score(k % 2, 1, 'play', 'Go'); save(); });
+    const sh = await share(a);
+    const shared = await (await fetch(`${U}/api/share/${sh.view}`)).json();
+    assert.equal(shared.state.undo.length, 20);
+    assert.equal(shared.state.log.length, 60, 'every score still goes');
+    assert.equal(await a.evaluate(() => S.undo.length), 60, 'the phone keeps its whole Undo');
+    await a.close();
   });
 });

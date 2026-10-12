@@ -31,6 +31,8 @@
                             as it now stands, when that can be done safely
                             — or null, when the change has to give way;
                             pollEvery(), how often to look for news, in ms;
+                            trim(S), the game as it leaves this phone, for a
+                            game that keeps more than others need (Cribbage);
                             me(S), the player whoever set the game up said
                             they are, taken for them when it is shared
      SCShare.youAre(box, names, current, onPick)
@@ -53,6 +55,11 @@ window.SCShare = (function () {
   let applying = false;     // a newer game is being shown: not a change to send on
   let watch = null;         // while watching: { token, mode, version | seq, base, known }
   const pending = {};       // game id → timer, a change about to be sent
+  const sending = {};       // game id → true, while a change is on its way
+  // A game with a change about to go, or on its way, isn't overwritten by
+  // news from elsewhere meanwhile: it would wipe the change before it lands,
+  // and with it what a refused change needs to be made again.
+  const busy = (id) => !!pending[id] || !!sending[id];
 
   const api = (path, opts) => fetch('/api/share' + path, {
     headers: { 'content-type': 'application/json', accept: 'application/json' }, ...opts,
@@ -63,6 +70,8 @@ window.SCShare = (function () {
   const same = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
   const seatOfKey = (key) => Number(key.split(':')[0]);
   const onScreen = (id) => { const s = page && page.get(); return !!s && s.id === id; };
+  // the game as it goes to the server: trimmed, where the game says how
+  const outgoing = (st) => (page && page.trim ? page.trim(st) : st);
   const namesOf = (st) => (page.cells ? page.cells.names(st) : page.names(st));
   // the token this phone writes with: whoever shared the game's, or its seat's
   const writer = (sh) => sh && (sh.edit || sh.seatToken);
@@ -196,7 +205,7 @@ window.SCShare = (function () {
       const res = await api('/' + encodeURIComponent(sh.owner ? sh.edit : sh.seatToken) + '?since=' + (sh.seq || 0));
       if (res.status === 404) { gone(id); return; }
       const data = await res.json();
-      if (pending[id]) return;
+      if (busy(id)) return;
       const sh2 = { ...shareOf(id) }, k2 = { ...(sh2.known || {}) };
       sh2.seats = data.seats;
       if (data.unchanged) { SCStore.setShare(id, sh2); return; }
@@ -219,7 +228,8 @@ window.SCShare = (function () {
     pending[id] = setTimeout(() => {
       delete pending[id];
       const sh = shareOf(id);
-      if (sh && sh.mode === 'cells') sendCells(id); else send(id);
+      sending[id] = true;
+      (sh && sh.mode === 'cells' ? sendCells(id) : send(id)).finally(() => { delete sending[id]; });
     }, 600);
   }
 
@@ -228,7 +238,7 @@ window.SCShare = (function () {
     if (!writer(sh)) return;
     try {
       const res = await api('/' + encodeURIComponent(writer(sh)), {
-        method: 'PUT', body: JSON.stringify({ state: g.state, base: sh.version || 1 }),
+        method: 'PUT', body: JSON.stringify({ state: outgoing(g.state), base: sh.version || 1 }),
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok) { SCStore.setShare(id, { ...shareOf(id), version: data.version, base: g.state }); return; }
@@ -236,7 +246,7 @@ window.SCShare = (function () {
         // what this phone did, made again on the game as it now stands
         const merged = page && page.rebase && sh.base && onScreen(id) ? page.rebase(data.state, g.state, sh.base) : null;
         SCStore.setShare(id, { ...shareOf(id), version: data.version, base: data.state });
-        if (merged) { take(g.type, id, merged); send(id); return; }
+        if (merged) { take(g.type, id, merged); await send(id); return; }
         take(g.type, id, data.state);
         SCStore.notice("Someone else changed the game at the same moment. Your last change didn't go in. Showing the latest scores.");
         return;
@@ -255,14 +265,14 @@ window.SCShare = (function () {
     if (document.visibilityState !== 'visible' || !page) return;
     if (watch) { await pollWatch(); return; }
     const cur = page.get(), sh = cur && shareOf(cur.id);
-    if (!sh || pending[cur.id]) return;
+    if (!sh || busy(cur.id)) return;
     if (sh.mode === 'cells') { if (page.cells) await pollCells(cur.id, sh); return; }
     if (!writer(sh)) return;
     try {
       const res = await api('/' + encodeURIComponent(writer(sh)) + '?since=' + (sh.version || 1));
       if (res.status === 404) { gone(cur.id); return; }
       const data = await res.json();
-      if (data.unchanged || !data.state || pending[cur.id]) return;
+      if (data.unchanged || !data.state || busy(cur.id)) return;
       SCStore.setShare(cur.id, { ...shareOf(cur.id), version: data.version, base: data.state });
       show(data.state);
     } catch (e) { /* offline: try again next time */ }
@@ -409,6 +419,40 @@ window.SCShare = (function () {
     }
   }
 
+  /* ---------------- a person, not a script ----------------
+
+     Making a share and taking a seat can be checked by Cloudflare Turnstile
+     (see worker/guard.js), when the site has it switched on: the page asks
+     once, and if so loads Turnstile into the sheet, where it usually passes
+     unseen — it shows itself only when it wants a tap. The token it gives
+     goes with the request. Switched off, this resolves at once to nothing. */
+  let checkKey;       // undefined until asked; null when Turnstile is off
+  function loadTurnstile() {
+    if (window.turnstile) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+      s.onload = resolve; s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
+  async function personToken(where) {
+    if (checkKey === undefined) {
+      try { checkKey = (await (await api('/check')).json()).siteKey || null; } catch (e) { checkKey = null; }
+    }
+    if (!checkKey) return undefined;
+    try { await loadTurnstile(); } catch (e) { return undefined; }
+    return new Promise((resolve) => {
+      const box = el('div', 'display:flex;justify-content:center;margin:4px 0');
+      where.append(box);
+      const done = (t) => { box.remove(); resolve(t); };
+      window.turnstile.render(box, {
+        sitekey: checkKey, appearance: 'interaction-only',
+        callback: (t) => done(t), 'error-callback': () => done(undefined), 'timeout-callback': () => done(undefined),
+      });
+    });
+  }
+
   /* ---------------- sheets ---------------- */
 
   function el(tag, css, text) {
@@ -448,7 +492,8 @@ window.SCShare = (function () {
         b.onclick = async () => {
           b.disabled = true;
           try {
-            const res = await api('/' + encodeURIComponent(joinToken) + '/seat', { method: 'POST', body: JSON.stringify({ seat }) });
+            const turnstile = await personToken(body);
+            const res = await api('/' + encodeURIComponent(joinToken) + '/seat', { method: 'POST', body: JSON.stringify({ seat, turnstile }) });
             if (res.status === 409) { b.textContent = name + ' · taken'; b.style.opacity = '.45'; note.textContent = 'Someone just took that player.'; return; }
             if (!res.ok) throw new Error();
             const data = await res.json();
@@ -487,10 +532,12 @@ window.SCShare = (function () {
     if (!sh || (!sh.edit && !seatPhone)) {
       try {
         const cells = page.cells ? page.cells.of(st) : null;
+        const turnstile = await personToken(body);
         const res = await api('', { method: 'POST', body: JSON.stringify({
-          id: st.id, type: page.type, state: st, ...(cells ? { mode: 'cells', cells } : {}), ...(page.seats ? { seats: true } : {}),
+          turnstile, id: st.id, type: page.type, state: outgoing(st), ...(cells ? { mode: 'cells', cells } : {}), ...(page.seats ? { seats: true } : {}),
         }) });
-        if (!res.ok) throw new Error();
+        // refused: say why — busy, or not confirmed as a person
+        if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || '');
         const data = await res.json();
         // the player whoever set the game up said they are: taken for them
         const me = page.me ? page.me(st) : null;
@@ -515,7 +562,7 @@ window.SCShare = (function () {
         renderSlots();
       } catch (e) {
         body.replaceChildren(el('p', 'margin:0;color:var(--neg,#e2857a);font-size:14px',
-          "Couldn't make the links. Check your connection and try again."));
+          e.message || "Couldn't make the links. Check your connection and try again."));
         return;
       }
     }

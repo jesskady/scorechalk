@@ -28,7 +28,17 @@
 
     // Public by design — it travels in the sign-in URL. The matching secret is
     // set with `wrangler secret put` and must never appear in this file.
-    "GOOGLE_CLIENT_ID": "35240829771-8e7dastnmvt8ktfkfg7k225su1k6mr58.apps.googleusercontent.com"
+    "GOOGLE_CLIENT_ID": "35240829771-8e7dastnmvt8ktfkfg7k225su1k6mr58.apps.googleusercontent.com",
+
+    // Past this size the database refuses new shares and new saved games,
+    // while every game already there carries on (worker/guard.js). Well
+    // under the 500 MB a free D1 database holds.
+    "DB_CEILING_MB": "400",
+
+    // Cloudflare Turnstile, checking a person makes each new share and takes
+    // each seat (worker/guard.js). Public by design. Off while empty, and
+    // only on once the secret is set too: wrangler secret put TURNSTILE_SECRET
+    "TURNSTILE_SITE_KEY": "0x4AAAAAAFUylfwLiVIVi_aY"
   },
 
   // Shared games are open to anyone holding a link, signed in or not, so
@@ -41,7 +51,9 @@
     { "name": "SHARE_WRITE", "namespace_id": "1002", "simple": { "limit": 240, "period": 60 } },
     { "name": "SHARE_READ", "namespace_id": "1003", "simple": { "limit": 600, "period": 60 } },
     // error reports from the pages (/api/errors)
-    { "name": "ERRORS", "namespace_id": "1004", "simple": { "limit": 30, "period": 60 } }
+    { "name": "ERRORS", "namespace_id": "1004", "simple": { "limit": 30, "period": 60 } },
+    // saves from a signed-in account, keyed by its session: see worker/guard.js
+    { "name": "ACCOUNT_WRITE", "namespace_id": "1005", "simple": { "limit": 60, "period": 60 } }
   ],
 
   // Workers Logs, in the dashboard under the Worker's Logs tab: a tenth of

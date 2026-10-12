@@ -28,6 +28,8 @@
  *   DELETE /api/share/:token           edit: stop sharing
  */
 
+import { full, tooFull, human, notHuman, turnstileOn } from './guard.js';
+
 const json = (body, status = 200) =>
   new Response(JSON.stringify(body), {
     status,
@@ -36,8 +38,14 @@ const json = (body, status = 200) =>
 
 const TYPES = ['darts', 'cribbage', 'yahtzee', 'magic', 'builder'];
 const CELL_TYPES = ['builder', 'yahtzee', 'darts'];
-const MAX_STATE = 256 * 1024;   // as for a game saved to a profile
-const MAX_CELL = 4 * 1024;
+// Sized from real games: the longest measured, a full three-player
+// Cribbage game, comes to about 20 KB as it is shared (its Undo history
+// trimmed), most games 5–11 KB. A cell is one score: a few dozen bytes.
+const MAX_STATE = 32 * 1024;
+const MAX_CELL = 2 * 1024;
+// writes to one game's cells, edits included: a long game makes a few
+// hundred, so this only ever stops a script
+const MAX_CELL_WRITES = 5000;
 const MAX_SEATS = 12;
 // '<player>:<round or box>'
 const CELL_KEY = /^(\d{1,2}):[A-Za-z0-9_]{1,24}$/;
@@ -113,6 +121,11 @@ export async function createShare(request, env) {
     return json({ mode: found.mode, edit: found.edit_token, ...links(found, 'edit'), version: found.version, seq: found.seq });
   }
 
+  // a new share: refused while the database is past its ceiling, and only
+  // for a person (see guard.js)
+  if (await full(env)) return tooFull();
+  if (!(await human(request, env, b.turnstile))) return notHuman();
+
   const now = Date.now(), view = token(), edit = token(), join = cells || b.seats ? token() : null;
   const stmts = [env.DB.prepare(
     `INSERT INTO shared_games (id, game_type, state, version, view_token, edit_token, created_at, updated_at, mode, join_token, seq)
@@ -134,6 +147,12 @@ export async function createShare(request, env) {
   }
   await env.DB.batch(stmts);
   return json({ mode: cells ? 'cells' : 'state', view, edit, ...(join ? { join } : {}), version: 1, seq });
+}
+
+// What a page needs to know before sharing: whether to show Turnstile, and
+// with which site key (public by design).
+export function shareCheck(env) {
+  return json({ siteKey: turnstileOn(env) ? env.TURNSTILE_SITE_KEY : null });
 }
 
 /* ---------------- reading one ---------------- */
@@ -197,6 +216,7 @@ export async function putCells(request, env, t) {
   if (found.kind !== 'edit' && found.kind !== 'seat') return json({ error: 'This link can only watch' }, 403);
   const b = await body(request);
   if (!b || !Array.isArray(b.cells) || b.cells.length > 40) return json({ error: 'Invalid payload' }, 400);
+  if (found.row.seq + b.cells.length > MAX_CELL_WRITES) return json({ error: 'This game has reached its limit.' }, 409);
 
   const id = found.row.id, applied = [], conflicts = [];
   for (const c of b.cells) {
@@ -235,6 +255,8 @@ export async function claimSeat(request, env, t) {
   if (found.kind !== 'join' && found.kind !== 'edit') return json({ error: 'This link can only watch' }, 403);
   const b = await body(request);
   if (!b || !Number.isInteger(b.seat) || b.seat < 0 || b.seat >= MAX_SEATS) return json({ error: 'Invalid seat' }, 400);
+  // someone joining takes a seat as a person; whoever shared it already did
+  if (found.kind === 'join' && !(await human(request, env, b.turnstile))) return notHuman();
   const seatToken = token();
   try {
     await env.DB.prepare('INSERT INTO shared_seats (game_id, seat, token, claimed_at) VALUES (?, ?, ?, ?)')

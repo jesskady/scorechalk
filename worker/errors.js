@@ -22,17 +22,22 @@ const json = (body, status = 200) =>
 
 const clip = (v, n) => (typeof v === 'string' ? v.slice(0, n) : null);
 const KEEP = 30 * 24 * 3600e3;
+// At most this many different errors kept at once: past it, new kinds are
+// only logged, while those already kept still count up.
+const MAX_KINDS = 2000;
 
 async function keep(env, source, message, place, stack, page, agent) {
   const now = Date.now();
   const key = `${source}|${message}|${place || ''}`.slice(0, 600);
   console.error(JSON.stringify({ error: source, message, place, page }));
+  const counted = await env.DB.prepare(
+    'UPDATE errors SET count = count + 1, last_seen = ?, stack = ?, page = ?, agent = ? WHERE key = ?'
+  ).bind(now, stack, page, agent, key).run();
+  if (counted.meta && counted.meta.changes) return;
   await env.DB.prepare(
-    `INSERT INTO errors (key, source, message, place, stack, page, agent, count, first_seen, last_seen)
-     VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
-     ON CONFLICT (key) DO UPDATE SET count = count + 1, last_seen = excluded.last_seen,
-       stack = excluded.stack, page = excluded.page, agent = excluded.agent`
-  ).bind(key, source, message, place, stack, page, agent, now, now).run();
+    `INSERT OR IGNORE INTO errors (key, source, message, place, stack, page, agent, count, first_seen, last_seen)
+     SELECT ?, ?, ?, ?, ?, ?, ?, 1, ?, ? WHERE (SELECT COUNT(*) FROM errors) < ?`
+  ).bind(key, source, message, place, stack, page, agent, now, now, MAX_KINDS).run();
 }
 
 export async function reportError(request, env) {

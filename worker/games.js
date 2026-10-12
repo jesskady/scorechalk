@@ -12,6 +12,7 @@
  */
 
 import { currentUserId } from './auth.js';
+import { full, tooFull } from './guard.js';
 
 /* Free-tier D1 allows 50 queries per Worker invocation and 100 bound
    parameters per query. Turns therefore go up in multi-row inserts of ten
@@ -22,7 +23,9 @@ const MAX_TURNS = 400;
 const MAX_DETAIL = 64;
 // A game's own state, as JSON. The largest real one, a long builder game,
 // is a few tens of kilobytes.
-const MAX_STATE = 256 * 1024;
+// Sized from real games (see MAX_STATE in share.js): the longest, a full
+// Cribbage game, saves at about 20 KB with its Undo history trimmed.
+const MAX_STATE = 32 * 1024;
 // Players in one game. Darts and cribbage stop well short of this; a
 // Yahtzee table can run to ten.
 const MAX_PLAYERS = 12;
@@ -98,6 +101,9 @@ export async function saveGame(request, env) {
   const owner = await env.DB.prepare('SELECT owner_user_id FROM games WHERE id = ?')
     .bind(body.id).first();
   if (owner && owner.owner_user_id !== uid) return json({ error: 'Not your game' }, 403);
+  // a new game, while the database is past its ceiling, waits; games
+  // already saved carry on (see guard.js)
+  if (!owner && (await full(env))) return tooFull();
 
   const now = Date.now();
   const config = JSON.stringify(body.config ?? {});

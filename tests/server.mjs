@@ -28,6 +28,15 @@ describe('the server', () => {
     assert.equal((await api(`/api/share/${made.data.join}/seat/1`, 'DELETE')).status, 404, 'only the author frees a seat');
   });
 
+  test('a shared game has a size limit, and Turnstile is off until it has keys', async () => {
+    const id = crypto.randomUUID();
+    const big = { id, names: ['A', 'B'], padding: 'x'.repeat(33 * 1024) };
+    assert.equal((await api('/api/share', 'POST', { id, type: 'magic', state: big })).status, 400, 'over 32 KB is refused');
+    const fits = { id, names: ['A', 'B'], padding: 'x'.repeat(20 * 1024) };
+    assert.equal((await api('/api/share', 'POST', { id, type: 'magic', state: fits })).status, 200, 'a long real game fits');
+    assert.deepEqual((await api('/api/share/check')).data, { siteKey: null });
+  });
+
   test('a link to a shared game shows who is playing', async () => {
     const id = crypto.randomUUID();
     const made = await api('/api/share', 'POST', { id, type: 'cribbage', state: { id, names: ['Jess', 'Heather'] }, seats: true });
