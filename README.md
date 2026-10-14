@@ -12,6 +12,8 @@ Mobile-first scorekeeping for the games I play. The home page is a chooser; each
 
 **ScoreChalk Builder** covers everything else: pick how a game ends (keep score, first to a target, lowest wins, out at zero), which way it scores, a fixed number of rounds, and your own quick-score buttons. Quick-score buttons can be **named** (`Red three 100, Going out 100`): the button shows the name, and what was tapped is spelled out before it is entered and in the history. With four or more players a game can be **played in teams**: players are split into 2–4 sides (alternate seats by default, tap a player's team chip to move them), and each side is scored as one, named for its players. **Farkle** and **Canasta** are builder games with their rules filled in — *templates* — and have their own tiles on the home page. Canasta uses both: two teams of two, first to 5,000, with named buttons for canastas, red threes and going out. Signed in, you can save your own builder games to your profile as **My games**.
 
+**Tournaments** run a round robin of darts from one phone: three to ten players, with the starting score and double rules set once for every match. The format is everyone once, everyone twice (the second meeting with the other player first), or short (only the first so many rounds of the draw, so each plays that many, or one fewer for anyone who sat a round out); and **boards** sets how many matches are played at once, down to one at a time. With an odd number one player sits out each full round. Each match is an ordinary darts game, opened with its players and rules filled in, and its result is read back from the game kept on the device, so an undo in the game undoes the result too. A result can also be set by hand, for a match scored elsewhere. Standings go by wins (by share of matches won, when a short format gives some players one more), then head to head between two players level, then three-dart average. Adding another game is an entry in `GAMES` in `public/tournament/app.js`, plus that game taking its match from the address as darts does (`fromTourney`).
+
 ## Use it
 
 Live: **https://scorechalk.com**
@@ -113,6 +115,10 @@ public/
     rules.js      the rules a builder game can have, and their one-line
                   summary; also loaded by the home page and the profile
     style.css
+  tournament/
+    index.html
+    app.js        the draw, reading results from the games, standings
+    style.css
 worker/
   index.js        router: www redirect, /auth and /api
   auth.js         Google OIDC + signed session cookie
@@ -195,6 +201,7 @@ each other every few seconds, and the tests wait as a person would.
 | `cribbage.mjs` | pegging by seat and at once, counting your own hand |
 | `server.mjs` | who may write, link cards, error reports, the daily job, the policy pages |
 | `offline.mjs` | every game opening with no signal, a game in progress by its link |
+| `tournament.mjs` | the draw, a match played in darts and its result read back, an undo, results set by hand, the home page |
 
 ## Accounts
 

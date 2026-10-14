@@ -56,9 +56,38 @@ function openGame(state) {
   showGame();
 }
 
-// Leaving a game: back to the setup, the address without it.
+// Leaving a game: back to the setup, the address without it — or, for a
+// tournament's match, back to the tournament.
 function leaveGame() {
-  location.replace(location.pathname);
+  location.replace(tid() ? tourneyUrl(tid()) : location.pathname);
+}
+
+/* ---------------- tournaments ----------------
+
+   A tournament (/tournament/) sends each match here as
+     ?new=<game id>&t=<tournament id>&tn=<its name>&a=Alice&b=Bob&start=501&din=1&dout=1
+   The setup is filled in from it, and the game takes the id the tournament
+   gave it: that is how the tournament finds the result, by reading the game
+   from the store. Nothing here writes to the tournament. A match's game is
+   kept when it ends, rather than cleared for the next, so it is there to be
+   read. */
+
+const tourneyUrl = (tid) => '/tournament/?g=' + encodeURIComponent(tid);
+
+// The tournament this game is a match of, when that tournament is on this
+// device. A shared match carries its tournament's id to every phone in it,
+// and to the others it is a game like any other.
+const tid = () => (S && S.tid && SCStore.get(S.tid) ? S.tid : null);
+
+function fromTourney() {
+  const q = new URLSearchParams(location.search);
+  if (!q.get('new') || !q.get('t')) return null;
+  return {
+    id: q.get('new'), tid: q.get('t'), name: q.get('tn') || 'Tournament',
+    names: [q.get('a') || '', q.get('b') || ''],
+    start: parseInt(q.get('start'), 10) || 501,
+    doubleIn: q.get('din') === '1', doubleOut: q.get('dout') === '1',
+  };
 }
 
 /* ---------------- messages ---------------- */
@@ -193,8 +222,25 @@ function buildSetup() {
       doubleOut: toggles.doubleOut.classList.contains('is-on'),
       meIdx: playerCount === 1 ? 0 : meIdx
     });
+    if (match) { S.id = match.id; S.tid = match.tid; }
     openGame(S);
   });
+
+  // a tournament's match: its players and the tournament's rules
+  const match = fromTourney();
+  if (match) {
+    match.names.forEach((n, i) => { nameInputs[i].value = n; });
+    labelMeBtns();
+    $('startScore').value = match.start;
+    $('startScore').dispatchEvent(new Event('input'));
+    if (match.doubleIn) toggles.doubleIn.click();
+    if (match.doubleOut) toggles.doubleOut.click();
+    $('modeRow').closest('.card').classList.add('hidden');
+    $('setupSub').textContent = match.name;
+    $('setupBack').href = tourneyUrl(match.tid);
+    $('setupBack').innerHTML = '&lsaquo; Tournament';
+    return;    // no Resume: a match starts its own game
+  }
 
   const saved = load();
   if (saved && !saved.over) {
@@ -306,17 +352,20 @@ function buildBoard() {
 
   $('quitBtn').addEventListener('click', async () => {
     const names = S.players.map(p => `${p.name} on ${p.score}`).join(' and ');
+    if (tid() && S.over) { leaveGame(); return; }
     const ok = await askConfirm(S.over
       ? 'This clears the finished game and goes back to setup.'
-      : `This discards the game in progress — ${names}${signedIn ? ', from your profile too' : ''} — and goes back to setup.`,
+      : `This discards the game in progress — ${names}${signedIn ? ', from your profile too' : ''} — and goes back to ${tid() ? 'the tournament, where the match can be played again' : 'setup'}.`,
       'End game');
     if (!ok) return;
     if (!S.over && window.SCCloud) SCCloud.drop(S.id);
-    SCStore.remove(S.id);
+    // a match won is the tournament's result: kept, for it to read
+    if (!(tid() && S.over)) SCStore.remove(S.id);
     leaveGame();
   });
 
   $('rematchBtn').addEventListener('click', () => {
+    if (tid()) { leaveGame(); return; }    // Back to tournament: see showWin
     SCStore.remove(S.id);      // finished, and on the profile when signed in
     S = newGame(S.players.map(p => p.name), S.start,
                 { doubleIn: S.doubleIn, doubleOut: S.doubleOut, meIdx: S.meIdx });
@@ -344,6 +393,10 @@ function showGame() {
   SCAwake.keep(true);     // the screen stays on through the game: see /awake.js
   $('setup').classList.add('hidden');
   $('game').classList.remove('hidden');
+  if (tid()) {
+    $('gameBack').href = tourneyUrl(tid());
+    $('gameBack').innerHTML = '&lsaquo; Tournament';
+  }
   render();
 }
 
@@ -801,7 +854,8 @@ function showWin(p) {
   const avg = p.turns ? (p.points / p.turns).toFixed(1) : '0';
   $('winName').textContent = solo ? `${p.name} checked out!` : `${p.name} wins!`;
   $('winStats').textContent = `${S.start} down in ${p.turns} turns · ${avg} average`;
-  $('rematchBtn').textContent = solo ? 'Go again' : 'Rematch';
+  $('rematchBtn').textContent = tid() ? 'Back to tournament' : solo ? 'Go again' : 'Rematch';
+  $('newBtn').classList.toggle('hidden', !!tid());
   $('winOverlay').classList.remove('hidden');
 }
 

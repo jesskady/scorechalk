@@ -41,11 +41,12 @@
 
 <!-- ============ SETUP ============ -->
 <section id="setup" class="screen">
-  <a class="backlink" href="/">&lsaquo; All games</a>
+  <!-- a tournament's match leads back to the tournament instead (see prefill) -->
+  <a class="backlink" id="setupBack" href="/">&lsaquo; All games</a>
 
   <header class="brand">
     <h1 class="room-title">Darts</h1>
-    <p>Countdown scoring for one to four players</p>
+    <p id="setupSub">Countdown scoring for one to four players</p>
   </header>
 
   <div class="card">
@@ -140,7 +141,7 @@
        Leaving mid-game is safe: the game stays in localStorage and is offered
        back as Resume, and Save puts it on the profile for other devices. -->
   <header class="brand compact gamebar">
-    <a class="backlink" href="/">&lsaquo; All games</a>
+    <a class="backlink" id="gameBack" href="/">&lsaquo; All games</a>
     <h1 class="room-title">Darts</h1>
   </header>
 
@@ -242,7 +243,7 @@
 <script src="/share.js?v=12"></script>
 <script src="/cloud.js?v=3"></script>
 <script src="sync.js?v=31"></script>
-<script src="app.js?v=40"></script>
+<script src="app.js?v=41"></script>
 <script src="/pwa.js?v=1" defer></script>
 </body>
 </html>

@@ -43,6 +43,12 @@
       room: (g) => themeOf(g.cfg),   // see /builder/rules.js
       name: (g) => (g.cfg && g.cfg.name) || 'Builder game',
       line: (g) => (g.endedAt ? null : list(g.cfg.names.map((n, i) => `${n} ${g.scores[i]}`))) },
+    // a round robin of one of the games above: see /tournament/app.js
+    tournament: {
+      room: (g) => (SPEC[g.game] ? pick(SPEC[g.game].room, {}) : 'parlor'),
+      name: (g) => g.name,
+      line: (g) => (g.over ? null
+        : `${pick(SPEC[g.game].name, {})} · ${g.matches.filter((m) => m.winner != null).length} of ${g.matches.length} played`) },
   };
 
   // A game's own address: its page, and its id. Magic shows its table at #play.

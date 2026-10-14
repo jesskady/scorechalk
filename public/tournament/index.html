@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#12161c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Tournament · Score Chalk</title>
+<!-- visits, and errors on these pages: see /report.js -->
+<script src="/report.js?v=1"></script>
+<!-- Score Chalk as an app: installable, and working offline (see /pwa.js) -->
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="Score Chalk">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="Run a round robin on one phone: everyone plays everyone, each match scored as a game of its own, and the standings kept as you go.">
+<meta property="og:site_name" content="Score Chalk">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Tournament · Score Chalk">
+<meta property="og:description" content="Run a round robin on one phone: everyone plays everyone, and the standings kept as you go.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='15' fill='%23182029'/><circle cx='16' cy='16' r='11' fill='%232e7d4f'/><circle cx='16' cy='16' r='7' fill='%23182029'/><circle cx='16' cy='16' r='3.5' fill='%23c0392b'/></svg>">
+<!-- ?v= must be bumped whenever a stylesheet or app.js changes, as in darts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredericka+the+Great&family=Josefin+Sans:wght@400;600;700&family=Bree+Serif&family=Kalam:wght@400;700&display=swap">
+<link rel="stylesheet" href="../shared.css?v=29">
+<!-- a tournament is played in its game's room; app.js sets data-room -->
+<link rel="stylesheet" href="../themes.css?v=6">
+<link rel="stylesheet" href="style.css?v=4">
+</head>
+<body data-room="parlor" data-game="tournament">
+
+<!-- ============ SETUP ============ -->
+<section id="setup" class="screen hidden">
+  <a class="backlink" href="/">&lsaquo; All games</a>
+
+  <header class="brand">
+    <h1 class="room-title">Tournament</h1>
+    <p>A round robin, run from one phone</p>
+  </header>
+
+  <!-- Three steps, one screen each: the game, the players, the format.
+       The tabs go to any of them; Next walks them in order. -->
+  <nav class="stages" id="stages">
+    <button class="stage is-on" type="button" data-step="game"><i>1</i>Game</button>
+    <button class="stage" type="button" data-step="players"><i>2</i>Players<b id="playersTab"></b></button>
+    <button class="stage" type="button" data-step="format"><i>3</i>Format</button>
+  </nav>
+
+  <!-- ---------- 1. the game ---------- -->
+  <div class="step" data-step="game">
+    <div class="card">
+      <label class="field">
+        <span>Name</span>
+        <input id="tName" type="text" placeholder="Tournament" autocomplete="off" maxlength="30">
+      </label>
+      <label class="field">
+        <span>Game</span>
+        <!-- filled from GAMES -->
+        <select id="tGame"></select>
+      </label>
+    </div>
+
+    <!-- the chosen game's own options, every match played with them -->
+    <div class="card" id="opts-darts">
+      <span class="field-label">Starting score</span>
+      <div class="preset-row" id="presets">
+        <button class="preset" type="button" data-score="301">301</button>
+        <button class="preset is-on" type="button" data-score="501">501</button>
+        <button class="preset" type="button" data-score="701">701</button>
+      </div>
+      <button id="doubleIn" class="toggle" type="button" role="switch" aria-checked="false">
+        <span class="tg-label"><b>Double in</b></span>
+        <span class="tg-switch"></span>
+      </button>
+      <button id="doubleOut" class="toggle" type="button" role="switch" aria-checked="false">
+        <span class="tg-label"><b>Double out</b></span>
+        <span class="tg-switch"></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ---------- 2. the players ---------- -->
+  <!-- A numbered list, the next number waiting at the bottom for a name. -->
+  <div class="step hidden" data-step="players">
+    <div class="card">
+      <ol id="players" class="roster"></ol>
+      <form id="addForm" class="roster-add">
+        <i id="addNum">1</i>
+        <input id="addName" type="text" placeholder="Add a player" autocomplete="off" maxlength="14" enterkeyhint="done">
+        <button class="seg add-btn" type="submit">Add</button>
+      </form>
+      <p id="playersNote" class="hint"></p>
+    </div>
+  </div>
+
+  <!-- ---------- 3. the format ---------- -->
+  <!-- how much is played, and how much at once: see draw() in app.js -->
+  <div class="step hidden" data-step="format">
+    <div class="card">
+      <span class="field-label">Format</span>
+      <div class="preset-row" id="meetRow">
+        <button class="seg is-on" type="button" data-f="once">Everyone once</button>
+        <button class="seg" type="button" data-f="short">Short</button>
+        <button class="seg" type="button" data-f="twice">Everyone twice</button>
+      </div>
+      <div class="field stepper hidden" id="shortRow">
+        <span>Each plays</span>
+        <button class="seg step-btn" type="button" id="shortLess" aria-label="Fewer">−</button>
+        <b id="shortN"></b>
+        <button class="seg step-btn" type="button" id="shortMore" aria-label="More">+</button>
+      </div>
+      <span class="field-label">Boards <small>— matches played at once</small></span>
+      <div class="preset-row" id="boardRow"></div>
+      <p id="count" class="hint count"></p>
+    </div>
+  </div>
+
+  <button id="nextBtn" class="primary big" type="button">Next: Players</button>
+  <button id="startBtn" class="primary big hidden" type="button" disabled>Start tournament</button>
+  <div id="resumeList" class="resume-list"></div>
+</section>
+
+<!-- ============ TOURNAMENT ============ -->
+<section id="main" class="screen hidden">
+  <header class="brand compact gamebar">
+    <a class="backlink" href="/">&lsaquo; All games</a>
+    <h1 id="tTitle" class="room-title"></h1>
+  </header>
+  <p id="tSub" class="sub"></p>
+
+  <div id="champ" class="champ hidden">
+    <div class="trophy">🏆</div>
+    <h2 id="champName"></h2>
+    <p id="champLine"></p>
+  </div>
+
+  <div class="card paper plain">
+    <table class="standings">
+      <thead><tr><th></th><th class="pl">Player</th><th>P</th><th>W</th><th>L</th><th id="tbHead"></th></tr></thead>
+      <tbody id="standings"></tbody>
+    </table>
+  </div>
+
+  <div id="rounds" class="rounds"></div>
+
+  <div class="actions">
+    <button id="rematchBtn" class="primary big hidden">Play again</button>
+    <div class="mini-row two">
+      <button id="newBtn" class="ghost">New tournament</button>
+      <button id="deleteBtn" class="ghost danger-ghost">Delete</button>
+    </div>
+  </div>
+  <p id="msg" class="msg"></p>
+</section>
+
+<!-- ============ A MATCH ============ -->
+<!-- Tapping a match: play it, or set its result by hand — for a match
+     scored on another phone, or not scored at all. -->
+<div id="matchOverlay" class="overlay hidden">
+  <div class="win-card">
+    <h2 id="mTitle"></h2>
+    <p id="mText"></p>
+    <button id="mPlay" class="primary big"></button>
+    <span class="field-label">Or set who won</span>
+    <div class="preset-row">
+      <button id="mWinA" class="seg"></button>
+      <button id="mWinB" class="seg"></button>
+    </div>
+    <button id="mClear" class="ghost">Clear result</button>
+    <button id="mCancel" class="ghost">Cancel</button>
+  </div>
+</div>
+
+<!-- ============ CONFIRM ============ -->
+<div id="confirmOverlay" class="overlay confirm hidden">
+  <div class="win-card">
+    <h2>Are you sure?</h2>
+    <p id="confirmText"></p>
+    <button id="confirmYes" class="danger big">Yes</button>
+    <button id="confirmNo" class="ghost">Cancel</button>
+  </div>
+</div>
+
+<script src="/account.js?v=29" defer></script>
+<script src="/store.js?v=3"></script>
+<script src="app.js?v=3"></script>
+<script src="/pwa.js?v=1" defer></script>
+</body>
+</html>
