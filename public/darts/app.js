@@ -237,6 +237,7 @@ function buildSetup() {
     if (match.doubleOut) toggles.doubleOut.click();
     $('modeRow').closest('.card').classList.add('hidden');
     $('setupSub').textContent = match.name;
+    $('tourneyLink').classList.add('hidden');    // in one already
     $('setupBack').href = tourneyUrl(match.tid);
     $('setupBack').innerHTML = '&lsaquo; Tournament';
     return;    // no Resume: a match starts its own game

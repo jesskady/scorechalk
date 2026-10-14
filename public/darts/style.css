@@ -328,3 +328,13 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 #game.waiting #dartsPad,
 #game.waiting #submitBtn,
 #game.waiting #bustBtn{opacity:.35;pointer-events:none}
+
+/* the way to a darts tournament, at the top of the setup */
+.tourney-link{
+  display:flex;align-items:center;gap:10px;padding:11px 13px;
+  background:var(--card);border:1px solid var(--gold);border-radius:12px;
+  color:var(--txt);text-decoration:none;font-size:15px;
+}
+.tourney-link b{flex:1;font-weight:600}
+.tourney-link i{font-style:normal;color:var(--gold);font-size:20px;line-height:1}
+.tourney-link:active{background:var(--bg2)}

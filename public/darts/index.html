@@ -35,7 +35,7 @@
 <link rel="stylesheet" href="../shared.css?v=29">
 <!-- the room this game is played in: the Parlor (see /themes.css) -->
 <link rel="stylesheet" href="../themes.css?v=6">
-<link rel="stylesheet" href="style.css?v=32">
+<link rel="stylesheet" href="style.css?v=33">
 </head>
 <body data-room="parlor" data-game="darts">
 
@@ -48,6 +48,11 @@
     <h1 class="room-title">Darts</h1>
     <p id="setupSub">Countdown scoring for one to four players</p>
   </header>
+
+  <!-- a round robin of darts: the tournament's setup, darts chosen -->
+  <a class="tourney-link" id="tourneyLink" href="/tournament/?game=darts">
+    <span aria-hidden="true">🏆</span><b>Run a darts tournament</b><i aria-hidden="true">›</i>
+  </a>
 
   <div class="card">
     <span class="field-label">Mode</span>
@@ -243,7 +248,7 @@
 <script src="/share.js?v=12"></script>
 <script src="/cloud.js?v=3"></script>
 <script src="sync.js?v=31"></script>
-<script src="app.js?v=41"></script>
+<script src="app.js?v=42"></script>
 <script src="/pwa.js?v=1" defer></script>
 </body>
 </html>

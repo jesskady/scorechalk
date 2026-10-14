@@ -214,6 +214,9 @@ let names = [];
 function buildSetup() {
   $('tGame').innerHTML = Object.entries(GAMES)
     .map(([k, g]) => `<option value="${k}">${esc(g.name)}</option>`).join('');
+  // ?game=darts: come from that game's own setup, so it is chosen already
+  const asked = new URLSearchParams(location.search).get('game');
+  if (GAMES[asked]) $('tGame').value = asked;
 
   const presets = document.querySelectorAll('#presets .preset');
   presets.forEach((btn) => btn.addEventListener('click', () => {

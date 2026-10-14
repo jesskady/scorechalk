@@ -156,7 +156,12 @@ html:has(body.home-rooms){background:var(--slate)}
 a.chalk-card:hover{transform:translateY(-3px) rotate(-.4deg);box-shadow:0 16px 28px #0009}
 a.chalk-card:active{transform:translateY(-1px)}
 .chalk-card svg{width:68px;height:68px}
+/* a long name fits its card: given .long, its size follows the card's width
+   (cqi) where the card is too narrow for it at full size. Tournament is
+   5.7em wide: 17cqi fits it with a little room */
+.chalk-card{container-type:inline-size}
 .chalk-card b{font:400 25px/1 var(--f-chalk)}
+.chalk-card b.long{font-size:min(25px, 17cqi)}
 .chalk-card small{font:500 13px/1.35 var(--f-body);color:var(--chalk-dim)}
 .chalk-card .tag{
   justify-self:start;font:700 10.5px/1 var(--f-deco);letter-spacing:.14em;text-transform:uppercase;

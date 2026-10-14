@@ -136,6 +136,7 @@ describe('tournaments', () => {
     assert.deepEqual(await pg.evaluate(() => [$('name1').value, $('name2').value, $('startScore').value,
       $('doubleOut').classList.contains('is-on'), $('doubleIn').classList.contains('is-on')]), [A, B, '301', true, false]);
     assert.equal(await pg.$eval('#setupBack', (a) => a.textContent.trim()), '‹ Tournament');
+    assert.equal(await pg.$eval('#tourneyLink', (a) => a.classList.contains('hidden')), true, 'no tournament link inside a match');
     await pg.click('#startBtn'); await wait(500);
     assert.equal(await pg.evaluate(() => S.tid), tid);
 
@@ -189,6 +190,17 @@ describe('tournaments', () => {
     // over, it leaves Pick up where you left off; going, it is listed there
     await open(pg, '/');
     assert.equal(await pg.$$eval('#resumeRow .rc', (as, tid) => as.filter((a) => a.href.includes(tid)).length, tid), 0);
+    assert.deepEqual(pg.errors, []);
+    await pg.close();
+  });
+
+  test('from the darts setup, a darts tournament', async () => {
+    const pg = await phone();
+    await open(pg, '/darts/');
+    await Promise.all([pg.waitForNavigation({ waitUntil: 'domcontentloaded' }), pg.click('#tourneyLink')]);
+    await wait(700);
+    assert.equal(await pg.evaluate(() => location.pathname + location.search), '/tournament/?game=darts');
+    assert.equal(await pg.$eval('#tGame', (s) => s.value), 'darts');
     assert.deepEqual(pg.errors, []);
     await pg.close();
   });
