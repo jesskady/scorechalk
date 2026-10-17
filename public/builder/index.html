@@ -33,7 +33,7 @@
 <link rel="stylesheet" href="../shared.css?v=29">
 <!-- the rooms a game can be played in; app.js sets data-room on the body -->
 <link rel="stylesheet" href="../themes.css?v=6">
-<link rel="stylesheet" href="style.css?v=38">
+<link rel="stylesheet" href="style.css?v=39">
 </head>
 <body data-room="workshop">
 
@@ -159,6 +159,14 @@
   </div>
 
   <div class="card rule">
+    <span class="field-label">Counters</span>
+    <small class="hint">Kept beside the score, and changed at any time with − and + without taking a turn: a gear bonus, poison, lives. A counter can win the game or put a player out when it reaches a number.</small>
+    <!-- filled by renderCounterList() -->
+    <div id="counterList" class="counter-list"></div>
+    <button id="addCounter" class="ghost" type="button">+ Add a counter</button>
+  </div>
+
+  <div class="card rule">
     <button id="turns" class="toggle" role="switch" aria-checked="false">
       <span class="tg-label">
         <b>Take turns</b>
@@ -214,6 +222,10 @@
   <!-- the scoresheet view: a row a round, a column a player; built by
        buildSheet(), filled by renderSheet() -->
   <div class="sheet-wrap hidden" id="sheetWrap"><div class="sheet" id="sheet"></div></div>
+
+  <!-- the game's counters, a row a player, changed at any time with − and +;
+       built by buildCounters(), kept current by render() -->
+  <div class="counters hidden" id="counters"><div class="ctable" id="ctable"></div></div>
 
   <!-- Entering a score. In the sheet view the whole of it moves into the
        bubble beside the tapped cell, and back again when it closes. -->
@@ -301,6 +313,8 @@
   <div class="win-card">
     <div class="trophy">🏆</div>
     <h2 id="winName"></h2>
+    <!-- a game a counter decided says which -->
+    <p id="winBy" class="win-by"></p>
     <ol id="winTable" class="standings"></ol>
     <p id="winSave" class="win-save"></p>
     <button id="rematchBtn" class="primary big">Rematch</button>
@@ -310,12 +324,12 @@
 </div>
 
 <script src="/account.js?v=29" defer></script>
-<script src="rules.js?v=8"></script>
+<script src="rules.js?v=9"></script>
 <script src="/awake.js?v=1"></script>
 <script src="/store.js?v=3"></script>
 <script src="/share.js?v=12"></script>
 <script src="/cloud.js?v=3"></script>
-<script src="app.js?v=47"></script>
+<script src="app.js?v=48"></script>
 <script src="/pwa.js?v=1" defer></script>
 </body>
 </html>

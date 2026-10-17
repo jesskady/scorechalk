@@ -493,3 +493,53 @@ button.cell:active{background:var(--line)}
 .sheet .lab.fill{background:var(--card)}
 .sheet-wrap.flipped{flex:0 1 auto}
 .sheet.flip{min-height:0;width:max-content;min-width:100%}
+
+/* ---------- Counters ---------- */
+/* setup: a row a counter — its name, then where it starts and what
+   reaching a number does */
+.counter-list{display:flex;flex-direction:column;gap:8px}
+.counter-list:empty{display:none}
+.crow{display:flex;flex-direction:column;gap:6px;padding:8px;border:1px solid var(--line);border-radius:10px;background:var(--bg2)}
+.crow input,.crow select{padding:9px 10px;font-size:15px;background:var(--card)}
+.crow-top{display:flex;gap:6px}
+.c-del{
+  flex:none;width:40px;border-radius:10px;font-size:22px;line-height:1;
+  color:var(--neg,#e2857a);border:1px solid var(--neg-line,#5a302a);
+}
+.crow-rules{display:flex;gap:6px;align-items:center}
+.c-start{display:flex;align-items:center;gap:6px;flex:none}
+.c-start span{flex:none;color:var(--dim);font-size:13px}
+.c-start input{width:58px;flex:none}
+.crow-rules select{flex:1 1 auto;min-width:0;padding-right:4px}
+.c-at{flex:none;width:62px}
+
+/* game: a column a counter, a row a side; scrolls sideways when there are
+   more counters than fit */
+.counters{
+  flex:none;overflow-x:auto;
+  border:1px solid var(--line);border-radius:12px;background:var(--card);
+}
+.ctable{display:grid;align-items:stretch;min-width:100%;width:max-content}
+.ctable > div{padding:4px 6px;border-top:1px solid var(--line);min-height:40px;display:flex;align-items:center}
+.ctable .chd{
+  border-top:none;min-height:0;padding:6px;flex-direction:column;align-items:center;justify-content:flex-end;
+  background:var(--bg2);text-align:center;line-height:1.15;
+}
+.chd b{font-size:12px;font-weight:700;color:var(--txt)}
+.chd small{font-size:10px;color:var(--dim)}
+.cname{font-size:13px;font-weight:700;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-left:3px solid transparent}
+.cname.turn{color:var(--txt);border-left-color:var(--green)}
+.cname.out{opacity:.45;text-decoration:line-through}
+.cval{justify-content:center;gap:6px}
+.cval b{min-width:30px;text-align:center;font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
+.cval.hit b{color:var(--neg,#e2857a)}
+.cstep{
+  width:34px;height:32px;border-radius:9px;font-size:20px;font-weight:700;line-height:1;
+  background:var(--bg2);border:1px solid var(--line);color:var(--dim);
+}
+.cstep:active{border-color:var(--green);color:var(--txt)}
+/* a seated phone changes its own row only */
+.cval:not(.mine) .cstep{visibility:hidden}
+
+.win-by{font-size:13px;color:var(--dim);margin-top:-4px}
+.win-by:empty{display:none}

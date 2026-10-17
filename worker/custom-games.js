@@ -43,11 +43,23 @@ const RULE_FIELDS = {
   teamCount: (v) => isInt(v) && v >= 2 && v <= 4,
   players:   (v) => isInt(v) && v >= 1 && v <= 8,
   theme:     (v) => ['parlor', 'living', 'workshop'].includes(v),
+  // up to six, each { id, name, start, end, at }: see rules.js
+  counters:  (v) => Array.isArray(v) && v.length <= 6 && v.every(isCounter)
+    && new Set(v.map((k) => k.id)).size === v.length,
 };
+
+const isCounter = (k) => !!k && typeof k === 'object' && !Array.isArray(k)
+  && Object.keys(k).length === 5
+  // the id goes into a shared game's cell keys, which allow no more
+  && typeof k.id === 'string' && /^[a-z0-9]{1,8}$/.test(k.id)
+  && typeof k.name === 'string' && k.name.length <= 16
+  && isInt(k.start) && Math.abs(k.start) <= 1e7
+  && ['none', 'win', 'out'].includes(k.end)
+  && isInt(k.at) && Math.abs(k.at) <= 1e7;
 
 // Fields added after My games shipped. A browser still running the page from
 // before them sends rules without them, so they are filled in, not refused.
-const OPTIONAL = { teams: false, teamCount: 2, players: 2, theme: 'workshop' };
+const OPTIONAL = { teams: false, teamCount: 2, players: 2, theme: 'workshop', counters: [] };
 
 function cleanRules(rules) {
   if (!rules || typeof rules !== 'object') return { bad: 'rules' };

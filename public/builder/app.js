@@ -67,8 +67,11 @@ function latestOf(src) {
   return g ? g.state : null;
 }
 
+// one rule against another: a list, like the counters, by what is in it
+const sameRule = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+
 // whether the rules on screen differ from where they came from
-const rulesChanged = () => RULE_KEYS.some(k => cfg[k] !== baseRules(source)[k]);
+const rulesChanged = () => RULE_KEYS.some(k => !sameRule(cfg[k], baseRules(source)[k]));
 
 // Every name typed, up to eight: a game opens with as many as it needs, and
 // the rest wait for a game with more players.
@@ -87,6 +90,8 @@ function loadCfg(src) {
   const mine = src.startsWith('my:') ? {} : (loadJSON(RULES_KEY) || {})[src] || {};
   const teamOf = loadJSON(TEAMS_KEY);
   const rules = { ...baseRules(src), ...mine };
+  // copied, as they are changed in place: a template's own stay as they are
+  rules.counters = (Array.isArray(rules.counters) ? rules.counters : []).map((k) => ({ ...k }));
   // a game opens with its own number of players, whatever the last one had
   return { ...rules, names: sized(savedNames(), rules.players || 2), teamOf: Array.isArray(teamOf) ? teamOf : [] };
 }
@@ -134,8 +139,14 @@ function newGame(c) {
     cfg: { ...c, names, playerNames: players, members, playerTeams, quickKeys: parseQuick(c.quick).keys,
            useRounds: rounds, turns: c.turns || rounds },
     scores: names.map(() => c.start),
+    // each side's counters, by counter id; see counterOf
+    counts: names.map(() => Object.fromEntries((c.counters || []).map((k) => [k.id, k.start]))),
+    // counter changes, oldest first: { p, id, from, to, after, ts } — after
+    // how long the log was then, as for edits. A quick run of taps on one
+    // counter is one change, so Undo takes back the run.
+    clog: [],
     cur: 0,
-    log: [],          // { p, d, cur } — cur is who was on turn before it
+    log: [],          // { p, d, cur, ts } — cur is who was on turn before it
     // scores changed after they were entered, oldest first:
     // { i, p, r, from, to, fromParts, after } — i the log entry, r its round,
     // after how long the log was then, which places it among the turns
@@ -181,7 +192,62 @@ const save = () => {
 // it up again by. Nothing until there is a score in it.
 const cloudGame = () => (S && S.log.length ? { ...toPayload(), state: S } : null);
 
-const isOut = (i) => S.cfg.win === 'zero' && S.scores[i] <= 0;
+/* ---------------- counters ----------------
+
+   Counters live beside the log, not in it: a side's k-th log entry is its
+   round k, and a counter can change at any moment without taking a turn.
+   A game from before counters has none, and reads as having none. */
+const countersOf = (st) => st.cfg.counters || [];
+function counterOf(st, p, k) {
+  const v = st.counts && st.counts[p] && st.counts[p][k.id];
+  return Number.isInteger(v) ? v : k.start;
+}
+
+// A side is out at 0 in an Out at zero game, or on reaching any counter's
+// Out at line.
+function outOf(st, i) {
+  if (st.cfg.win === 'zero' && st.scores[i] <= 0) return true;
+  return countersOf(st).some((k) => k.end === 'out' && counterReached(k, counterOf(st, i, k)));
+}
+const isOut = (i) => outOf(S, i);
+// whether anyone can go out at all, which makes the last left the winner
+const outs = (c) => c.win === 'zero' || (c.counters || []).some((k) => k.end === 'out');
+
+// the first side to reach a Wins at line, and the counter it reached
+function counterWin() {
+  for (const k of countersOf(S)) {
+    if (k.end !== 'win') continue;
+    const p = S.scores.findIndex((_, i) => counterReached(k, counterOf(S, i, k)));
+    if (p >= 0) return { winners: [p], by: k };
+  }
+  return null;
+}
+
+const COUNTER_RUN = 4000;   // taps closer together than this are one change
+
+function bump(p, id, d) {
+  const k = countersOf(S).find((x) => x.id === id);
+  if (!k || !mayScore(p)) return;
+  if (!S.counts) S.counts = S.scores.map(() => ({}));
+  if (!S.clog) S.clog = [];
+  const from = counterOf(S, p, k), to = from + d;
+  S.counts[p] = { ...S.counts[p], [id]: to };
+  const last = S.clog[S.clog.length - 1], now = Date.now();
+  if (last && last.p === p && last.id === id && last.after === S.log.length && !last.remote && now - last.ts < COUNTER_RUN) {
+    last.to = to; last.ts = now;
+    if (last.to === last.from) S.clog.pop();   // tapped back to where it was
+  } else {
+    S.clog.push({ p, id, from, to, after: S.log.length, ts: now });
+  }
+  const wasOut = counterReached(k, from) && k.end === 'out';
+  if (k.end === 'out' && counterReached(k, to) && !wasOut) flash(`${S.cfg.names[p]} is out`);
+  // a player gone out can't be the one on turn
+  if (isOut(S.cur) && S.cfg.turns) S.cur = nextPlayer(S.cur);
+  settleEnd();
+  save(); render();
+  const r = result();
+  if (r && !S.endedAt) showWin(r);
+}
 
 // Someone has reached the target, or the limit when lowest wins.
 function lineCrossed() {
@@ -190,8 +256,16 @@ function lineCrossed() {
   return S.scores.some((s) => s >= target);
 }
 
-// Every side has had the same number of turns: a round has just finished.
-const roundDone = () => S.log.length % S.scores.length === 0;
+// How many turns each side has had, and the sides still in the game.
+const turnCounts = () => S.scores.map((_, p) => S.log.filter((e) => e.p === p).length);
+const liveSides = () => S.scores.map((_, p) => p).filter((p) => !isOut(p));
+
+// Every side still in has had the same number of turns: a round has just
+// finished. A side gone out is waited for no longer.
+function roundDone() {
+  const t = turnCounts(), live = liveSides();
+  return live.every((p) => t[p] === t[live[0]]);
+}
 
 // The line has been crossed, and the round is being played out.
 const finalRound = () => S.cfg.turns && lineCrossed() && !roundDone();
@@ -200,26 +274,32 @@ const finalRound = () => S.cfg.turns && lineCrossed() && !roundDone();
 function result() {
   const { win, target, useRounds, rounds } = S.cfg;
   const sc = S.scores, n = sc.length;
+  // a counter's Wins at line is a finish line of its own, crossed at once
+  const byCounter = counterWin();
+  if (byCounter) return byCounter;
+  // every side still in has played the last round
   if (useRounds) {
-    return S.log.length >= rounds * n ? best(win === 'low' ? Math.min : Math.max) : null;
-  }
-  // Reaching the target (or the limit) ends the game — but in a game taken
-  // in turns, only once the round is over, so everyone scores the last
-  // round and the best score then wins, not merely the first past the line.
-  if (lineCrossed()) {
+    const t = turnCounts(), live = liveSides();
+    if (live.length && live.every((p) => t[p] >= rounds)) return best(win === 'low' ? Math.min : Math.max);
+  } else if (lineCrossed()) {
+    // Reaching the target (or the limit) ends the game — but in a game taken
+    // in turns, only once the round is over, so everyone scores the last
+    // round and the best score then wins, not merely the first past the line.
     if (S.cfg.turns && !roundDone()) return null;
     return best(win === 'low' ? Math.min : Math.max);
   }
-  if (win === 'zero') {
+  if (outs(S.cfg)) {
     const alive = sc.map((s, i) => i).filter(i => !isOut(i));
     if (n === 1 && alive.length === 0) return { winners: [], solo: true };
     if (n > 1 && alive.length <= 1) return { winners: alive };
   }
   return null;
 }
+// the best score among the sides still in, or among all when none are
 function best(pick) {
-  const v = pick(...S.scores);
-  return { winners: S.scores.map((s, i) => i).filter(i => S.scores[i] === v) };
+  const live = liveSides(), from = live.length ? live : S.scores.map((_, i) => i);
+  const v = pick(...from.map((i) => S.scores[i]));
+  return { winners: from.filter(i => S.scores[i] === v) };
 }
 
 function nextPlayer(from) {
@@ -432,12 +512,57 @@ function renderSetup() {
   setToggle($('typed'), cfg.typed);
   setToggle($('signs'), cfg.signs);
   setToggle($('turns'), cfg.turns || rounds);
+  renderCounterList();
   $('turns').disabled = rounds;
   $('turnsNote').textContent = rounds
     ? 'Always on with a fixed number of rounds: a round is everyone taking one turn.'
     : 'Entering a score passes play to the next player. Off: tap anyone and score them at any time.';
 
 }
+
+/* The counters on the setup screen, one row each: its name, where it
+   starts, and what reaching a number does. Typing changes the rules
+   without drawing the list again, so the box being typed in keeps hold. */
+function renderCounterList() {
+  const box = $('counterList');
+  box.innerHTML = '';
+  cfg.counters.forEach((k, i) => {
+    const row = document.createElement('div');
+    row.className = 'crow';
+    row.innerHTML = `
+      <div class="crow-top">
+        <input class="c-name" type="text" maxlength="16" autocomplete="off" placeholder="Counter ${i + 1}" aria-label="Counter name">
+        <button type="button" class="c-del" aria-label="Remove this counter">&times;</button>
+      </div>
+      <div class="crow-rules">
+        <label class="c-start"><span>Starts at</span><input type="number" inputmode="numeric"></label>
+        <select class="c-end" aria-label="What it does">${COUNTER_ENDS.map((o) => `<option value="${o.id}">${o.label}</option>`).join('')}</select>
+        <input class="c-at" type="number" inputmode="numeric" aria-label="The number it reaches">
+      </div>`;
+    const [name, start, end, at] = ['.c-name', '.c-start input', '.c-end', '.c-at'].map((s) => row.querySelector(s));
+    name.value = k.name;
+    start.value = k.start;
+    end.value = k.end;
+    at.value = k.at;
+    at.classList.toggle('hidden', k.end === 'none');
+    const whole = (v) => Math.round(Number(v)) || 0;
+    name.addEventListener('input', () => { k.name = name.value; saveCfg(); });
+    start.addEventListener('input', () => { k.start = whole(start.value); saveCfg(); });
+    at.addEventListener('input', () => { k.at = whole(at.value); saveCfg(); });
+    end.addEventListener('change', () => { k.end = end.value; saveCfg(); renderCounterList(); });
+    row.querySelector('.c-del').onclick = () => { cfg.counters.splice(i, 1); saveCfg(); renderCounterList(); };
+    box.appendChild(row);
+  });
+  $('addCounter').classList.toggle('hidden', cfg.counters.length >= MAX_COUNTERS);
+}
+
+$('addCounter').onclick = () => {
+  if (cfg.counters.length >= MAX_COUNTERS) return;
+  cfg.counters.push(newCounter(cfg.counters.length + 1));
+  saveCfg(); renderCounterList();
+  const ins = $('counterList').querySelectorAll('.c-name');
+  ins[ins.length - 1].select();
+};
 
 function renderQuickPreview() {
   const { keys, bad } = parseQuick(cfg.quick);
@@ -470,7 +595,7 @@ function saveCfg() {
   saveJSON(TEAMS_KEY, cfg.teamOf);
   if (source.startsWith('my:')) { renderRulesCard(); return; }
   const base = baseRules(source), mine = {};
-  for (const k of Object.keys(base)) if (cfg[k] !== base[k]) mine[k] = cfg[k];
+  for (const k of Object.keys(base)) if (!sameRule(cfg[k], base[k])) mine[k] = cfg[k];
   const all = loadJSON(RULES_KEY) || {};
   if (Object.keys(mine).length) all[source] = mine; else delete all[source];
   saveJSON(RULES_KEY, all);
@@ -566,6 +691,12 @@ $('turns').onclick = () => { cfg.turns = !cfg.turns; setToggle($('turns'), cfg.t
 $('startBtn').onclick = async () => {
   if (!parseQuick(cfg.quick).keys.length && !cfg.typed) {
     flashSetup('Add at least one quick-score button, or switch on typed scores.');
+    return;
+  }
+  cfg.counters.forEach((k, i) => { k.name = k.name.trim() || `Counter ${i + 1}`; });
+  const flat = cfg.counters.find((k) => k.end !== 'none' && k.at === k.start);
+  if (flat) {
+    flashSetup(`${flat.name} starts at ${fmt(flat.at)}: pick a different number for it to reach.`);
     return;
   }
   if (teamsOn(cfg, cfg.names.length)) {
@@ -785,6 +916,7 @@ function buildBoard() {
     board.appendChild(b);
   });
   layoutBoard();
+  buildCounters();
 
   // Off, every entry goes the game's natural way. A game saved before the
   // switch existed has no value for it, and keeps the switch it had.
@@ -834,6 +966,56 @@ window.addEventListener('resize', () => {
   if (!S || $('game').classList.contains('hidden')) return;
   layoutBoard();
   if (sheetOn()) renderSheet();
+});
+
+/* The counters: a column a counter, a row a side, each value between its
+   − and +. They change at any time, whoever's turn it is, and never pass
+   the turn. On a phone that joined by seat only its own row can be changed. */
+function buildCounters() {
+  const ks = countersOf(S), c = S.cfg;
+  $('counters').classList.toggle('hidden', !ks.length);
+  if (!ks.length) { $('ctable').innerHTML = ''; return; }
+  const t = $('ctable');
+  t.style.gridTemplateColumns = `minmax(64px, 1fr) repeat(${ks.length}, minmax(96px, auto))`;
+  let html = '<div class="chd"></div>';
+  for (const k of ks) {
+    const line = k.end === 'win' ? `wins at ${fmt(k.at)}` : k.end === 'out' ? `out at ${fmt(k.at)}` : '';
+    html += `<div class="chd"><b>${esc(k.name || 'Counter')}</b>${line ? `<small>${line}</small>` : ''}</div>`;
+  }
+  c.names.forEach((name, p) => {
+    html += `<div class="cname" data-p="${p}">${esc(name)}</div>`;
+    for (const k of ks) {
+      html += `<div class="cval" data-p="${p}" data-id="${k.id}">`
+        + `<button class="cstep" data-d="-1" aria-label="${esc(k.name)} down for ${esc(name)}">&minus;</button>`
+        + `<b></b>`
+        + `<button class="cstep" data-d="1" aria-label="${esc(k.name)} up for ${esc(name)}">+</button></div>`;
+    }
+  });
+  t.innerHTML = html;
+}
+
+function renderCounters() {
+  const ks = countersOf(S);
+  if (!ks.length) return;
+  $('ctable').querySelectorAll('.cname').forEach((el) => {
+    const p = Number(el.dataset.p);
+    el.classList.toggle('turn', S.cfg.turns && p === S.cur);
+    el.classList.toggle('out', isOut(p));
+  });
+  $('ctable').querySelectorAll('.cval').forEach((el) => {
+    const p = Number(el.dataset.p), k = ks.find((x) => x.id === el.dataset.id);
+    const v = counterOf(S, p, k);
+    el.querySelector('b').textContent = fmt(v);
+    el.classList.toggle('hit', counterReached(k, v));
+    el.classList.toggle('mine', SCShare.canScore(p));
+  });
+}
+
+$('ctable').addEventListener('click', (e) => {
+  const b = e.target.closest('.cstep');
+  if (!b) return;
+  const cell = b.closest('.cval');
+  bump(Number(cell.dataset.p), cell.dataset.id, Number(b.dataset.d));
 });
 
 function buildPad() {
@@ -919,12 +1101,23 @@ function render() {
 
   // The last few things done, newest first: each score, and any change made
   // to one since, in its place among them. A score is tapped to change it.
+  // Counter changes go in among them too, by when they were made.
   const rounds = roundsOfLog(), items = [];
+  const since = (n) => [
+    ...(S.edits || []).filter((x) => x.after === n).map((x) => ({ x, ts: x.ts || 0 })),
+    ...(S.clog || []).filter((y) => y.after === n).map((y) => ({ y, ts: y.ts || 0 })),
+  ].sort((a, b) => a.ts - b.ts);
+  items.push(...since(0));
   S.log.forEach((e, i) => {
     items.push({ e, i });
-    for (const x of S.edits || []) if (x.after === i + 1) items.push({ x });
+    items.push(...since(i + 1));
   });
-  $('history').innerHTML = items.slice(-6).map(({ e, i, x }) => {
+  const ks = countersOf(S);
+  $('history').innerHTML = items.slice(-6).map(({ e, i, x, y }) => {
+    if (y) {
+      const k = ks.find((z) => z.id === y.id), diff = y.to - y.from;
+      return `<div class="hcount"><span>${esc(c.names[y.p])}<em>${esc((k && k.name) || 'Counter')}</em></span><small>${fmt(y.from)} → ${fmt(y.to)}</small><b class="${diff < 0 ? 'neg' : ''}">${signed(diff)}</b></div>`;
+    }
     if (x) {
       const diff = x.to - x.from;
       return `<div class="hedit"><span>${esc(c.names[x.p])}<em>${c.turns ? `round ${x.r} ` : ''}changed</em></span><small>${turnText(x.from)} → ${turnText(x.to)}</small><b class="${diff < 0 ? 'neg' : ''}">${signed(diff)}</b></div>`;
@@ -935,6 +1128,7 @@ function render() {
     return `<div class="hturn" data-i="${i}"><span>${esc(c.names[e.p])}${parts ? `<em>${esc(parts)}</em>` : ''}</span>${round}<b class="${e.d < 0 ? 'neg' : ''}">${signed(e.d)}</b></div>`;
   }).reverse().join('');
 
+  renderCounters();
   if (sheetOn()) renderSheet();
 }
 
@@ -960,7 +1154,7 @@ function commit(d) {
   const p = S.cur;
   if (!mayScore(p)) return;
   const crossedBefore = lineCrossed();
-  S.log.push({ p, d, cur: S.cur, parts: S.parts || [] });
+  S.log.push({ p, d, cur: S.cur, parts: S.parts || [], ts: Date.now() });
   S.scores[p] += d;
   S.pend = 0;
   S.parts = [];
@@ -1016,10 +1210,28 @@ $('commitBtn').onclick = () => {
 
 $('undoBtn').onclick = () => {
   if (S.pend || (S.parts && S.parts.length)) { S.pend = 0; S.parts = []; save(); render(); return; }
-  // the last thing done was changing a score: put it back as it was
   const seat = SCShare.seat();
   const x = S.edits && S.edits[S.edits.length - 1];
-  if (x && x.after === S.log.length && (seat === null || x.p === seat)) {
+  const editNext = !!x && x.after === S.log.length && (seat === null || x.p === seat);
+  // A counter change newer than the score Undo would otherwise take back
+  // goes first. It is taken back by its own amount, so a change to the same
+  // counter made since, on another phone, is kept.
+  const ours = (e) => seat === null || e.p === seat;
+  const cx = [...(S.clog || [])].reverse().find(ours);
+  const scoreNext = editNext ? x : [...S.log].reverse().find(ours);
+  if (cx && (cx.ts || 0) > ((scoreNext && scoreNext.ts) || 0)) {
+    const k = countersOf(S).find((y) => y.id === cx.id);
+    S.counts[cx.p] = { ...S.counts[cx.p], [cx.id]: counterOf(S, cx.p, k) - (cx.to - cx.from) };
+    S.clog.splice(S.clog.lastIndexOf(cx), 1);
+    if (S.cfg.turns && isOut(S.cur)) S.cur = nextPlayer(S.cur);
+    settleEnd();
+    if (S.endedAt && !result()) { S.endedAt = null; S.winnerIdx = null; }
+    save(); render();
+    flash(`Undid ${k.name} ${signed(cx.to - cx.from)} for ${S.cfg.names[cx.p]}`);
+    return;
+  }
+  // the last thing done was changing a score: put it back as it was
+  if (editNext) {
     const t = S.log[x.i];
     S.scores[t.p] += x.from - t.d;
     t.d = x.from;
@@ -1040,6 +1252,7 @@ $('undoBtn').onclick = () => {
     S.scores[mine.p] -= mine.d;
     S.edits = (S.edits || []).filter((y) => y.i !== j)
       .map((y) => ({ ...y, i: y.i > j ? y.i - 1 : y.i, after: y.after > j ? y.after - 1 : y.after }));
+    S.clog = (S.clog || []).map((y) => ({ ...y, after: y.after > j ? y.after - 1 : y.after }));
     if (S.endedAt && !result()) { S.endedAt = null; S.winnerIdx = null; }
     save(); render();
     flash(`Undid ${S.cfg.names[mine.p]} ${signed(mine.d)}`);
@@ -1051,6 +1264,7 @@ $('undoBtn').onclick = () => {
   S.cur = e.cur;
   // changes to that score go with it
   if (S.edits) S.edits = S.edits.filter((y) => y.i < S.log.length);
+  if (S.clog) S.clog.forEach((y) => { y.after = Math.min(y.after, S.log.length); });
   // an undo that takes back the win, or a Finish, opens the game again
   if (S.endedAt && !result()) { S.endedAt = null; S.winnerIdx = null; }
   save(); render();
@@ -1334,7 +1548,7 @@ async function changeTurn() {
   const where = S.cfg.turns ? ` in round ${r}` : '';
   if (!(await askConfirm(`Change ${name}'s score${where} from ${turnText(from)} to ${turnText(to)}?`, 'Change'))) return;
   if (!S.edits) S.edits = [];
-  S.edits.push({ i, p: e.p, r, from, to, fromParts: e.parts || [], after: S.log.length });
+  S.edits.push({ i, p: e.p, r, from, to, fromParts: e.parts || [], after: S.log.length, ts: Date.now() });
   e.d = to;
   e.parts = S.parts;
   S.scores[e.p] += to - from;
@@ -1412,10 +1626,15 @@ function showWin(r) {
     `Tie: ${r.winners.map(i => c.names[i]).join(' & ')}`;
 
   // Standings in finishing order: lowest first when low wins, else highest.
+  // Whoever won comes first, as a counter can win from behind on points,
+  // and anyone out comes last.
+  const won = (i) => (r.winners || []).includes(i) ? 0 : 1;
   const order = c.names.map((_, i) => i)
-    .sort((a, b) => c.win === 'low' ? S.scores[a] - S.scores[b] : S.scores[b] - S.scores[a]);
+    .sort((a, b) => won(a) - won(b) || Number(isOut(a)) - Number(isOut(b))
+      || (c.win === 'low' ? S.scores[a] - S.scores[b] : S.scores[b] - S.scores[a]));
   $('winTable').innerHTML = order.map(i =>
     `<li><span>${esc(c.names[i])}</span><b>${fmt(S.scores[i])}</b></li>`).join('');
+  $('winBy').textContent = r.by ? `${r.by.name} reached ${fmt(r.by.at)}` : '';
   $('winTable').classList.toggle('hidden', c.names.length === 1);
   $('winOverlay').classList.remove('hidden');
   // the game is over: kept on it, so every save from here says so
@@ -1523,15 +1742,21 @@ SCShare.attach({
     const r = result();
     if (r && !S.endedAt) showWin(r);
   },
-  // Shared by seat: a cell a score, '<player>:<round>'.
+  // Shared by seat: a cell a score, '<player>:<round>', and a cell a
+  // counter, '<player>:c_<id>', holding its value as it stands. Every
+  // counter has its cell from the start, so a counter put back where it
+  // began still says so.
   cells: {
     names: (st) => st.cfg.names,
     of: (st) => {
       const out = {}, seen = [];
       for (const e of st.log) {
         const r = (seen[e.p] = (seen[e.p] || 0) + 1);
-        out[`${e.p}:${r}`] = { d: e.d, parts: e.parts || [] };
+        out[`${e.p}:${r}`] = { d: e.d, parts: e.parts || [], ...(e.ts ? { ts: e.ts } : {}) };
       }
+      st.cfg.names.forEach((_, p) => {
+        for (const k of countersOf(st)) out[`${p}:c_${k.id}`] = { v: counterOf(st, p, k) };
+      });
       return out;
     },
     build: fromCells,
@@ -1548,10 +1773,21 @@ function fromCells(base, list) {
   const before = {};
   { const seen = []; for (const e of base.log || []) before[`${e.p}:${(seen[e.p] = (seen[e.p] || 0) + 1)}`] = e; }
 
+  // the counters start where they start; a cell says where one is now
+  const ks = countersOf(base);
+  const counts = c.names.map(() => Object.fromEntries(ks.map((k) => [k.id, k.start])));
+
   const log = [];
   list.forEach(({ key, value }, k) => {
-    const [p, r] = key.split(':').map(Number);
-    if (p >= 0 && p < n && value) log.push({ p, r, k, d: Number(value.d) || 0, parts: value.parts || [] });
+    const [ps, rs] = key.split(':'), p = Number(ps);
+    if (!(p >= 0 && p < n) || !value) return;
+    if (rs.startsWith('c_')) {
+      const id = rs.slice(2);
+      if (ks.some((x) => x.id === id) && Number.isInteger(value.v)) counts[p][id] = value.v;
+      return;
+    }
+    const r = Number(rs);
+    if (r >= 1) log.push({ p, r, k, d: Number(value.d) || 0, parts: value.parts || [], ts: Number(value.ts) || 0 });
   });
   log.sort((a, b) => a.r - b.r || a.k - b.k);
 
@@ -1563,23 +1799,35 @@ function fromCells(base, list) {
   const edits = (base.edits || []).map((x) => ({ ...x, i: at(x.p, x.r) })).filter((x) => x.i >= 0);
   log.forEach((e, i) => {
     const was = before[`${e.p}:${e.r}`];
-    if (was && was.d !== e.d) edits.push({ i, p: e.p, r: e.r, from: was.d, to: e.d, fromParts: was.parts || [], after: log.length });
+    if (was && was.d !== e.d) edits.push({ i, p: e.p, r: e.r, from: was.d, to: e.d, fromParts: was.parts || [], after: log.length, ts: Date.now() });
   });
 
-  // whose turn: the first still in the game without a score this round
-  let cur = base.cur;
-  if (c.turns) {
-    const counts = c.names.map((_, p) => log.filter((e) => e.p === p).length);
-    const live = counts.map((_, p) => p).filter((p) => !(c.win === 'zero' && scores[p] <= 0));
-    const round = live.length ? Math.min(...live.map((p) => counts[p])) : 0;
-    const next = live.find((p) => counts[p] === round);
-    if (next !== undefined) cur = next;
-  }
-  return {
+  // A counter that moved elsewhere goes in the history as a change, as one
+  // made here would. Ones made here are already in it, and already in the
+  // cells, so they don't come back as new.
+  const clog = (base.clog || []).map((y) => ({ ...y, after: Math.min(y.after, log.length) }));
+  c.names.forEach((_, p) => {
+    for (const k of ks) {
+      const was = counterOf(base, p, k), is = counts[p][k.id];
+      if (was !== is) clog.push({ p, id: k.id, from: was, to: is, after: log.length, ts: Date.now(), remote: true });
+    }
+  });
+
+  const st = {
     ...base,
-    log: log.map(({ p, d, parts }) => ({ p, d, parts, cur: p })),
-    scores, edits, cur, pend: 0, parts: [],
+    log: log.map(({ p, d, parts, ts }) => ({ p, d, parts, cur: p, ...(ts ? { ts } : {}) })),
+    scores, counts, clog, edits, pend: 0, parts: [],
   };
+
+  // whose turn: the first still in the game without a score this round
+  if (c.turns) {
+    const turns = c.names.map((_, p) => log.filter((e) => e.p === p).length);
+    const live = turns.map((_, p) => p).filter((p) => !outOf(st, p));
+    const round = live.length ? Math.min(...live.map((p) => turns[p])) : 0;
+    const next = live.find((p) => turns[p] === round);
+    if (next !== undefined) st.cur = next;
+  }
+  return st;
 }
 
 // Whether this phone may score player p: one that joined by seat scores

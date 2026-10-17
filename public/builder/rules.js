@@ -43,7 +43,39 @@ function defaultRules() {
     teams: false, teamCount: 2,
     // the room the game is played in: see /themes.css
     theme: 'workshop',
+    // Counters kept beside the score and changed at any time with − and +,
+    // not on a turn: a gear bonus, poison. See below.
+    counters: [],
   };
+}
+
+/* ---------------- counters ----------------
+
+   A counter is { id, name, start, end, at }. id is short and fixed for the
+   counter's life, since a shared game keys its cells by it. end says what
+   reaching `at` does: nothing, win the game, or put the player out. Which
+   way `at` is reached follows from where it sits: above the start it is
+   reached going up, below it going down — out at 10 poison, out at 0 life. */
+const MAX_COUNTERS = 6;
+const COUNTER_ENDS = [
+  { id: 'none', label: 'Just count' },
+  { id: 'win',  label: 'Wins at' },
+  { id: 'out',  label: 'Out at' },
+];
+
+const counterId = () => Math.random().toString(36).slice(2, 8);
+const newCounter = (n) => ({ id: counterId(), name: `Counter ${n}`, start: 0, end: 'none', at: 10 });
+
+// whether a counter's value has reached its line; a line on the start
+// itself is no line, or every player would be on it from the first
+const counterReached = (k, v) => k.end !== 'none' && (k.at > k.start ? v >= k.at : k.at < k.start && v <= k.at);
+
+// a counter as it is listed: "Gear", "Poison (out at 10)"
+function counterText(k) {
+  const name = k.name || 'Counter';
+  if (k.end === 'win') return `${name} (wins at ${num(k.at)})`;
+  if (k.end === 'out') return `${name} (out at ${num(k.at)})`;
+  return name;
 }
 
 // The rooms a builder game can be played in, as the setup screen offers them.
@@ -133,6 +165,8 @@ function describeRules(c) {
   if (c.teams) parts.push(`${c.teamCount || 2} teams`);
   const keys = parseQuick(c.quick).keys;
   if (keys.length) parts.push(`keys ${keys.map(keyText).join(', ')}`);
+  const counters = c.counters || [];
+  if (counters.length) parts.push(`counting ${counters.map(counterText).join(', ')}`);
   if (c.typed) parts.push('any score typed');
   if (c.signs) parts.push('can subtract');
   parts.push(c.turns || r ? 'takes turns' : 'score anyone any time');

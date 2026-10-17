@@ -82,6 +82,44 @@ describe('sharing the Builder by seat', () => {
     await jess.close(); await heather.close();
   });
 
+  test('counters reach every phone, and a seat changes only its own', async () => {
+    const jess = await phone(), heather = await phone(), watcher = await phone();
+    await open(jess, '/builder/');
+    await jess.evaluate(() => {
+      Object.assign(cfg, { mode: 'up', start: 0, win: 'none', turns: true, useRounds: false, names: ['Jess', 'Heather'], players: 2,
+        counters: [{ id: 'gear', name: 'Gear', start: 0, end: 'none', at: 10 }] });
+      saveCfg(); renderSetup();
+    });
+    await startGame(jess);
+    // changed before the game is shared: in the copy the server is given
+    await jess.click('#ctable .cval[data-p="0"][data-id="gear"] .cstep[data-d="1"]');
+    const sh = await share(jess);
+    await join(heather, 'builder', sh.join, 'Heather');
+    const gear = (pg) => pg.evaluate(() => S.counts.map((c) => c.gear).join('/'));
+    assert.equal(await gear(heather), '1/0');
+    assert.equal(await heather.$eval('#ctable .cval[data-p="0"] .cstep', (b) => getComputedStyle(b).visibility), 'hidden', 'not Jess\'s row');
+
+    await Promise.all([
+      heather.click('#ctable .cval[data-p="1"][data-id="gear"] .cstep[data-d="1"]'),
+      jess.click('#ctable .cval[data-p="0"][data-id="gear"] .cstep[data-d="1"]'),
+    ]);
+    await settle();
+    assert.equal(await gear(jess), '2/1');
+    assert.equal(await gear(heather), '2/1');
+    assert.match(await jess.$eval('#history', (e) => e.textContent), /Heather.*Gear/, 'a change from elsewhere is in the history');
+    assert.equal(await notes(jess), '', 'no clash');
+
+    // Heather takes hers back; it goes out as a change like any other
+    await heather.click('#undoBtn');
+    await settle();
+    assert.equal(await gear(jess), '2/0');
+
+    // a phone arriving now sees the counters as they stand
+    await open(watcher, `/builder/?s=${sh.view}`);
+    assert.equal(await gear(watcher), '2/0');
+    for (const pg of [jess, heather, watcher]) { assert.deepEqual(pg.errors, []); await pg.close(); }
+  });
+
   test('after a link goes out, Done asks once whether to score only your own', async () => {
     const jess = await phone();
     await builderGame(jess, ['Jess', 'Heather']);
