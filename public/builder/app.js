@@ -55,7 +55,8 @@ const baseRules = (src) => {
   const t = TEMPLATES.find(t => t.id === src);
   if (t) return { ...t.rules };
   const g = myGame(src);
-  if (g) return { ...defaultRules(), ...g.rules, name: g.name };
+  // saved before live games had a choice of buttons: they had them
+  if (g) return { ...defaultRules(), pad: true, ...g.rules, name: g.name };
   return defaultRules();
 };
 
@@ -136,8 +137,10 @@ function newGame(c) {
     id: crypto.randomUUID(),
     startedAt: Date.now(),
     // Rounds are counted in turns, so a game with them always takes turns.
+    // live is decided here, so a game begun before there were live games
+    // goes on being scored as it was
     cfg: { ...c, names, playerNames: players, members, playerTeams, quickKeys: parseQuick(c.quick).keys,
-           useRounds: rounds, turns: c.turns || rounds },
+           useRounds: rounds, turns: c.turns || rounds, live: isLive(c), pad: padOn(c) },
     scores: names.map(() => c.start),
     // each side's counters, by counter id; see counterOf
     counts: names.map(() => Object.fromEntries((c.counters || []).map((k) => [k.id, k.start]))),
@@ -224,6 +227,44 @@ function counterWin() {
 }
 
 const COUNTER_RUN = 4000;   // taps closer together than this are one change
+
+/* ---------------- live scoring ----------------
+
+   A game without turns is live: a tap changes the score at once, with no
+   Enter. The log still keeps each change, so the history, Undo, sharing
+   and the profile all read it as before — a quick run of taps on one
+   player being one entry, as with the counters. Only a run made on this
+   phone is added to, so one never takes over an entry from elsewhere. */
+const liveOn = () => !!(S && S.cfg.live);
+let liveRun = null;   // { i, p, ts }: the entry this phone's taps are adding to
+
+function liveAdd(p, d, label = '') {
+  if (!d || !mayScore(p)) return;
+  const now = Date.now(), last = S.log[S.log.length - 1];
+  // the run goes on only while nothing else has happened since it began
+  const later = (xs) => (xs || []).some((y) => y.after === S.log.length && (y.ts || 0) > last.ts);
+  const going = liveRun && last && liveRun.i === S.log.length - 1 && liveRun.p === p && last.p === p
+    && now - liveRun.ts < COUNTER_RUN && !later(S.clog) && !later(S.edits);
+  const crossedBefore = lineCrossed(), wasOut = isOut(p);
+  if (going) {
+    last.d += d;
+    last.parts = [...(last.parts || []), { label, d }];
+    last.ts = now;
+    liveRun.ts = now;
+    // tapped back to where it began: no change at all
+    if (last.d === 0) { S.log.pop(); liveRun = null; }
+  } else {
+    S.log.push({ p, d, cur: S.cur, parts: [{ label, d }], ts: now });
+    liveRun = { i: S.log.length - 1, p, ts: now };
+  }
+  S.scores[p] += d;
+  if (isOut(p) && !wasOut) flash(`${S.cfg.names[p]} is out`);
+  settleEnd();
+  save(); render();
+  const r = result();
+  if (r && !S.endedAt) showWin(r);
+  else if (!crossedBefore && lineCrossed()) flash(`${S.cfg.names[p]} reached ${fmt(S.cfg.target)}`);
+}
 
 function bump(p, id, d) {
   const k = countersOf(S).find((x) => x.id === id);
@@ -507,6 +548,12 @@ function renderSetup() {
     b.disabled = !!cur.mode && b.dataset.mode !== cur.mode;
   });
 
+  // live: the buttons are a choice, and only shown once chosen
+  const live = isLive(cfg);
+  $('pad').classList.toggle('hidden', !live);
+  setToggle($('pad'), padOn(cfg));
+  $('padRules').classList.toggle('hidden', live && !padOn(cfg));
+  $('quickLabel').classList.toggle('hidden', live);
   $('quick').value = cfg.quick;
   renderQuickPreview();
   setToggle($('typed'), cfg.typed);
@@ -516,7 +563,7 @@ function renderSetup() {
   $('turns').disabled = rounds;
   $('turnsNote').textContent = rounds
     ? 'Always on with a fixed number of rounds: a round is everyone taking one turn.'
-    : 'Entering a score passes play to the next player. Off: tap anyone and score them at any time.';
+    : 'Each score is added up and entered, and play passes to the next player. Off: live — every player has − and +, and a tap changes their score at once, like Magic or Munchkin.';
 
 }
 
@@ -686,10 +733,12 @@ $('rounds').addEventListener('input', (e) => { cfg.rounds = Math.max(1, Math.rou
 $('quick').addEventListener('input', (e) => { cfg.quick = e.target.value; saveCfg(); renderQuickPreview(); });
 $('typed').onclick = () => { cfg.typed = !cfg.typed; setToggle($('typed'), cfg.typed); saveCfg(); };
 $('signs').onclick = () => { cfg.signs = !cfg.signs; setToggle($('signs'), cfg.signs); saveCfg(); };
-$('turns').onclick = () => { cfg.turns = !cfg.turns; setToggle($('turns'), cfg.turns); saveCfg(); };
+$('turns').onclick = () => { cfg.turns = !cfg.turns; saveCfg(); renderSetup(); };
+$('pad').onclick = () => { cfg.pad = !padOn(cfg); saveCfg(); renderSetup(); };
 
 $('startBtn').onclick = async () => {
-  if (!parseQuick(cfg.quick).keys.length && !cfg.typed) {
+  const usesPad = !isLive(cfg) || padOn(cfg);
+  if (usesPad && !parseQuick(cfg.quick).keys.length && !cfg.typed) {
     flashSetup('Add at least one quick-score button, or switch on typed scores.');
     return;
   }
@@ -917,6 +966,8 @@ function buildBoard() {
   });
   layoutBoard();
   buildCounters();
+  buildTiles();
+  applyLayout();
 
   // Off, every entry goes the game's natural way. A game saved before the
   // switch existed has no value for it, and keeps the switch it had.
@@ -950,7 +1001,9 @@ function layoutBoard() {
   board.style.gridTemplateColumns = rows === 1 ? `repeat(${n}, 1fr)` : 'repeat(60, 1fr)';
   // smaller numbers once columns are narrow
   const colW = (rows === 1 && n * BOARD_ROOMY > page ? width : page) / widest;
-  board.className = 'scoreboard' + (n === 1 ? ' solo' : colW < 110 ? ' many' : '');
+  // its own classes only: whether it is shown at all is applyLayout's
+  board.classList.toggle('solo', n === 1);
+  board.classList.toggle('many', n > 1 && colW < 110);
 
   let i = 0;
   sizes.forEach((size, row) => {
@@ -965,7 +1018,96 @@ function layoutBoard() {
 window.addEventListener('resize', () => {
   if (!S || $('game').classList.contains('hidden')) return;
   layoutBoard();
+  layoutTiles();
   if (sheetOn()) renderSheet();
+});
+
+/* ---------------- the tiles ----------------
+
+   A tile a side, holding all of its numbers: the name, the score, and each
+   counter. In a live game the score has its own − and + too. They stand in
+   for the board in a live game and in any game with counters; the sheet,
+   for a game taken in turns, keeps the counters' table under it instead. */
+const tiled = () => liveOn() || countersOf(S).length > 0;
+
+function applyLayout() {
+  const sheet = sheetOn(), tiles = tiled();
+  $('tiles').classList.toggle('hidden', !tiles || sheet);
+  $('scoreboard').classList.toggle('hidden', tiles);
+  $('counters').classList.toggle('hidden', !countersOf(S).length || !sheet);
+  // live with no buttons: the − and + on the tiles are all there is
+  $('entry').classList.toggle('hidden', liveOn() && !S.cfg.pad);
+  $('entry').classList.toggle('live', liveOn());
+  layoutTiles();
+}
+
+function buildTiles() {
+  const box = $('tiles'), ks = countersOf(S), live = liveOn();
+  box.innerHTML = '';
+  if (!tiled()) return;
+  S.cfg.names.forEach((name, p) => {
+    const t = document.createElement('div');
+    t.className = 'tile';
+    t.dataset.p = p;
+    const step = (d) => live ? `<button class="tstep" data-d="${d}" aria-label="${d < 0 ? 'Take one from' : 'Add one to'} ${esc(name)}">${d < 0 ? '&minus;' : '+'}</button>` : '';
+    t.innerHTML = `<div class="tname"></div>`
+      + `<div class="tscore">${step(-1)}<span class="tnum"><b class="pnum"></b><i class="ppend"></i></span>${step(1)}</div>`
+      + `<div class="pmeta"></div>`
+      + ks.map((k) => `<div class="trow" data-id="${k.id}"><span>${esc(k.name || 'Counter')}</span>`
+        + `<button class="cstep" data-d="-1" aria-label="${esc(k.name)} down for ${esc(name)}">&minus;</button><b></b>`
+        + `<button class="cstep" data-d="1" aria-label="${esc(k.name)} up for ${esc(name)}">+</button></div>`).join('');
+    t.querySelector('.tname').textContent = name;
+    box.appendChild(t);
+  });
+}
+
+// Tiles share the width as the board's columns do: as many to a row as fit
+// at a readable width — two on a phone — spread evenly over the rows.
+const TILE_W = 160;
+function layoutTiles() {
+  const box = $('tiles');
+  if (!S || !box.children.length) return;
+  const n = box.children.length;
+  const fit = Math.max(1, Math.min(4, Math.floor(($('game').clientWidth - 20) / TILE_W)));
+  const rows = Math.ceil(n / fit);
+  const sizes = Array.from({ length: rows }, (_, k) => Math.floor(n / rows) + (k < n % rows ? 1 : 0));
+  let i = 0;
+  for (const size of sizes) for (let k = 0; k < size; k++, i++) box.children[i].style.gridColumn = `span ${60 / size}`;
+  box.classList.toggle('solo', n === 1);
+}
+
+function renderTiles() {
+  if (!tiled()) return;
+  const ks = countersOf(S), leader = leaderOf();
+  [...$('tiles').children].forEach((t) => {
+    const p = Number(t.dataset.p);
+    // who the buttons, or the next score, go to: only once there is a choice
+    t.classList.toggle('active', p === S.cur && (!liveOn() || S.cfg.pad) && S.scores.length > 1);
+    t.classList.toggle('out', isOut(p));
+    t.classList.toggle('leader', p === leader);
+    t.classList.toggle('pending', p === S.cur && S.pend !== 0);
+    t.classList.toggle('mine', SCShare.canScore(p));
+    t.querySelector('.pnum').textContent = fmt(S.scores[p]);
+    t.querySelector('.ppend').textContent = '→ ' + fmt(S.scores[p] + S.pend);
+    const mine = S.log.filter((e) => e.p === p), last = mine[mine.length - 1];
+    t.querySelector('.pmeta').textContent = isOut(p) ? 'out' : !liveOn() && last ? `last ${signed(last.d)}` : '';
+    t.querySelectorAll('.trow').forEach((row) => {
+      const k = ks.find((x) => x.id === row.dataset.id), v = counterOf(S, p, k);
+      row.querySelector('b').textContent = fmt(v);
+      row.classList.toggle('hit', counterReached(k, v));
+    });
+  });
+}
+
+$('tiles').addEventListener('click', (e) => {
+  const t = e.target.closest('.tile');
+  if (!t) return;
+  const p = Number(t.dataset.p);
+  const b = e.target.closest('button');
+  if (b && b.classList.contains('tstep')) { liveAdd(p, Number(b.dataset.d)); return; }
+  if (b && b.classList.contains('cstep')) { bump(p, b.closest('.trow').dataset.id, Number(b.dataset.d)); return; }
+  // anywhere else on a tile picks who the buttons go to
+  if (S.cur !== p && mayScore(p)) { S.cur = p; save(); render(); }
 });
 
 /* The counters: a column a counter, a row a side, each value between its
@@ -973,7 +1115,6 @@ window.addEventListener('resize', () => {
    the turn. On a phone that joined by seat only its own row can be changed. */
 function buildCounters() {
   const ks = countersOf(S), c = S.cfg;
-  $('counters').classList.toggle('hidden', !ks.length);
   if (!ks.length) { $('ctable').innerHTML = ''; return; }
   const t = $('ctable');
   t.style.gridTemplateColumns = `minmax(64px, 1fr) repeat(${ks.length}, minmax(96px, auto))`;
@@ -1032,6 +1173,8 @@ function buildPad() {
     b.dataset.v = k.v;
     if (k.label) b.innerHTML = `<b>${esc(k.label)}</b><small></small>`;
     b.onclick = () => {
+      // live: straight onto the score of whoever is picked
+      if (liveOn()) { liveAdd(S.cur, S.sign * k.v, k.label); return; }
       S.pend += S.sign * k.v;
       S.parts.push({ label: k.label, d: S.sign * k.v });
       save(); render();
@@ -1081,7 +1224,8 @@ function render() {
   $('pendAmt').textContent = signed(S.pend);
   // what has been tapped, by name, once any of it has one
   const who = entry ? entry.p : S.cur;
-  $('pendFor').textContent = partsText(S.parts) || `for ${c.names[who]}`;
+  $('pendFor').textContent = liveOn() ? `Buttons go to ${c.names[S.cur]}`
+    : partsText(S.parts) || `for ${c.names[who]}`;
   // With nothing entered, a turn-based game scores 0 — a bust, a hole with
   // nothing on it — and play moves on. Without turns a 0 would change
   // nothing, so there is nothing to enter.
@@ -1129,6 +1273,7 @@ function render() {
   }).reverse().join('');
 
   renderCounters();
+  renderTiles();
   if (sheetOn()) renderSheet();
 }
 
@@ -1188,6 +1333,7 @@ function addTyped() {
   // whole numbers, as everywhere a score is entered; see parseQuick
   const v = Math.round(Math.abs(Number($('typedIn').value)));
   if (!v) return;
+  if (liveOn()) { $('typedIn').value = ''; liveAdd(S.cur, S.sign * v); return; }
   S.pend += S.sign * v;
   S.parts.push({ label: '', d: S.sign * v });
   $('typedIn').value = '';
@@ -1209,6 +1355,7 @@ $('commitBtn').onclick = () => {
 };
 
 $('undoBtn').onclick = () => {
+  liveRun = null;   // whatever is taken back, the next tap starts afresh
   if (S.pend || (S.parts && S.parts.length)) { S.pend = 0; S.parts = []; save(); render(); return; }
   const seat = SCShare.seat();
   const x = S.edits && S.edits[S.edits.length - 1];
@@ -1309,6 +1456,7 @@ function applyView() {
   $('sheetWrap').classList.toggle('hidden', !on);
   document.querySelectorAll('#viewRow .vseg').forEach((b) =>
     b.classList.toggle('is-on', b.dataset.view === (on ? 'sheet' : 'board')));
+  applyLayout();
 }
 
 $('viewRow').addEventListener('click', (e) => {
@@ -1576,6 +1724,8 @@ function settleEnd() {
 
 $('history').addEventListener('click', (e) => {
   const row = e.target.closest('[data-i]');
+  // live, a score is changed by tapping it again, and Undo takes one back
+  if (liveOn()) return;
   if (row && S.log[row.dataset.i] && mayScore(S.log[row.dataset.i].p)) openEdit(Number(row.dataset.i), `#history [data-i="${row.dataset.i}"]`);
 });
 
@@ -1717,6 +1867,7 @@ SCShare.attach({
      stays open and points at its cell wherever it now is. Only when that
      very score has come in from elsewhere does the bubble close, saying so. */
   apply: (st) => {
+    liveRun = null;   // the log may have been put in a new order
     const mid = { pend: S.pend, parts: S.parts, sign: S.sign, cur: S.cur };
     const busy = !!entry || S.pend !== 0 || !!(S.parts && S.parts.length);
     const editing = entry && entry.i != null ? { p: entry.p, r: entry.r } : null;

@@ -81,8 +81,12 @@ describe('the Builder', () => {
 const GEAR = { id: 'gear', name: 'Gear', start: 0, end: 'none', at: 10 };
 const POISON = { id: 'pois', name: 'Poison', start: 0, end: 'out', at: 3 };
 const LEVEL = { id: 'lvl', name: 'Level', start: 1, end: 'win', at: 3 };
-const tapCounter = (pg, p, id, d) => pg.click(`#ctable .cval[data-p="${p}"][data-id="${id}"] .cstep[data-d="${d}"]`);
-const counter = (pg, p, id) => pg.$eval(`#ctable .cval[data-p="${p}"][data-id="${id}"] b`, (b) => b.textContent);
+// a counter where it is shown: on the tiles, or in the table under the sheet
+const counterAt = (p, id) => (document.querySelector('#tiles').classList.contains('hidden')
+  ? document.querySelector(`#ctable .cval[data-p="${p}"][data-id="${id}"]`)
+  : document.querySelector(`#tiles .tile[data-p="${p}"] .trow[data-id="${id}"]`));
+const tapCounter = (pg, p, id, d) => pg.evaluate(`(${counterAt})(${p}, '${id}').querySelector('.cstep[data-d="${d}"]').click()`);
+const counter = (pg, p, id) => pg.evaluate(`(${counterAt})(${p}, '${id}').querySelector('b').textContent`);
 
 describe('Builder counters', () => {
   test('a counter changes at any time, without taking the turn, and Undo takes back a run of taps', async () => {
@@ -133,7 +137,7 @@ describe('Builder counters', () => {
   test('Wins at ends the game at once, ahead of a higher score', async () => {
     const pg = await phone();
     await custom(pg, { names: ['Ann', 'Bob'], turns: false, counters: [LEVEL] });
-    await pg.evaluate(() => { S.cur = 0; S.pend = 50; commit(50); });
+    await pg.evaluate(() => liveAdd(0, 50));
     await tapCounter(pg, 1, 'lvl', 1); await tapCounter(pg, 1, 'lvl', 1); await wait(400);
     assert.equal(await pg.evaluate(() => winName.textContent), 'Bob wins!');
     assert.equal(await pg.evaluate(() => winBy.textContent), 'Level reached 3');
@@ -153,6 +157,67 @@ describe('Builder counters', () => {
     await pg.reload({ waitUntil: 'domcontentloaded' }); await wait(900);
     assert.deepEqual(await pg.evaluate(() => cfg.counters.map(({ name, end, at }) => [name, end, at])), [['Poison', 'out', 10]]);
     await pg.evaluate(() => { cfg.counters = []; saveCfg(); });
+    await pg.close();
+  });
+});
+
+const tapScore = (pg, p, d) => pg.click(`#tiles .tile[data-p="${p}"] .tstep[data-d="${d}"]`);
+const tileScore = (pg, p) => pg.$eval(`#tiles .tile[data-p="${p}"] .pnum`, (b) => b.textContent);
+
+describe('Builder, live', () => {
+  test('without turns a tap changes the score at once, and a run of taps is one entry', async () => {
+    const pg = await phone();
+    await custom(pg, { names: ['Ann', 'Bob'], turns: false, start: 1, counters: [GEAR] });
+    assert.equal(await pg.evaluate(() => tiles.classList.contains('hidden')), false, 'a tile a player');
+    assert.equal(await pg.evaluate(() => document.getElementById('entry').classList.contains('hidden')), true, 'no pad unless asked for');
+    assert.equal(await pg.evaluate(() => counters.classList.contains('hidden')), true, 'the counters are in the tiles');
+
+    await tapScore(pg, 1, 1); await tapScore(pg, 1, 1); await tapScore(pg, 1, 1);
+    await tapScore(pg, 0, -1);
+    await wait(200);
+    assert.equal(await tileScore(pg, 1), '4');
+    assert.equal(await tileScore(pg, 0), '0');
+    assert.deepEqual(await pg.evaluate(() => S.log.map((e) => [e.p, e.d])), [[1, 3], [0, -1]]);
+
+    // the counter in the same tile, and Undo back through both
+    await tapCounter(pg, 0, 'gear', 1); await wait(100);
+    await pg.click('#undoBtn'); await wait(100);
+    assert.equal(await counter(pg, 0, 'gear'), '0');
+    await pg.click('#undoBtn'); await wait(100);
+    assert.equal(await tileScore(pg, 0), '1');
+    // after an Undo, the next tap is a new entry, not added to the last
+    await tapScore(pg, 1, 1); await wait(100);
+    assert.deepEqual(await pg.evaluate(() => S.log.map((e) => [e.p, e.d])), [[1, 3], [1, 1]]);
+    assert.deepEqual(pg.errors, []);
+    await pg.close();
+  });
+
+  test('with quick-score buttons, a tap goes straight to whoever is picked', async () => {
+    const pg = await phone();
+    await custom(pg, { names: ['Ann', 'Bob'], turns: false, pad: true, quick: '5, 10', win: 'target', target: 20 });
+    assert.equal(await pg.evaluate(() => getComputedStyle(commitBtn).display), 'none', 'nothing to enter');
+    await pg.click('#tiles .tile[data-p="1"] .tname'); await wait(100);
+    await tapKey(pg, '+10'); await tapKey(pg, '+5');
+    await wait(200);
+    assert.equal(await tileScore(pg, 1), '15');
+    assert.equal(await pg.evaluate(() => S.log.length), 1);
+    await pg.type('#typedIn', '5'); await pg.click('#typedAdd'); await wait(400);
+    assert.equal(await pg.evaluate(() => winName.textContent), 'Bob wins!', 'reaching the target ends a live game at once');
+    assert.deepEqual(pg.errors, []);
+    await pg.close();
+  });
+
+  test('the setup offers the buttons only for a live game', async () => {
+    const pg = await phone();
+    await open(pg, '/builder/');
+    await pg.evaluate(() => { Object.assign(cfg, { turns: true, useRounds: false }); saveCfg(); renderSetup(); });
+    assert.equal(await pg.evaluate(() => pad.classList.contains('hidden')), true);
+    assert.equal(await pg.evaluate(() => padRules.classList.contains('hidden')), false);
+    await pg.click('#turns'); await wait(100);
+    assert.equal(await pg.evaluate(() => pad.classList.contains('hidden')), false);
+    assert.equal(await pg.evaluate(() => padRules.classList.contains('hidden')), true, 'off by default');
+    await pg.click('#pad'); await wait(100);
+    assert.equal(await pg.evaluate(() => padRules.classList.contains('hidden')), false);
     await pg.close();
   });
 });

@@ -120,6 +120,32 @@ describe('sharing the Builder by seat', () => {
     for (const pg of [jess, heather, watcher]) { assert.deepEqual(pg.errors, []); await pg.close(); }
   });
 
+  test('a live game: taps on each phone reach the other', async () => {
+    const jess = await phone(), heather = await phone();
+    await open(jess, '/builder/');
+    await jess.evaluate(() => {
+      Object.assign(cfg, { mode: 'up', start: 1, win: 'none', turns: false, useRounds: false, names: ['Jess', 'Heather'], players: 2, counters: [] });
+      saveCfg(); renderSetup();
+    });
+    await startGame(jess);
+    const sh = await share(jess);
+    await join(heather, 'builder', sh.join, 'Heather');
+    const tap = (pg, p, d) => pg.click(`#tiles .tile[data-p="${p}"] .tstep[data-d="${d}"]`);
+    assert.equal(await heather.$eval('#tiles .tile[data-p="0"] .tstep', (b) => getComputedStyle(b).visibility), 'hidden', 'not Jess\'s tile');
+    await Promise.all([
+      (async () => { await tap(heather, 1, 1); await tap(heather, 1, 1); })(),
+      (async () => { await tap(jess, 0, 1); })(),
+    ]);
+    await settle();
+    // and a second run, after the first has gone out: a new entry
+    await tap(heather, 1, -1);
+    await settle();
+    assert.equal(await scores(jess), '2/2');
+    assert.equal(await scores(heather), '2/2');
+    assert.equal(await notes(jess), '', 'no clash');
+    for (const pg of [jess, heather]) { assert.deepEqual(pg.errors, []); await pg.close(); }
+  });
+
   test('after a link goes out, Done asks once whether to score only your own', async () => {
     const jess = await phone();
     await builderGame(jess, ['Jess', 'Heather']);

@@ -43,6 +43,7 @@ const RULE_FIELDS = {
   teamCount: (v) => isInt(v) && v >= 2 && v <= 4,
   players:   (v) => isInt(v) && v >= 1 && v <= 8,
   theme:     (v) => ['parlor', 'living', 'workshop'].includes(v),
+  pad:       isBool,
   // up to six, each { id, name, start, end, at }: see rules.js
   counters:  (v) => Array.isArray(v) && v.length <= 6 && v.every(isCounter)
     && new Set(v.map((k) => k.id)).size === v.length,
@@ -59,7 +60,9 @@ const isCounter = (k) => !!k && typeof k === 'object' && !Array.isArray(k)
 
 // Fields added after My games shipped. A browser still running the page from
 // before them sends rules without them, so they are filled in, not refused.
-const OPTIONAL = { teams: false, teamCount: 2, players: 2, theme: 'workshop', counters: [] };
+const OPTIONAL = { teams: false, teamCount: 2, players: 2, theme: 'workshop', counters: [],
+  // a live game's buttons: rules from before the choice had them
+  pad: true };
 
 function cleanRules(rules) {
   if (!rules || typeof rules !== 'object') return { bad: 'rules' };

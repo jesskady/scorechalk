@@ -543,3 +543,51 @@ button.cell:active{background:var(--line)}
 
 .win-by{font-size:13px;color:var(--dim);margin-top:-4px}
 .win-by:empty{display:none}
+
+/* ---------- Tiles ---------- */
+/* A tile a side: its name, its score, and each counter. The grid has 60
+   columns, as the board does, so a row of one to four tiles each takes
+   an even share; layoutTiles() sets the spans. */
+.tiles{display:grid;grid-template-columns:repeat(60,1fr);gap:6px}
+.tile{
+  display:flex;flex-direction:column;min-width:0;cursor:pointer;
+  border:1px solid var(--line);border-radius:12px;background:var(--card);overflow:hidden;
+  transition:background .15s,opacity .15s;
+}
+.tname{
+  background:var(--bg2);padding:7px 6px 5px;border-bottom:3px solid transparent;
+  font-size:13px;font-weight:700;color:var(--dim);text-align:center;line-height:1.25;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.tile.active{background:var(--select,#1c2b23)}
+.tile.active .tname{border-bottom-color:var(--green);color:var(--txt)}
+.tile.leader .tname::before{content:'★ ';color:var(--gold)}
+.tile.out{opacity:.45}
+.tile.out .pnum{text-decoration:line-through}
+.tscore{display:flex;align-items:center;justify-content:center;gap:8px;padding:8px 6px 0}
+.tnum{display:flex;flex-direction:column;align-items:center;min-width:52px}
+.tnum b{font-size:36px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}
+.tiles.solo .tnum b{font-size:48px}
+.tile .ppend{display:none;font-style:normal;font-size:13px;font-weight:700;color:var(--gold);white-space:nowrap}
+.tile.pending .ppend{display:block}
+.tstep{
+  width:44px;height:44px;border-radius:12px;font-size:26px;font-weight:700;line-height:1;
+  background:var(--bg2);border:1px solid var(--line);color:var(--dim);flex:none;
+}
+.tstep:active{border-color:var(--green);color:var(--txt)}
+.tile .pmeta{min-height:8px;padding:1px 2px 4px}
+.trow{
+  display:grid;grid-template-columns:1fr auto 30px auto;align-items:center;gap:4px;
+  padding:4px max(6px, calc(50% - 110px));border-top:1px solid var(--line);
+}
+.trow span{font-size:12px;font-weight:600;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.trow b{text-align:center;font-size:17px;font-weight:800;font-variant-numeric:tabular-nums}
+.trow.hit b{color:var(--neg,#e2857a)}
+.trow .cstep{width:32px;height:30px;font-size:18px}
+/* a seated phone changes its own tile only */
+.tile:not(.mine) .tstep,.tile:not(.mine) .cstep{visibility:hidden}
+#game.sheet-view .tiles{display:none}
+
+/* live, the buttons go straight onto the score: nothing to add up or enter */
+.entry.live #pendAmt,.entry.live #clearBtn,.entry.live #commitBtn{display:none}
+.pad-rules{display:flex;flex-direction:column;gap:9px}

@@ -37,6 +37,9 @@ function defaultRules() {
     players: 2,
     useRounds: false, rounds: 9,
     quick: '1, 5, 10', typed: true, signs: true, turns: true,
+    // A game without turns is live: each tap changes the score at once,
+    // with − and + on each player. pad adds the quick-score buttons there.
+    pad: false,
     // Played in teams: the players are split into teamCount sides, and each
     // side is scored as one. Which player is on which side is part of who is
     // playing, not of the rules, so it lives with the names (see app.js).
@@ -91,6 +94,13 @@ function themeOf(c) {
   if (c && THEMES.some((t) => t.id === c.theme)) return c.theme;
   return ({ farkle: 'living', canasta: 'parlor' })[c && c.source] || 'workshop';
 }
+
+// Live: no turns, so nothing to enter. Rounds are counted in turns, so a
+// game with them is never live.
+const isLive = (c) => !c.turns && !roundsOn(c);
+// The quick-score buttons in a live game. Rules saved before there was a
+// choice had them, and keep them.
+const padOn = (c) => c.pad !== false;
 
 // Teams need at least two players a side, so 4 players make 2 teams at most,
 // 6 make 3, 8 make 4.
@@ -163,12 +173,13 @@ function describeRules(c) {
   if (c.win === 'zero') parts.push(`Start at ${num(c.start)}, out at 0`);
   else if (c.start !== 0) parts.push(`${c.mode === 'down' ? 'counts down from' : 'starts at'} ${num(c.start)}`);
   if (c.teams) parts.push(`${c.teamCount || 2} teams`);
-  const keys = parseQuick(c.quick).keys;
+  const live = isLive(c), pad = !live || padOn(c);
+  const keys = pad ? parseQuick(c.quick).keys : [];
   if (keys.length) parts.push(`keys ${keys.map(keyText).join(', ')}`);
   const counters = c.counters || [];
   if (counters.length) parts.push(`counting ${counters.map(counterText).join(', ')}`);
-  if (c.typed) parts.push('any score typed');
-  if (c.signs) parts.push('can subtract');
-  parts.push(c.turns || r ? 'takes turns' : 'score anyone any time');
+  if (pad && c.typed) parts.push('any score typed');
+  if (pad && c.signs) parts.push('can subtract');
+  parts.push(live ? 'live, − and + on each player' : 'takes turns');
   return parts.join(' · ');
 }
