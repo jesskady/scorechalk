@@ -99,10 +99,10 @@ describe('tournaments', () => {
     await pg.click('#stages [data-step="players"]');
     assert.deepEqual(await shown(), ['players']);
     await addPlayers(pg, ['Alice', 'Bob', 'Cal', 'Dee', 'Eve', 'Fay', 'Gus']);
-    // numbered as they go in, the next number waiting
+    // numbered as they go in, under the box
     assert.deepEqual(await pg.$$eval('#players li', (ls) => ls.map((l) => l.querySelector('i').textContent + l.querySelector('span').textContent)),
       ['1.Alice', '2.Bob', '3.Cal', '4.Dee', '5.Eve', '6.Fay', '7.Gus']);
-    assert.equal(await pg.$eval('#addNum', (i) => i.textContent), '8.');
+    assert.equal(await pg.$eval('#addName', (i) => i.value), '', 'the box empties for the next name');
     assert.equal(await pg.$eval('#playersTab', (b) => b.textContent), '7');
     await pg.click('#nextBtn');
     assert.deepEqual(await shown(), ['format']);

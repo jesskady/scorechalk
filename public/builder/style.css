@@ -107,9 +107,6 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 .step:active{border-color:var(--green)}
 .step:disabled{opacity:.35}
 
-.names{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.names input{padding:10px;font-size:15px}
-.names.one{grid-template-columns:1fr}
 
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chips:empty{display:none}
@@ -296,9 +293,6 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 
 /* ---------- Teams ---------- */
 .teams-box{display:flex;flex-direction:column;gap:9px;border-top:1px solid var(--line);padding-top:10px}
-.names.teamed{grid-template-columns:1fr 1fr}
-.name-row{display:flex;align-items:center;gap:6px;min-width:0}
-.name-row input{min-width:0}
 .team-chip{
   flex:none;width:30px;height:30px;border-radius:50%;
   background:color-mix(in srgb, var(--tc) 30%, var(--bg2));border:2px solid var(--tc);
@@ -607,3 +601,39 @@ button.cell:active{background:var(--line)}
 .stage b:empty{display:none}
 .stage.is-on{color:var(--on-primary,#fff);background:var(--green-d);border-color:var(--green)}
 .pane{display:flex;flex-direction:column;gap:8px}
+
+/* Take turns or any time: two choices side by side, each described in full */
+.ways{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.way{
+  display:flex;flex-direction:column;gap:4px;text-align:left;padding:10px;
+  border-radius:10px;background:var(--bg2);border:2px solid var(--line);
+}
+.way b{font-size:15px;font-weight:700}
+.way small{font-size:12px;line-height:1.35;color:var(--dim)}
+.way.is-on{border-color:var(--green);background:var(--select,#1c2b23)}
+/* a team chip in the players' list, where the list's own × button rule
+   would otherwise size and colour it */
+.roster li .team-chip{width:30px;height:30px;color:#fff;font-size:13px;margin-left:2px}
+
+/* which player is you, in the players' list: a person, or You once picked */
+.roster li .me-btn{
+  width:auto;min-width:34px;padding:0 7px;border-radius:999px;
+  display:flex;align-items:center;justify-content:center;gap:4px;
+}
+.me-btn svg{width:18px;height:18px;fill:none;stroke:var(--dim);stroke-width:2;stroke-linecap:round;opacity:.6}
+.me-btn b{display:none;font-size:13px;font-weight:700}
+.roster li .me-btn.is-on{background:var(--green-d);color:var(--on-primary,#fff)}
+.me-btn.is-on svg{stroke:currentColor;opacity:1}
+.me-btn.is-on b{display:inline}
+
+/* two or three players: a tile each across the whole width, and more to it */
+.tiles.roomy .tname{font-size:15px;padding:9px 6px 7px}
+.tiles.roomy .tscore{gap:18px;padding:12px 6px 2px}
+.tiles.roomy .tnum{min-width:80px}
+.tiles.roomy .tnum b{font-size:60px}
+.tiles.roomy .tstep{width:60px;height:60px;border-radius:16px;font-size:32px}
+.tiles.roomy .trow{padding-block:6px}
+.tiles.roomy .trow span{font-size:14px}
+.tiles.roomy .trow b{font-size:22px}
+.tiles.roomy .trow .cstep{width:40px;height:36px;font-size:22px}
+.tiles.roomy .trow{padding-inline:max(8px, calc(50% - 140px))}

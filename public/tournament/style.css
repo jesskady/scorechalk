@@ -74,22 +74,7 @@ input:focus,select:focus{outline:none;border-color:var(--green)}
 .stage.is-on{color:var(--on-primary,#fff);background:var(--green-d);border-color:var(--green)}
 .step{display:flex;flex-direction:column;gap:8px}
 
-/* ---------- players: a numbered list ---------- */
-.roster{list-style:none;display:flex;flex-direction:column}
-.roster:empty{display:none}
-.roster li{
-  display:flex;align-items:center;gap:10px;padding:6px 0 6px 2px;
-  border-bottom:1px solid var(--line);font-size:17px;
-}
-.roster li span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.roster i,.roster-add i{
-  font-style:normal;width:1.6em;flex:none;text-align:right;
-  color:var(--dim);font-variant-numeric:tabular-nums;font-size:15px;
-}
-.roster li button{width:34px;height:34px;border-radius:50%;color:var(--dim);font-size:20px;line-height:1;flex:none}
-.roster li button:active{background:var(--bg2)}
-.roster-add{display:flex;align-items:center;gap:10px;padding-left:2px}
-.roster-add .add-btn{flex:none;width:72px}
+/* ---------- players: a numbered list — .roster, in /shared.css ---------- */
 
 .primary:disabled{opacity:.45;cursor:default}
 

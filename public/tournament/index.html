@@ -24,10 +24,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredericka+the+Great&family=Josefin+Sans:wght@400;600;700&family=Bree+Serif&family=Kalam:wght@400;700&display=swap">
-<link rel="stylesheet" href="../shared.css?v=29">
+<link rel="stylesheet" href="../shared.css?v=32">
 <!-- a tournament is played in its game's room; app.js sets data-room -->
 <link rel="stylesheet" href="../themes.css?v=6">
-<link rel="stylesheet" href="style.css?v=4">
+<link rel="stylesheet" href="style.css?v=5">
 </head>
 <body data-room="parlor" data-game="tournament">
 
@@ -82,15 +82,15 @@
   </div>
 
   <!-- ---------- 2. the players ---------- -->
-  <!-- A numbered list, the next number waiting at the bottom for a name. -->
+  <!-- A box for a name at the top, the numbered list building under it.
+       Enter, or the keyboard's done on a phone, adds the name: a form with
+       one box submits on it by itself. -->
   <div class="step hidden" data-step="players">
     <div class="card">
-      <ol id="players" class="roster"></ol>
       <form id="addForm" class="roster-add">
-        <i id="addNum">1</i>
         <input id="addName" type="text" placeholder="Add a player" autocomplete="off" maxlength="14" enterkeyhint="done">
-        <button class="seg add-btn" type="submit">Add</button>
       </form>
+      <ol id="players" class="roster"></ol>
       <p id="playersNote" class="hint"></p>
     </div>
   </div>
@@ -185,7 +185,8 @@
 
 <script src="/account.js?v=29" defer></script>
 <script src="/store.js?v=3"></script>
-<script src="app.js?v=4"></script>
+<script src="/roster.js?v=1"></script>
+<script src="app.js?v=6"></script>
 <script src="/pwa.js?v=1" defer></script>
 </body>
 </html>

@@ -240,6 +240,12 @@ function buildSetup() {
     renderNames();
   });
 
+  // the order they are listed is the order they are numbered and drawn in
+  SCRoster.sortable($('players'), (from, to) => {
+    names.splice(to, 0, names.splice(from, 1)[0]);
+    renderNames();
+  });
+
   document.querySelectorAll('#stages .stage').forEach((b) => b.addEventListener('click', () => showStep(b.dataset.step)));
   $('nextBtn').addEventListener('click', () => showStep(STEPS[STEPS.indexOf(step) + 1]));
 
@@ -292,16 +298,17 @@ function showStep(s) {
   window.scrollTo(0, 0);
 }
 
-// The players, numbered as they will be listed, the next number waiting.
+// The players, numbered as they will be listed, under the box for the next.
 function renderNames() {
   $('players').innerHTML = names.map((n, i) =>
     `<li><i>${i + 1}.</i><span>${esc(n)}</span><button type="button" data-i="${i}" aria-label="Remove ${esc(n)}">×</button></li>`).join('');
-  $('players').querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
+  // and a grip on each, to drag it up or down the list (see /roster.js)
+  [...$('players').children].forEach((li, i) => li.appendChild(SCRoster.grip(`Move ${names[i]}`)));
+  $('players').querySelectorAll('button[data-i]').forEach((b) => b.addEventListener('click', () => {
     names.splice(+b.dataset.i, 1);
     renderNames();
   }));
   const n = names.length;
-  $('addNum').textContent = `${n + 1}.`;
   $('addForm').classList.toggle('hidden', n >= MAX_PLAYERS);
   $('playersTab').textContent = n ? String(n) : '';
   $('playersNote').textContent = n >= MAX_PLAYERS ? `${MAX_PLAYERS} players, the most a tournament takes`

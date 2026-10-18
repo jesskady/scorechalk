@@ -30,10 +30,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredericka+the+Great&family=Josefin+Sans:wght@400;600;700&family=Bree+Serif&family=Kalam:wght@400;700&display=swap">
-<link rel="stylesheet" href="../shared.css?v=29">
+<link rel="stylesheet" href="../shared.css?v=32">
 <!-- the rooms a game can be played in; app.js sets data-room on the body -->
 <link rel="stylesheet" href="../themes.css?v=6">
-<link rel="stylesheet" href="style.css?v=41">
+<link rel="stylesheet" href="style.css?v=44">
 </head>
 <body data-room="workshop">
 
@@ -97,13 +97,18 @@
   <!-- Rounds are counted in turns, so they live under them: a live game has
        none. -->
   <div class="card">
-    <button id="turns" class="toggle" role="switch" aria-checked="false">
-      <span class="tg-label">
+    <span class="field-label">How scores change</span>
+    <!-- both ways described in full, so the choice is made seeing each -->
+    <div class="ways" id="turnsRow" role="radiogroup" aria-label="How scores change">
+      <button type="button" class="way" role="radio" data-turns="1">
         <b>Take turns</b>
-        <small id="turnsNote"></small>
-      </span>
-      <span class="tg-switch"></span>
-    </button>
+        <small>On your turn, add up your score and enter it. Play then passes to the next player.</small>
+      </button>
+      <button type="button" class="way" role="radio" data-turns="0">
+        <b>Any time</b>
+        <small>Anyone's score can change at any time. Each player has − and +, and a tap changes the score straight away.</small>
+      </button>
+    </div>
     <div id="roundsBox" class="subsection hidden">
       <button id="useRounds" class="toggle" role="switch" aria-checked="false">
         <span class="tg-label">
@@ -122,16 +127,19 @@
 
   <!-- ---------- 2. the players ---------- -->
   <div class="pane hidden" data-step="players">
+  <!-- A box for a name at the top, the numbered list building under it, as
+       the tournament's (the .roster styles are in /shared.css). Enter, or the
+       keyboard's done on a phone, adds the name. A name in the list can be
+       tapped and changed; in teams, its team chip stands in for its number. -->
   <div class="card">
-    <div class="field">
-      <span>Players</span>
-      <div class="stepper">
-        <button type="button" class="step" id="pMinus" aria-label="Fewer players">&minus;</button>
-        <b id="pCount">2</b>
-        <button type="button" class="step" id="pPlus" aria-label="More players">+</button>
-      </div>
-    </div>
-    <div id="names" class="names"></div>
+    <form id="addForm" class="roster-add">
+      <input id="addName" type="text" placeholder="Add a player" autocomplete="off" maxlength="14" enterkeyhint="done">
+    </form>
+    <ol id="names" class="roster"></ol>
+    <p id="playersNote" class="hint"></p>
+    <!-- which player is you: taken for you when the game is shared, so no
+         one else joins as you -->
+    <p class="hint">Tap the person beside your own name to mark yourself as you.</p>
 
     <!-- four or more players: split them into sides, each scored as one -->
     <div id="teamsBox" class="teams-box hidden">
@@ -146,11 +154,6 @@
     </div>
   </div>
 
-  <div class="card">
-    <span class="field-label">You are</span>
-    <!-- taken for you when the game is shared, so no one else joins as you -->
-    <div class="preset-row" id="youRow" style="flex-wrap:wrap"></div>
-  </div>
   </div>
 
   <!-- ---------- 3. scoring ---------- -->
@@ -358,7 +361,8 @@
 <script src="/store.js?v=3"></script>
 <script src="/share.js?v=12"></script>
 <script src="/cloud.js?v=3"></script>
-<script src="app.js?v=50"></script>
+<script src="/roster.js?v=1"></script>
+<script src="app.js?v=55"></script>
 <script src="/pwa.js?v=1" defer></script>
 </body>
 </html>

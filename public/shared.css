@@ -125,3 +125,41 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
   border-radius:11px;padding:9px;width:100%;font-size:14px;
 }
 .ghost:active{background:var(--card)}
+
+/* ---------- players: a numbered list ----------
+   A box for a name at the top, the list building under it: Enter adds
+   the name. The tournament's setup and the Builder's both list their
+   players this way. */
+.roster{list-style:none;display:flex;flex-direction:column}
+.roster:empty{display:none}
+.roster li{
+  display:flex;align-items:center;gap:10px;padding:6px 0 6px 2px;
+  border-bottom:1px solid var(--line);font-size:17px;
+}
+.roster li span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.roster i{
+  font-style:normal;width:1.6em;flex:none;text-align:right;
+  color:var(--dim);font-variant-numeric:tabular-nums;font-size:15px;
+}
+.roster li button{width:34px;height:34px;border-radius:50%;color:var(--dim);font-size:20px;line-height:1;flex:none}
+.roster li button:active{background:var(--bg2)}
+.roster-add{display:flex}
+.roster-add input{flex:1;min-width:0}
+/* a name that can be changed where it is listed (the Builder) */
+.roster .roster-name{
+  flex:1;min-width:0;padding:4px 0;font-size:17px;
+  background:none;border:none;border-bottom:1px dashed transparent;border-radius:0;
+}
+.roster .roster-name:focus{border-bottom-color:var(--green)}
+.roster li button:disabled{opacity:.3}
+/* the grip a row is dragged by (/roster.js): two short upright bars */
+.roster li .roster-grip{width:30px;touch-action:none;cursor:grab;position:relative;border-radius:8px}
+.roster-grip::before{
+  content:'';position:absolute;left:50%;top:50%;width:7px;height:16px;transform:translate(-50%,-50%);
+  border-left:2px solid var(--dim);border-right:2px solid var(--dim);
+}
+.roster li.dragging{
+  position:relative;z-index:2;background:var(--card);cursor:grabbing;
+  box-shadow:0 6px 18px rgba(0,0,0,.28);border-radius:8px;
+}
+.roster.sorting li:not(.dragging){transition:transform .15s}

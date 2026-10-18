@@ -214,7 +214,7 @@ describe('Builder, live', () => {
     await pg.evaluate(() => { Object.assign(cfg, { turns: true, useRounds: false }); saveCfg(); renderSetup(); });
     assert.equal(await pg.evaluate(() => pad.classList.contains('hidden')), true);
     assert.equal(await pg.evaluate(() => padRules.classList.contains('hidden')), false);
-    await pg.click('#turns'); await wait(100);
+    await pg.click('#turnsRow .way[data-turns="0"]'); await wait(100);
     assert.equal(await pg.evaluate(() => pad.classList.contains('hidden')), false);
     assert.equal(await pg.evaluate(() => padRules.classList.contains('hidden')), true, 'off by default');
     await pg.click('.stage[data-step="scoring"]'); await wait(100);
@@ -258,7 +258,7 @@ describe('the Builder setup, in steps', () => {
     assert.equal(await pg.evaluate(() => cfg.win), 'none', 'First to target gives way');
     const endings = await pg.evaluate(() => [...winRow.children].map((b) => b.textContent + (b.disabled ? ' (off)' : '')));
     assert.deepEqual(endings, ['Highest wins', 'First to target (off)', 'Lowest wins', 'Out at zero (off)']);
-    await pg.click('#turns'); await wait(100);
+    await pg.click('#turnsRow .way[data-turns="0"]'); await wait(100);
     assert.equal(await pg.evaluate(() => roundsBox.classList.contains('hidden')), true);
     assert.equal(await pg.evaluate(() => cfg.useRounds), false, 'no rounds without turns');
     await pg.close();

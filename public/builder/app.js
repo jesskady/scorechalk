@@ -452,11 +452,26 @@ function renderThemes() {
 }
 
 let setupMe = SCShare.lastMe();   // who is holding the phone: see /share.js
+/* Which player is you is marked in the players' list itself: a person
+   beside each name, the one that is you showing You. Tapping it again
+   marks no one. Shown without redrawing the list, so a name being typed
+   keeps hold of its box. */
 function renderYou() {
   const n = cfg.names.length;
   if (setupMe !== null && setupMe >= n) setupMe = 0;
-  const names = cfg.names.map((s, i) => s.trim() || `Player ${i + 1}`);
-  SCShare.youAre($('youRow'), names, setupMe, (i) => { setupMe = i; SCShare.rememberMe(i); renderYou(); });
+  $('names').querySelectorAll('.me-btn').forEach((b, i) => {
+    if (i >= n) return;   // a row on its way out
+    const on = i === setupMe, name = cfg.names[i].trim() || `Player ${i + 1}`;
+    b.classList.toggle('is-on', on);
+    b.setAttribute('aria-pressed', on);
+    b.setAttribute('aria-label', on ? `${name} is you — tap to mark no one` : `Mark ${name} as you`);
+  });
+}
+
+function pickMe(i) {
+  setupMe = setupMe === i ? null : i;
+  SCShare.rememberMe(setupMe);
+  renderYou();
 }
 
 function renderSetup() {
@@ -466,38 +481,8 @@ function renderSetup() {
   $('gameName').value = cfg.name;
 
   const n = cfg.names.length;
-  $('pCount').textContent = n;
-  $('pMinus').disabled = n <= 1;
-  $('pPlus').disabled = n >= MAX_PLAYERS;
-  renderYou();
-  const box = $('names');
-  const teamed = teamsOn(cfg, n), teams = teamed ? teamsFor(cfg) : null;
-  box.classList.toggle('one', n === 1);
-  box.classList.toggle('teamed', teamed);
-  box.innerHTML = '';
-  cfg.names.forEach((name, i) => {
-    const inp = document.createElement('input');
-    inp.type = 'text'; inp.maxLength = 14; inp.autocomplete = 'off';
-    inp.placeholder = `Player ${i + 1}`; inp.value = name;
-    inp.addEventListener('input', () => { cfg.names[i] = inp.value; saveCfg(); renderYou(); });
-    if (!teamed) { box.appendChild(inp); return; }
-    // in teams, each player has a chip for their side: tap it to move them
-    const row = document.createElement('div');
-    row.className = 'name-row';
-    const chip = document.createElement('button');
-    chip.type = 'button';
-    chip.className = 'team-chip';
-    chip.textContent = TEAM_LETTERS[teams[i]];
-    chip.style.setProperty('--tc', TEAM_COLORS[teams[i]]);
-    chip.setAttribute('aria-label', `Team ${TEAM_LETTERS[teams[i]]} — tap to change`);
-    chip.onclick = () => {
-      cfg.teamOf = teamsFor(cfg);
-      cfg.teamOf[i] = (cfg.teamOf[i] + 1) % cfg.teamCount;
-      saveCfg(); renderSetup();
-    };
-    row.append(chip, inp);
-    box.appendChild(row);
-  });
+  const teamed = teamsOn(cfg, n);
+  renderRoster();   // and who is you, in it
 
   // teams need four players or more
   $('teamsBox').classList.toggle('hidden', maxTeams(n) < 2);
@@ -561,13 +546,14 @@ function renderSetup() {
   renderQuickPreview();
   setToggle($('typed'), cfg.typed);
   setToggle($('signs'), cfg.signs);
-  setToggle($('turns'), cfg.turns || rounds);
+  document.querySelectorAll('#turnsRow .way').forEach((b) => {
+    const on = (b.dataset.turns === '1') === !!(cfg.turns || rounds);
+    b.classList.toggle('is-on', on);
+    b.setAttribute('aria-checked', on);
+  });
   renderCounterList();
-  $('turnsNote').textContent = cfg.turns || rounds
-    ? 'Each score is added up and entered, and play passes to the next player.'
-    : 'Live: every player has − and +, and a tap changes their score at once, like Magic or Munchkin.';
 
-  $('playersTab').textContent = `· ${n}`;
+  $('playersTab').textContent = String(n);
   showStep(step);
 }
 
@@ -725,19 +711,117 @@ $('teamsTgl').onclick = () => {
   saveCfg(); renderSetup();
 };
 
-/* The player count. For a template it is tonight's only: Canasta opens with
-   four every time. For Custom and My games it is the game's own default —
-   Custom remembers it, and a change to one of My games is saved with Save
-   changes, like any other rule. */
-function setPlayers(n) {
-  // adding a player brings back the name last typed in that place
+/* The players: a numbered list as the tournament's, under a box for the
+   next name. A name already listed can be changed
+   where it is — names are kept from game to game, and a template opens with
+   its own number of seats, any without a name yet showing as Player 3. In
+   teams, a player's team chip stands in for the number: tap it to move
+   them.
+
+   How many are listed is the player count. For a template it is tonight's
+   only: Canasta opens with four every time. For Custom and My games it is
+   the game's own default — Custom remembers it, and a change to one of My
+   games is saved with Save changes, like any other rule. */
+function renderRoster() {
+  const n = cfg.names.length;
+  const teamed = teamsOn(cfg, n), teams = teamed ? teamsFor(cfg) : null;
+  const list = $('names');
+  list.innerHTML = '';
+  cfg.names.forEach((name, i) => {
+    const li = document.createElement('li');
+    let mark;
+    if (teamed) {
+      mark = document.createElement('button');
+      mark.type = 'button';
+      mark.className = 'team-chip';
+      mark.textContent = TEAM_LETTERS[teams[i]];
+      mark.style.setProperty('--tc', TEAM_COLORS[teams[i]]);
+      mark.setAttribute('aria-label', `Team ${TEAM_LETTERS[teams[i]]} — tap to change`);
+      mark.onclick = () => {
+        cfg.teamOf = teamsFor(cfg);
+        cfg.teamOf[i] = (cfg.teamOf[i] + 1) % cfg.teamCount;
+        saveCfg(); renderSetup();
+      };
+    } else {
+      mark = document.createElement('i');
+      mark.textContent = `${i + 1}.`;
+    }
+    const inp = document.createElement('input');
+    inp.type = 'text'; inp.maxLength = 14; inp.autocomplete = 'off';
+    inp.className = 'roster-name';
+    inp.placeholder = `Player ${i + 1}`; inp.value = name;
+    inp.setAttribute('aria-label', `Player ${i + 1}'s name`);
+    inp.addEventListener('input', () => { cfg.names[i] = inp.value; saveCfg(); renderYou(); });
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.textContent = '×';
+    del.disabled = n <= 1;
+    del.setAttribute('aria-label', `Remove ${name.trim() || `Player ${i + 1}`}`);
+    del.onclick = () => removePlayer(i);
+    // whether this one is you: see renderYou
+    const me = document.createElement('button');
+    me.type = 'button';
+    me.className = 'me-btn';
+    me.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg><b>You</b>';
+    me.onclick = () => pickMe(i);
+    // and a grip, to drag it up or down the list (see /roster.js)
+    li.append(mark, inp, me, del, SCRoster.grip(`Move ${name.trim() || `Player ${i + 1}`}`));
+    list.appendChild(li);
+  });
+  renderYou();
+  $('addForm').classList.toggle('hidden', n >= MAX_PLAYERS);
+  $('playersNote').textContent = n >= MAX_PLAYERS ? `${MAX_PLAYERS} players, the most a game takes` : '';
+}
+
+const countPlayers = () => { if (!TEMPLATES.some((t) => t.id === source)) cfg.players = cfg.names.length; };
+
+$('addForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const name = $('addName').value.trim();
+  if (!name || cfg.names.length >= MAX_PLAYERS) return;
+  cfg.names.push(name);
+  countPlayers();
+  $('addName').value = '';
+  saveCfg(); renderSetup();
+  $('addName').focus();
+});
+
+/* The order of the list is the order of play. A player moved takes their
+   team with them, and You are follows them; the names kept on this device
+   take the new order when the rules are saved. */
+SCRoster.sortable($('names'), (from, to) => {
+  const move = (a) => { if (Array.isArray(a) && a.length > Math.max(from, to)) a.splice(to, 0, a.splice(from, 1)[0]); };
+  cfg.teamOf = teamsFor(cfg);
+  move(cfg.names);
+  move(cfg.teamOf);
+  if (setupMe !== null) {
+    const order = cfg.names.map((_, i) => i);
+    move(order);   // where each place's player came from
+    setupMe = order.indexOf(setupMe);
+    SCShare.rememberMe(setupMe);
+  }
+  saveCfg(); renderSetup();
+});
+
+// The names kept on this device lose the same place, so the ones after it
+// move up with the list rather than coming back under the wrong number.
+function removePlayer(i) {
+  if (cfg.names.length <= 1) return;
   const saved = savedNames();
-  cfg.names = Array.from({ length: n }, (_, i) => (i < cfg.names.length ? cfg.names[i] : saved[i] || ''));
-  if (!TEMPLATES.some((t) => t.id === source)) cfg.players = n;
+  saved.splice(i, 1);
+  saveJSON(PLAYERS_KEY, saved);
+  cfg.names.splice(i, 1);
+  if (Array.isArray(cfg.teamOf)) cfg.teamOf.splice(i, 1);
+  // you go with your name, and move up with the list
+  if (setupMe !== null) {
+    setupMe = setupMe === i ? null : setupMe > i ? setupMe - 1 : setupMe;
+    SCShare.rememberMe(setupMe);
+  }
+  countPlayers();
+  // fewer players may allow fewer teams
+  cfg.teamCount = Math.min(cfg.teamCount || 2, maxTeams(cfg.names.length)) || 2;
   saveCfg(); renderSetup();
 }
-$('pMinus').onclick = () => { if (cfg.names.length > 1) setPlayers(cfg.names.length - 1); };
-$('pPlus').onclick = () => { if (cfg.names.length < MAX_PLAYERS) setPlayers(cfg.names.length + 1); };
 
 $('modeRow').addEventListener('click', (e) => {
   const b = e.target.closest('[data-mode]');
@@ -762,11 +846,13 @@ $('quick').addEventListener('input', (e) => { cfg.quick = e.target.value; saveCf
 $('typed').onclick = () => { cfg.typed = !cfg.typed; setToggle($('typed'), cfg.typed); saveCfg(); };
 $('signs').onclick = () => { cfg.signs = !cfg.signs; setToggle($('signs'), cfg.signs); saveCfg(); };
 // rounds are counted in turns, so they go with them
-$('turns').onclick = () => {
-  cfg.turns = !(cfg.turns || roundsOn(cfg));
+$('turnsRow').addEventListener('click', (e) => {
+  const b = e.target.closest('.way');
+  if (!b) return;
+  cfg.turns = b.dataset.turns === '1';
   if (!cfg.turns) cfg.useRounds = false;
   saveCfg(); renderSetup();
-};
+});
 $('pad').onclick = () => { cfg.pad = !padOn(cfg); saveCfg(); renderSetup(); };
 
 $('startBtn').onclick = async () => {
@@ -1098,18 +1184,21 @@ function buildTiles() {
 }
 
 // Tiles share the width as the board's columns do: as many to a row as fit
-// at a readable width — two on a phone — spread evenly over the rows.
+// at a readable width — two on a phone — spread evenly over the rows. Two or
+// three players get a tile each across the whole width, and bigger numbers.
 const TILE_W = 160;
 function layoutTiles() {
   const box = $('tiles');
   if (!S || !box.children.length) return;
   const n = box.children.length;
-  const fit = Math.max(1, Math.min(4, Math.floor(($('game').clientWidth - 20) / TILE_W)));
+  const roomy = n <= 3;
+  const fit = roomy ? 1 : Math.max(1, Math.min(4, Math.floor(($('game').clientWidth - 20) / TILE_W)));
   const rows = Math.ceil(n / fit);
   const sizes = Array.from({ length: rows }, (_, k) => Math.floor(n / rows) + (k < n % rows ? 1 : 0));
   let i = 0;
   for (const size of sizes) for (let k = 0; k < size; k++, i++) box.children[i].style.gridColumn = `span ${60 / size}`;
   box.classList.toggle('solo', n === 1);
+  box.classList.toggle('roomy', roomy);
 }
 
 function renderTiles() {
