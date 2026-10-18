@@ -33,7 +33,7 @@
 <link rel="stylesheet" href="../shared.css?v=29">
 <!-- the rooms a game can be played in; app.js sets data-room on the body -->
 <link rel="stylesheet" href="../themes.css?v=6">
-<link rel="stylesheet" href="style.css?v=40">
+<link rel="stylesheet" href="style.css?v=41">
 </head>
 <body data-room="workshop">
 
@@ -50,35 +50,61 @@
   </header>
 
 
+  <!-- Three steps, a screen each: what kind of game, who is playing, how it
+       scores. The tabs go to any of them; Next walks them in order. A game
+       whose rules are already made — a template, one of My games — can start
+       from the players. See showStep(). -->
+  <nav class="stages" id="stages">
+    <button class="stage is-on" type="button" data-step="game"><i>1</i>Game</button>
+    <button class="stage" type="button" data-step="players"><i>2</i>Players<b id="playersTab"></b></button>
+    <button class="stage" type="button" data-step="scoring"><i>3</i>Scoring</button>
+  </nav>
+
+  <!-- ---------- 1. the game ---------- -->
+  <div class="pane" data-step="game">
   <div class="card">
     <label class="field">
       <span>Start from</span>
       <!-- filled from TEMPLATES -->
       <select id="templateSel"></select>
     </label>
+    <!-- A template's or a My game's rules, in a line; Custom has only its
+         reset. Reset is always here, greyed out when there is nothing to
+         put back. -->
+    <div id="rulesCard" class="subsection">
+      <p class="rules-text" id="rulesText"></p>
+      <div class="rules-actions">
+        <!-- My games only: puts tonight's changes on the profile -->
+        <button class="ghost save" id="rulesSave">Save changes</button>
+        <button class="ghost reset" id="rulesReset">Reset</button>
+      </div>
+    </div>
   </div>
 
-  <div class="card rule">
+  <div class="card">
     <label class="field">
-      <span>Game</span>
+      <span>Name</span>
       <input id="gameName" type="text" placeholder="Name (optional)" autocomplete="off" maxlength="24">
     </label>
   </div>
 
-  <div class="card rule">
+  <div class="card">
     <span class="field-label">Theme</span>
     <!-- the room the game is played in; filled from THEMES -->
     <div class="swatches" id="themeRow"></div>
   </div>
 
-  <div class="card rule">
-    <span class="field-label">How it ends</span>
-    <div class="preset-row wrap" id="winRow"></div>
-    <!-- Only for endings without a finish line of their own; see roundsHint.
-         The switch sits directly under the endings, ahead of everything it
-         changes: switching rounds on swaps the Limit box for the Rounds box
-         and rewrites the hint, and anything below those would jump. -->
-    <div id="roundsBox" class="hidden">
+  <!-- Rounds are counted in turns, so they live under them: a live game has
+       none. -->
+  <div class="card">
+    <button id="turns" class="toggle" role="switch" aria-checked="false">
+      <span class="tg-label">
+        <b>Take turns</b>
+        <small id="turnsNote"></small>
+      </span>
+      <span class="tg-switch"></span>
+    </button>
+    <div id="roundsBox" class="subsection hidden">
       <button id="useRounds" class="toggle" role="switch" aria-checked="false">
         <span class="tg-label">
           <b>Fixed number of rounds</b>
@@ -91,28 +117,11 @@
         <input id="rounds" type="number" inputmode="numeric" value="9" min="1">
       </label>
     </div>
-
-    <label class="field hidden" id="targetField">
-      <span id="targetLabel">Target</span>
-      <input id="target" type="number" inputmode="numeric" value="100" min="1">
-    </label>
-    <small class="hint" id="winHint"></small>
-
-    <!-- Scoring belongs to the ending: most endings only work one way round,
-         and the direction they can't use is disabled. See WIN_OPTS. -->
-    <div class="subsection">
-      <span class="field-label">Scoring</span>
-      <div class="preset-row" id="modeRow">
-        <button class="seg is-on" data-mode="up">Count up</button>
-        <button class="seg" data-mode="down">Count down</button>
-      </div>
-      <label class="field">
-        <span>Start at</span>
-        <input id="startAt" type="number" inputmode="numeric" value="0">
-      </label>
-    </div>
+  </div>
   </div>
 
+  <!-- ---------- 2. the players ---------- -->
+  <div class="pane hidden" data-step="players">
   <div class="card">
     <div class="field">
       <span>Players</span>
@@ -137,7 +146,40 @@
     </div>
   </div>
 
-  <div class="card rule">
+  <div class="card">
+    <span class="field-label">You are</span>
+    <!-- taken for you when the game is shared, so no one else joins as you -->
+    <div class="preset-row" id="youRow" style="flex-wrap:wrap"></div>
+  </div>
+  </div>
+
+  <!-- ---------- 3. scoring ---------- -->
+  <div class="pane hidden" data-step="scoring">
+  <div class="card">
+    <span class="field-label">Scoring</span>
+    <div class="preset-row" id="modeRow">
+      <button class="seg is-on" data-mode="up">Count up</button>
+      <button class="seg" data-mode="down">Count down</button>
+    </div>
+    <label class="field">
+      <span>Start at</span>
+      <input id="startAt" type="number" inputmode="numeric" value="0">
+    </label>
+  </div>
+
+  <!-- Most endings only work one way round: choosing one sets the direction
+       above and disables the other. See WIN_OPTS. -->
+  <div class="card">
+    <span class="field-label">How it ends</span>
+    <div class="preset-row wrap" id="winRow"></div>
+    <label class="field hidden" id="targetField">
+      <span id="targetLabel">Target</span>
+      <input id="target" type="number" inputmode="numeric" value="100" min="1">
+    </label>
+    <small class="hint" id="winHint"></small>
+  </div>
+
+  <div class="card">
     <!-- a live game (no turns) has − and + on each player; the buttons are
          a choice. A game taken in turns always has them. -->
     <button id="pad" class="toggle hidden" role="switch" aria-checked="false">
@@ -169,45 +211,17 @@
     </div>
   </div>
 
-  <div class="card rule">
+  <div class="card">
     <span class="field-label">Counters</span>
     <small class="hint">Kept beside the score, and changed at any time with − and + without taking a turn: a gear bonus, poison, lives. A counter can win the game or put a player out when it reaches a number.</small>
     <!-- filled by renderCounterList() -->
     <div id="counterList" class="counter-list"></div>
     <button id="addCounter" class="ghost" type="button">+ Add a counter</button>
   </div>
-
-  <div class="card rule">
-    <button id="turns" class="toggle" role="switch" aria-checked="false">
-      <span class="tg-label">
-        <b>Take turns</b>
-        <small id="turnsNote">Entering a score passes play to the next player. Off: tap anyone and score them at any time.</small>
-      </span>
-      <span class="tg-switch"></span>
-    </button>
   </div>
 
-  <!-- A template's rules (the .rule cards) fold into this one line; Custom
-       shows them always, and this card only for its reset. Reset is always
-       here, greyed out when there is nothing to put back. -->
-  <div class="card" id="rulesCard">
-    <span class="field-label">Rules</span>
-    <p class="rules-text" id="rulesText"></p>
-    <div class="rules-actions">
-      <button class="ghost" id="rulesToggle">Edit rules</button>
-      <!-- My games only: puts tonight's changes on the profile -->
-      <button class="ghost save" id="rulesSave">Save changes</button>
-      <button class="ghost reset" id="rulesReset">Reset</button>
-    </div>
-  </div>
-
-  <div class="card">
-    <span class="field-label" style="color:var(--dim);font-size:14px">You are</span>
-    <!-- taken for you when the game is shared, so no one else joins as you -->
-    <div class="preset-row" id="youRow" style="flex-wrap:wrap"></div>
-  </div>
-
-  <button id="startBtn" class="primary big">Start Game</button>
+  <button id="nextBtn" class="primary big" type="button">Next: Players</button>
+  <button id="startBtn" class="primary big hidden">Start Game</button>
   <!-- signed in only; shown by renderRulesCard -->
   <button id="saveMine" class="ghost hidden">Save to My games</button>
 </section>
@@ -344,7 +358,7 @@
 <script src="/store.js?v=3"></script>
 <script src="/share.js?v=12"></script>
 <script src="/cloud.js?v=3"></script>
-<script src="app.js?v=49"></script>
+<script src="app.js?v=50"></script>
 <script src="/pwa.js?v=1" defer></script>
 </body>
 </html>

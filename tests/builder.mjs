@@ -149,6 +149,7 @@ describe('Builder counters', () => {
     const pg = await phone();
     await open(pg, '/builder/');
     await pg.evaluate(() => { cfg.counters = []; saveCfg(); renderSetup(); });
+    await pg.click('.stage[data-step="scoring"]'); await wait(100);
     await pg.click('#addCounter'); await wait(100);
     await pg.keyboard.type('Poison');
     await pg.select('#counterList .c-end', 'out');
@@ -216,8 +217,61 @@ describe('Builder, live', () => {
     await pg.click('#turns'); await wait(100);
     assert.equal(await pg.evaluate(() => pad.classList.contains('hidden')), false);
     assert.equal(await pg.evaluate(() => padRules.classList.contains('hidden')), true, 'off by default');
+    await pg.click('.stage[data-step="scoring"]'); await wait(100);
     await pg.click('#pad'); await wait(100);
     assert.equal(await pg.evaluate(() => padRules.classList.contains('hidden')), false);
+    await pg.close();
+  });
+});
+
+describe('the Builder setup, in steps', () => {
+  const shown = (pg) => pg.evaluate(() => ({
+    pane: document.querySelector('#setup .pane:not(.hidden)').dataset.step,
+    next: nextBtn.classList.contains('hidden') ? null : nextBtn.textContent,
+    start: !startBtn.classList.contains('hidden'),
+  }));
+
+  test('Custom walks Game, Players, Scoring; a template can start from the players', async () => {
+    const pg = await phone();
+    await open(pg, '/builder/');
+    assert.deepEqual(await shown(pg), { pane: 'game', next: 'Next: Players', start: false });
+    await pg.click('#nextBtn'); await wait(100);
+    assert.deepEqual(await shown(pg), { pane: 'players', next: 'Next: Scoring', start: false });
+    await pg.click('#nextBtn'); await wait(100);
+    assert.deepEqual(await shown(pg), { pane: 'scoring', next: null, start: true });
+
+    await open(pg, '/builder/#farkle');
+    assert.deepEqual(await shown(pg), { pane: 'game', next: 'Next: Players', start: false });
+    await pg.click('#nextBtn'); await wait(100);
+    assert.deepEqual(await shown(pg), { pane: 'players', next: null, start: true });
+    assert.match(await pg.evaluate(() => rulesText.textContent), /First to 10,000/);
+    assert.deepEqual(pg.errors, []);
+    await pg.close();
+  });
+
+  test('rounds live under Take turns, and keep to the endings that can end on them', async () => {
+    const pg = await phone();
+    await open(pg, '/builder/');
+    await pg.evaluate(() => { Object.assign(cfg, { turns: true, useRounds: false, win: 'target' }); saveCfg(); renderSetup(); });
+    assert.equal(await pg.evaluate(() => roundsBox.classList.contains('hidden')), false);
+    await pg.click('#useRounds'); await wait(100);
+    assert.equal(await pg.evaluate(() => cfg.win), 'none', 'First to target gives way');
+    const endings = await pg.evaluate(() => [...winRow.children].map((b) => b.textContent + (b.disabled ? ' (off)' : '')));
+    assert.deepEqual(endings, ['Highest wins', 'First to target (off)', 'Lowest wins', 'Out at zero (off)']);
+    await pg.click('#turns'); await wait(100);
+    assert.equal(await pg.evaluate(() => roundsBox.classList.contains('hidden')), true);
+    assert.equal(await pg.evaluate(() => cfg.useRounds), false, 'no rounds without turns');
+    await pg.close();
+  });
+
+  test('a problem found at Start opens the step it belongs to', async () => {
+    const pg = await phone();
+    // Farkle starts from the players; its buttons, emptied, are on Scoring
+    await open(pg, '/builder/#farkle');
+    await pg.evaluate(() => { Object.assign(cfg, { quick: '', typed: false }); saveCfg(); renderSetup(); showStep('players'); });
+    await pg.click('#startBtn'); await wait(200);
+    assert.equal(await pg.evaluate(() => step), 'scoring');
+    assert.match(await pg.evaluate(() => startBtn.textContent), /quick-score button/);
     await pg.close();
   });
 });

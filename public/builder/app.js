@@ -397,12 +397,10 @@ window.addEventListener('hashchange', route);
 
 /* ---------------- setup screen ---------------- */
 
-let rulesOpen = false;   // a template's rules, expanded for editing
-
 function openSetup(src) {
   source = src;
-  rulesOpen = false;
   cfg = loadCfg(src);
+  step = 'game';
   renderTitle();
   renderPicker();
 
@@ -517,12 +515,17 @@ function renderSetup() {
 
   $('startAt').value = cfg.start;
 
+  // With a fixed number of rounds, chosen on the first step, the game ends
+  // on them: only the endings that can are offered, and Just keep score is
+  // the highest after the last round.
+  const rounds = roundsOn(cfg);
   const row = $('winRow');
   row.innerHTML = '';
   for (const o of WIN_OPTS) {
     const b = document.createElement('button');
     b.className = 'seg' + (o.id === cfg.win ? ' is-on' : '');
-    b.textContent = o.label;
+    b.textContent = rounds && o.id === 'none' ? 'Highest wins' : o.label;
+    b.disabled = rounds && !o.roundsHint;
     b.onclick = () => {
       cfg.win = o.id;
       if (o.mode) setMode(o.mode);
@@ -531,14 +534,14 @@ function renderSetup() {
     };
     row.appendChild(b);
   }
-  const cur = ending(cfg), rounds = roundsOn(cfg);
+  const cur = ending(cfg);
   $('winHint').textContent = rounds ? cur.roundsHint : cur.hint;
   // with a round count, Lowest wins ends on rounds instead of a score limit
   $('targetField').classList.toggle('hidden', !cur.target || rounds);
   $('targetLabel').textContent = cur.target || 'Target';
   $('target').value = cfg.target;
 
-  $('roundsBox').classList.toggle('hidden', !cur.roundsHint);
+  $('roundsBox').classList.toggle('hidden', !cfg.turns);
   setToggle($('useRounds'), rounds);
   $('roundsField').classList.toggle('hidden', !rounds);
   $('rounds').value = cfg.rounds;
@@ -560,12 +563,40 @@ function renderSetup() {
   setToggle($('signs'), cfg.signs);
   setToggle($('turns'), cfg.turns || rounds);
   renderCounterList();
-  $('turns').disabled = rounds;
-  $('turnsNote').textContent = rounds
-    ? 'Always on with a fixed number of rounds: a round is everyone taking one turn.'
-    : 'Each score is added up and entered, and play passes to the next player. Off: live — every player has − and +, and a tap changes their score at once, like Magic or Munchkin.';
+  $('turnsNote').textContent = cfg.turns || rounds
+    ? 'Each score is added up and entered, and play passes to the next player.'
+    : 'Live: every player has − and +, and a tap changes their score at once, like Magic or Munchkin.';
 
+  $('playersTab').textContent = `· ${n}`;
+  showStep(step);
 }
+
+/* The setup's three steps, a screen each; the tabs reach any of them. The
+   button at the foot is Next until the last, which starts the game — and
+   for a game whose rules are already made, a template or one of My games,
+   the players are enough: it starts from there too. */
+const STEPS = ['game', 'players', 'scoring'];
+const STEP_NAMES = { game: 'Game', players: 'Players', scoring: 'Scoring' };
+let step = 'game';
+
+function showStep(s) {
+  const moved = s !== step;
+  step = s;
+  document.querySelectorAll('#stages .stage').forEach((b) => b.classList.toggle('is-on', b.dataset.step === s));
+  document.querySelectorAll('#setup .pane').forEach((el) => el.classList.toggle('hidden', el.dataset.step !== s));
+  const ready = source !== 'custom' && s === 'players';
+  const last = s === STEPS[STEPS.length - 1] || ready;
+  $('nextBtn').classList.toggle('hidden', last);
+  $('startBtn').classList.toggle('hidden', !last);
+  if (!last) $('nextBtn').textContent = `Next: ${STEP_NAMES[STEPS[STEPS.indexOf(s) + 1]]}`;
+  if (moved) window.scrollTo(0, 0);
+}
+
+$('stages').addEventListener('click', (e) => {
+  const b = e.target.closest('.stage');
+  if (b) showStep(b.dataset.step);
+});
+$('nextBtn').onclick = () => showStep(STEPS[STEPS.indexOf(step) + 1]);
 
 /* The counters on the setup screen, one row each: its name, where it
    starts, and what reaching a number does. Typing changes the rules
@@ -652,12 +683,8 @@ function saveCfg() {
 function renderRulesCard() {
   const t = TEMPLATES.find(t => t.id === source), g = myGame(source);
   const named = !!(t || g);              // custom is the one that isn't
-  const folded = named && !rulesOpen;
-  document.querySelectorAll('#setup .rule').forEach(el => el.classList.toggle('hidden', folded));
   $('rulesText').textContent = describeRules(cfg);
   $('rulesText').classList.toggle('hidden', !named);
-  $('rulesToggle').classList.toggle('hidden', !named);
-  $('rulesToggle').textContent = rulesOpen ? 'Hide rules' : 'Edit rules';
 
   // Reset is always there, so a bumped button or dial can always be put
   // back; it is greyed out when the rules, and the player count, already are
@@ -667,17 +694,12 @@ function renderRulesCard() {
   const changed = ruleEdits || cfg.names.length !== (baseRules(source).players || 2);
   $('rulesReset').textContent = g ? 'Undo changes' : t ? `Reset to standard ${t.label}` : 'Reset to defaults';
   $('rulesReset').disabled = !changed;
-  // a template's reset belongs with its rules: folded away, it isn't offered
-  $('rulesReset').classList.toggle('hidden', !!t && folded);
   $('rulesSave').classList.toggle('hidden', !(g && ruleEdits));
-  // Custom's card is only a reset button, so its heading would be noise
-  $('rulesCard').querySelector('.field-label').classList.toggle('hidden', !named);
 
   // saving a new game is for rules that aren't one of yours already
   $('saveMine').classList.toggle('hidden', !me || !!g);
 }
 
-$('rulesToggle').onclick = () => { rulesOpen = !rulesOpen; renderRulesCard(); };
 
 $('rulesReset').onclick = async () => {
   // a My game's changes were never saved anywhere, so undoing them is free
@@ -728,30 +750,41 @@ $('modeRow').addEventListener('click', (e) => {
 
 $('startAt').addEventListener('input', (e) => { cfg.start = Math.round(Number(e.target.value)) || 0; saveCfg(); });
 $('target').addEventListener('input', (e) => { cfg.target = Math.max(1, Math.round(Number(e.target.value)) || 1); saveCfg(); });
-$('useRounds').onclick = () => { cfg.useRounds = !cfg.useRounds; saveCfg(); renderSetup(); };
+// Rounds are chosen ahead of the ending: one that can't end on rounds
+// gives way to Highest wins.
+$('useRounds').onclick = () => {
+  cfg.useRounds = !roundsOn(cfg);
+  if (cfg.useRounds && !ending(cfg).roundsHint) cfg.win = 'none';
+  saveCfg(); renderSetup();
+};
 $('rounds').addEventListener('input', (e) => { cfg.rounds = Math.max(1, Math.round(Number(e.target.value)) || 1); saveCfg(); });
 $('quick').addEventListener('input', (e) => { cfg.quick = e.target.value; saveCfg(); renderQuickPreview(); });
 $('typed').onclick = () => { cfg.typed = !cfg.typed; setToggle($('typed'), cfg.typed); saveCfg(); };
 $('signs').onclick = () => { cfg.signs = !cfg.signs; setToggle($('signs'), cfg.signs); saveCfg(); };
-$('turns').onclick = () => { cfg.turns = !cfg.turns; saveCfg(); renderSetup(); };
+// rounds are counted in turns, so they go with them
+$('turns').onclick = () => {
+  cfg.turns = !(cfg.turns || roundsOn(cfg));
+  if (!cfg.turns) cfg.useRounds = false;
+  saveCfg(); renderSetup();
+};
 $('pad').onclick = () => { cfg.pad = !padOn(cfg); saveCfg(); renderSetup(); };
 
 $('startBtn').onclick = async () => {
   const usesPad = !isLive(cfg) || padOn(cfg);
   if (usesPad && !parseQuick(cfg.quick).keys.length && !cfg.typed) {
-    flashSetup('Add at least one quick-score button, or switch on typed scores.');
+    flashSetup('Add at least one quick-score button, or switch on typed scores.', 'scoring');
     return;
   }
   cfg.counters.forEach((k, i) => { k.name = k.name.trim() || `Counter ${i + 1}`; });
   const flat = cfg.counters.find((k) => k.end !== 'none' && k.at === k.start);
   if (flat) {
-    flashSetup(`${flat.name} starts at ${fmt(flat.at)}: pick a different number for it to reach.`);
+    flashSetup(`${flat.name} starts at ${fmt(flat.at)}: pick a different number for it to reach.`, 'scoring');
     return;
   }
   if (teamsOn(cfg, cfg.names.length)) {
     const t = teamsFor(cfg);
     for (let k = 0; k < cfg.teamCount; k++) {
-      if (!t.includes(k)) { flashSetup(`Team ${TEAM_LETTERS[k]} has no players yet.`); return; }
+      if (!t.includes(k)) { flashSetup(`Team ${TEAM_LETTERS[k]} has no players yet.`, 'players'); return; }
     }
   }
   // A game of this kind already in progress: picking it back up may be what
@@ -914,8 +947,11 @@ $('rulesSave').onclick = async () => {
   } catch (e) { flashSetup(e.message); }
 };
 
-function flashSetup(text) {
-  const btn = $('startBtn'), was = btn.textContent;
+// A problem with the setup, said on the button at the foot — on the step
+// it belongs to, when it has one.
+function flashSetup(text, at) {
+  if (at) showStep(at);
+  const btn = $('startBtn').classList.contains('hidden') ? $('nextBtn') : $('startBtn'), was = btn.textContent;
   btn.textContent = text;
   btn.classList.add('danger');
   setTimeout(() => { btn.textContent = was; btn.classList.remove('danger'); }, 2200);

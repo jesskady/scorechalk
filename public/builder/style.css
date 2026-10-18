@@ -591,3 +591,19 @@ button.cell:active{background:var(--line)}
 /* live, the buttons go straight onto the score: nothing to add up or enter */
 .entry.live #pendAmt,.entry.live #clearBtn,.entry.live #commitBtn{display:none}
 .pad-rules{display:flex;flex-direction:column;gap:9px}
+
+/* ---------- the setup's steps: as the tournament's ---------- */
+.stages{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.stage{
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  padding:10px 4px;border-radius:10px;font-size:15px;font-weight:600;color:var(--dim);
+  background:var(--bg2);border:1px solid var(--line);
+}
+.stage i{
+  font-style:normal;font-size:12px;width:20px;height:20px;line-height:18px;border-radius:50%;
+  border:1px solid currentColor;text-align:center;flex:none;
+}
+.stage b{font-size:12px;font-weight:600;opacity:.8}
+.stage b:empty{display:none}
+.stage.is-on{color:var(--on-primary,#fff);background:var(--green-d);border-color:var(--green)}
+.pane{display:flex;flex-direction:column;gap:8px}

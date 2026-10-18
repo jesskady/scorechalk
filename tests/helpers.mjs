@@ -105,6 +105,8 @@ export const open = (page, path) => page.goto(U + path, { waitUntil: 'domcontent
 
 // Start a new game from a setup screen, saying yes to any question on the way.
 export async function startGame(page) {
+  // a setup in steps (the Builder) starts from its last one
+  await page.evaluate(() => { if (typeof STEPS !== 'undefined' && document.getElementById('startBtn').classList.contains('hidden')) showStep(STEPS[STEPS.length - 1]); });
   await page.click('#startBtn');
   await wait(600);
   const yes = await page.$('#confirmYes');
