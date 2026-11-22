@@ -217,6 +217,8 @@ function buildSetup() {
   // ?game=darts: come from that game's own setup, so it is chosen already
   const asked = new URLSearchParams(location.search).get('game');
   if (GAMES[asked]) $('tGame').value = asked;
+  // tournaments are part of Darts for now: with one game there is nothing to choose
+  $('tGameField').classList.toggle('hidden', Object.keys(GAMES).length < 2);
 
   const presets = document.querySelectorAll('#presets .preset');
   presets.forEach((btn) => btn.addEventListener('click', () => {

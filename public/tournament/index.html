@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#12161c">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Tournament · Score Chalk</title>
+<title>Darts tournament · Score Chalk</title>
 <!-- visits, and errors on these pages: see /report.js -->
 <script src="/report.js?v=1"></script>
 <!-- Score Chalk as an app: installable, and working offline (see /pwa.js) -->
@@ -17,26 +17,26 @@
 <meta name="description" content="Run a round robin on one phone: everyone plays everyone, each match scored as a game of its own, and the standings kept as you go.">
 <meta property="og:site_name" content="Score Chalk">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Tournament · Score Chalk">
+<meta property="og:title" content="Darts tournament · Score Chalk">
 <meta property="og:description" content="Run a round robin on one phone: everyone plays everyone, and the standings kept as you go.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='15' fill='%23182029'/><circle cx='16' cy='16' r='11' fill='%232e7d4f'/><circle cx='16' cy='16' r='7' fill='%23182029'/><circle cx='16' cy='16' r='3.5' fill='%23c0392b'/></svg>">
 <!-- ?v= must be bumped whenever a stylesheet or app.js changes, as in darts -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredericka+the+Great&family=Josefin+Sans:wght@400;600;700&family=Bree+Serif&family=Kalam:wght@400;700&display=swap">
-<link rel="stylesheet" href="../shared.css?v=32">
+<link rel="stylesheet" href="../shared.css?v=35">
 <!-- a tournament is played in its game's room; app.js sets data-room -->
-<link rel="stylesheet" href="../themes.css?v=6">
+<link rel="stylesheet" href="../themes.css?v=7">
 <link rel="stylesheet" href="style.css?v=5">
 </head>
 <body data-room="parlor" data-game="tournament">
 
 <!-- ============ SETUP ============ -->
 <section id="setup" class="screen hidden">
-  <a class="backlink" href="/">&lsaquo; All games</a>
+  <a class="backlink" href="/darts/">&lsaquo; Darts</a>
 
   <header class="brand">
-    <h1 class="room-title">Tournament</h1>
+    <h1 class="room-title">Darts tournament</h1>
     <p>A round robin, run from one phone</p>
   </header>
 
@@ -55,7 +55,8 @@
         <span>Name</span>
         <input id="tName" type="text" placeholder="Tournament" autocomplete="off" maxlength="30">
       </label>
-      <label class="field">
+      <!-- a choice only once a second game can be played in a tournament -->
+      <label class="field" id="tGameField">
         <span>Game</span>
         <!-- filled from GAMES -->
         <select id="tGame"></select>
@@ -125,7 +126,7 @@
 <!-- ============ TOURNAMENT ============ -->
 <section id="main" class="screen hidden">
   <header class="brand compact gamebar">
-    <a class="backlink" href="/">&lsaquo; All games</a>
+    <a class="backlink" href="/darts/">&lsaquo; Darts</a>
     <h1 id="tTitle" class="room-title"></h1>
   </header>
   <p id="tSub" class="sub"></p>
@@ -186,7 +187,7 @@
 <script src="/account.js?v=29" defer></script>
 <script src="/store.js?v=3"></script>
 <script src="/roster.js?v=1"></script>
-<script src="app.js?v=6"></script>
+<script src="app.js?v=7"></script>
 <script src="/pwa.js?v=1" defer></script>
 </body>
 </html>

@@ -80,11 +80,11 @@ body[data-room="parlor"]{
   --veil:#3a2d20cc;
   --f-title:"Bree Serif", "Rockwell", Georgia, serif;
   --f-hand:"Kalam", "Bradley Hand", "Segoe Print", cursive;
-  --paper:#fbf1bd; --paper-ink:#22324d; --paper-dim:#5f5b4c;
-  --paper-rule:#a9c4e0; --paper-margin:#d4544c; --paper-edge:#d8cfa3;
+  --paper:#f7efd2; --paper-ink:#22324d; --paper-dim:#5f5b4c;
+  --paper-rule:#cddcea; --paper-margin:#e6a8a0; --paper-edge:#e0d6b4;
   --paper-neg:#c0392b;
   --mark-done:#dcebd2; --mark-done-ink:#3c6b45;
-  --mark-open:#f6e7a9; --mark-open-ink:#77580f;
+  --mark-open:#f3e6b4; --mark-open-ink:#77580f;
   --veil-soft:#3a2d2040; --shadow:#3a2d2040;
   color-scheme:light;
 }
@@ -94,7 +94,7 @@ body[data-room="living"]{
 
 /* ---------- the workshop: graph paper and drafting ink ---------- */
 [data-room="workshop"]{
-  --bg:#eef1ec; --bg2:#e1e7e2; --card:#ffffff; --line:#c3d0c9;
+  --bg:#f3f5f1; --bg2:#e1e7e2; --card:#ffffff; --line:#c3d0c9;
   --txt:#1e2b2a; --dim:#5b6a67;
   --green:#2f6d5c; --green-d:#24564a; --gold:#a8761f; --red:#b8402f;
   --select:#dcebe4;
@@ -104,7 +104,7 @@ body[data-room="living"]{
   --f-title:"Josefin Sans", "Avenir Next", "Futura", sans-serif;
   --f-hand:"Josefin Sans", "Avenir Next", "Futura", sans-serif;
   --paper:#ffffff; --paper-ink:#1e2b2a; --paper-dim:#5b6a67;
-  --paper-rule:#dbe4df; --paper-edge:#1e2b2a;
+  --paper-rule:#e6ece8; --paper-edge:#1e2b2a;
   --mark-done:#d6ece2; --mark-done-ink:#24564a;
   --mark-open:#fbf1bd; --mark-open-ink:#6b5a12;
   --veil-soft:#1e2b2a33; --shadow:#1e2b2a40;
@@ -112,9 +112,9 @@ body[data-room="living"]{
 }
 body[data-room="workshop"]{
   background:
-    linear-gradient(#c9d6cf 1px, transparent 1px) 0 0/22px 22px,
-    linear-gradient(90deg, #c9d6cf 1px, transparent 1px) 0 0/22px 22px,
-    #eef1ec;
+    linear-gradient(#e0e7e2 1px, transparent 1px) 0 0/22px 22px,
+    linear-gradient(90deg, #e0e7e2 1px, transparent 1px) 0 0/22px 22px,
+    #f3f5f1;
 }
 
 /* ---------- what every room restyles ---------- */

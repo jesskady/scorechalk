@@ -328,10 +328,10 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 .sw-face{width:100%;height:48px;display:grid;place-items:center;font-size:24px}
 .sw-parlor .sw-face{background:radial-gradient(90% 90% at 50% 0%, #2b3a34, #1c2723);color:#ecebe3;font-family:"Fredericka the Great",Georgia,serif;border-bottom:4px solid #6b4a2b}
 .sw-living .sw-face{color:#22324d;font-family:"Kalam",cursive;font-weight:700;
-  background:linear-gradient(90deg, transparent 14px, #d4544c 14px 15px, transparent 15px), repeating-linear-gradient(180deg, transparent 0 11px, #a9c4e0 11px 12px), #fbf1bd;
+  background:linear-gradient(90deg, transparent 14px, #e6a8a0 14px 15px, transparent 15px), repeating-linear-gradient(180deg, transparent 0 11px, #cddcea 11px 12px), #f7efd2;
   border-bottom:4px solid #5f9a6c}
 .sw-workshop .sw-face{color:#1e2b2a;font-family:"Josefin Sans",sans-serif;font-weight:700;
-  background:linear-gradient(#c9d6cf 1px, transparent 1px) 0 0/10px 10px, linear-gradient(90deg, #c9d6cf 1px, transparent 1px) 0 0/10px 10px, #eef1ec;
+  background:linear-gradient(#e0e7e2 1px, transparent 1px) 0 0/10px 10px, linear-gradient(90deg, #e0e7e2 1px, transparent 1px) 0 0/10px 10px, #f3f5f1;
   border-bottom:4px solid #1e2b2a}
 
 /* the entries so far, on paper: ruled lines instead of borders, the scores

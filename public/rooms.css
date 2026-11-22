@@ -9,8 +9,9 @@
 
 .home-rooms{
   --slate:#1c2723; --slate-2:#24312c; --chalk:#ecebe3; --chalk-dim:#a7b0a9; --brass:#c9a35a; --felt:#1f4a39;
-  --legal:#fbf1bd; --legal-2:#f6e6a3; --ink:#22324d; --pencil:#5f5b4c; --rule:#9fbedc; --margin:#d4544c;
-  --graph:#eef1ec; --graph-line:#c9d6cf; --graph-ink:#1e2b2a;
+  --legal:#f7efd2; --legal-2:#f1e7c6; --ink:#22324d; --pencil:#5f5b4c; --rule:#cddcea;
+  --margin:#c4574e; --margin-line:#e6a8a0;   /* red ink for writing; the margin rule itself, softer */
+  --graph:#f3f5f1; --graph-line:#e0e7e2; --graph-ink:#1e2b2a;
   --f-chalk:"Fredericka the Great", "Chalkduster", Georgia, serif;
   --f-deco:"Josefin Sans", "Avenir Next", "Futura", sans-serif;
   --f-slab:"Bree Serif", "Rockwell", Georgia, serif;
@@ -55,6 +56,13 @@ html:has(body.home-rooms){background:var(--slate)}
 /* a five-bar gate in chalk: the mark every scorekeeper makes */
 .tally{width:54px;height:40px;margin-bottom:12px;flex:none}
 .logo p{margin:0 0 12px;font:500 15px/1.4 var(--f-body);color:var(--chalk-dim);max-width:34ch;flex:1 1 220px;min-width:0}
+/* on a phone the name is set smaller, so the tally sits just to its right
+   rather than dropping below it */
+@media (max-width:599px){
+  .logo{gap:10px 14px}
+  .logo h1{font-size:clamp(30px,9.5vw,40px)}
+  .tally{width:44px;height:33px;margin-bottom:4px}
+}
 
 /* the resume row scrolls on its own rather than widening the board */
 .resume{min-width:0}
@@ -81,8 +89,8 @@ html:has(body.home-rooms){background:var(--slate)}
 .rc-living{
   color:var(--ink);border-radius:2px;transform:rotate(-1.2deg);padding-left:24px;
   background:
-    linear-gradient(90deg, transparent 15px, var(--margin) 15px 16px, transparent 16px),
-    repeating-linear-gradient(180deg, transparent 0 21px, #9fbedc 21px 22px) 0 6px,
+    linear-gradient(90deg, transparent 15px, var(--margin-line) 15px 16px, transparent 16px),
+    repeating-linear-gradient(180deg, transparent 0 21px, var(--rule) 21px 22px) 0 6px,
     var(--legal);
   box-shadow:0 8px 16px #0007;
 }
@@ -156,12 +164,7 @@ html:has(body.home-rooms){background:var(--slate)}
 a.chalk-card:hover{transform:translateY(-3px) rotate(-.4deg);box-shadow:0 16px 28px #0009}
 a.chalk-card:active{transform:translateY(-1px)}
 .chalk-card svg{width:68px;height:68px}
-/* a long name fits its card: given .long, its size follows the card's width
-   (cqi) where the card is too narrow for it at full size. Tournament is
-   5.7em wide: 17cqi fits it with a little room */
-.chalk-card{container-type:inline-size}
 .chalk-card b{font:400 25px/1 var(--f-chalk)}
-.chalk-card b.long{font-size:min(25px, 17cqi)}
 .chalk-card small{font:500 13px/1.35 var(--f-body);color:var(--chalk-dim)}
 .chalk-card .tag{
   justify-self:start;font:700 10.5px/1 var(--f-deco);letter-spacing:.14em;text-transform:uppercase;
@@ -173,7 +176,7 @@ a.chalk-card:active{transform:translateY(-1px)}
 /* the living room: a scorepad on the coffee table */
 .living{
   background:
-    linear-gradient(90deg, transparent 52px, var(--margin) 52px 54px, transparent 54px),
+    linear-gradient(90deg, transparent 52px, var(--margin-line) 52px 54px, transparent 54px),
     repeating-linear-gradient(180deg, transparent 0 31px, var(--rule) 31px 32px),
     linear-gradient(180deg, var(--legal-2) 0 64px, var(--legal) 64px);
   background-color:var(--legal);color:var(--ink);padding-left:max(66px,3.5vw);
@@ -190,7 +193,7 @@ a.chalk-card:active{transform:translateY(-1px)}
   background:#fffdf2;border:1px solid #d8cfa3;border-radius:2px;
   box-shadow:0 1px 0 #d8cfa3, 0 8px 18px #6b5b2a22;
   padding:12px 14px 14px;display:grid;gap:6px;align-content:start;
-  background-image:repeating-linear-gradient(180deg, transparent 0 23px, #cfdcec 23px 24px);
+  background-image:repeating-linear-gradient(180deg, transparent 0 23px, #e2e9f1 23px 24px);
   background-position:0 34px;transition:transform .2s ease, box-shadow .2s ease;
 }
 .pad-card:nth-child(odd){transform:rotate(-.6deg)}
@@ -216,7 +219,7 @@ a.chalk-card:active{transform:translateY(-1px)}
     var(--graph);
   color:var(--graph-ink);
   padding:clamp(24px,4vw,40px) max(16px,4vw) calc(clamp(34px,5vw,56px) + var(--pad));
-  border-top:4px solid var(--graph-ink);
+  border-top:2px solid var(--graph-ink);
 }
 .workshop-in{max-width:1180px;margin:0 auto;display:grid;gap:18px}
 @media (min-width:760px){.workshop-in{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);align-items:start}}
@@ -251,7 +254,7 @@ a.chalk-card:active{transform:translateY(-1px)}
 @media (max-width:599px){.chalk-card.empty{display:none}}
 
 /* the small print, under the workshop */
-.legal-links{text-align:center;font-size:12.5px;margin:22px 0 4px;opacity:.75}
+.workshop p.legal-links{text-align:center;font-size:12.5px;margin:10px auto 4px;max-width:none;opacity:.75}
 .legal-links a{color:inherit}
 
 /* the offer to install the app, where the browser makes one (see /pwa.js) */
@@ -262,5 +265,42 @@ a.chalk-card:active{transform:translateY(-1px)}
 .install[hidden]{display:none}
 
 /* the scoring guides, above the small print */
-.guide-links{text-align:center;font-size:13.5px;margin:22px 12px 0;line-height:1.7;opacity:.85}
+.workshop p.guide-links{text-align:center;font-size:13.5px;margin:22px auto 0;max-width:none;line-height:1.7;opacity:.85}
 .guide-links a{color:inherit}
+
+/* ---------- a wide screen: room to breathe ---------- */
+/* Both rooms hold two games across, each card laid on its side — drawing to
+   the left, name and note beside it — with wider gutters, so a desktop isn't
+   the phone's layout stretched. */
+@media (min-width:900px){
+  .room{padding:56px clamp(32px,4.5vw,72px) 64px}
+  .living{padding-left:clamp(84px,6vw,104px)}
+  .room-head{gap:10px;margin-bottom:34px}
+  .room-head p{font-size:16px}
+  .shelf,.living .shelf{grid-template-columns:repeat(2,minmax(0,1fr));gap:26px 24px}
+  /* the Parlor's two games stacked, as wide boards, so its rows line up
+     with the Living Room's two */
+  .parlor .shelf{grid-template-columns:minmax(0,560px)}
+  .chalk-card,.pad-card{
+    grid-template-columns:72px minmax(0,1fr);column-gap:20px;row-gap:8px;
+    padding:22px 24px 24px;align-items:start;
+  }
+  .chalk-card svg,.pad-card svg{grid-row:1 / span 3;width:72px;height:72px}
+  .chalk-card > :not(svg),.pad-card > :not(svg){grid-column:2}
+  .chalk-card b{font-size:30px}
+  .pad-card b{font-size:30px}
+  .chalk-card small,.pad-card small{font-size:14.5px;line-height:1.45}
+  .pad-card{background-position:0 46px}
+
+  .board{padding-bottom:40px}
+  .board-in{gap:28px}
+  .workshop{padding:52px clamp(32px,5vw,80px) calc(48px + var(--pad))}
+  .workshop-in{gap:48px}
+  .workshop p{font-size:16px}
+  .build{margin-top:20px}
+  .mine{padding:18px 20px}
+}
+@media (min-width:1500px){
+  .shelf,.living .shelf{gap:30px 28px}
+  .parlor .shelf{grid-template-columns:minmax(0,600px)}
+}

@@ -163,3 +163,34 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
   box-shadow:0 6px 18px rgba(0,0,0,.28);border-radius:8px;
 }
 .roster.sorting li:not(.dragging){transition:transform .15s}
+
+/* ---------- a setup screen: a little room to breathe ---------- */
+/* Setup screens (#setup, and Magic's #formats) are menus, not play, so
+   they can take a little more height than the game screens, which have to
+   fit one phone screen without scrolling and are left alone. */
+#setup.screen,#formats.screen{gap:12px;padding-top:14px;padding-bottom:calc(24px + var(--pad))}
+#setup .brand,#formats .brand{padding:10px 0 6px}
+#setup .card,#formats .card{padding:14px;gap:12px}
+
+/* ---------- a setup screen on a wide screen ---------- */
+/* Every game's setup (#setup, and Magic's #formats) is a phone column. On
+   a desktop it widens and opens up — more room inside and between the
+   cards, a larger heading — rather than sitting as a cramped strip. The
+   game screens are left alone: they are laid out for one screen of play. */
+@media (min-width:900px){
+  #setup.screen,#formats.screen{max-width:680px;padding:36px 28px calc(64px + var(--pad));gap:20px}
+  #setup .brand,#formats .brand{padding:10px 0 10px}
+  #setup .brand h1,#formats .brand h1{font-size:38px}
+  #setup .brand p,#formats .brand p{font-size:15.5px;margin-top:6px}
+  #setup .card,#formats .card{padding:22px 24px;gap:16px;border-radius:16px}
+  #setup .field{gap:16px}
+  #setup .field>span{width:120px;font-size:15px}
+  #setup .field-label{font-size:15px}
+  #setup .tg-label small{font-size:13px}
+  /* the rows inside a card: names, choices, a player per button */
+  #setup .preset-row{gap:10px}
+  #setup .names{gap:10px}
+  #setup .names input{padding:12px 14px}
+  #setup #youRow{gap:8px}
+  #setup #youRow .seg{flex:1 1 104px;padding:12px 10px}
+}
