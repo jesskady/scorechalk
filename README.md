@@ -92,6 +92,10 @@ public/
     game/
       index.html  one game's statistics, turn by turn
       game.js
+  admin/
+    index.html    the admin side: tables, users, deleting
+    admin.js
+    admin.css
   darts/
     index.html
     app.js
@@ -126,6 +130,7 @@ worker/
   games.js        /api/games: save, list, load, delete
   stats.js        /api/stats: lifetime darts figures, in SQL
   custom-games.js /api/custom-games: My games, saved builder rules
+  admin.js        /api/admin: the tables, users, and deleting (see Admin)
 migrations/
   0001_init.sql   users, games, game_players, turns
 
@@ -136,6 +141,7 @@ darts, so a second game does not inherit a column named after the first.
   0003_...sql     games.me_idx
   0004_...sql     turns.darts -> turns.detail
   0005_...sql     custom_games: My games
+  0010_...sql     admin_log: what admins have deleted
 ```
 
 `public/` is what gets published and nothing outside it is, so
@@ -291,6 +297,42 @@ With nothing configured the site still serves normally: `/api/me` reports
 
 Rotating `SESSION_SECRET` signs everyone out, which is the intended lever if a
 session ever needs revoking.
+
+### Admin
+
+`/admin/` shows what is in the database and deletes things:
+
+- **Overview**: every table and how many rows it holds, and the database's
+  size against `DB_CEILING_MB`.
+- **Activity**: sign-ups, games started and finished, and games shared, a
+  bar a day over 7, 30 or 90 days or a year (UTC days), with which games are
+  played — and the same numbers as a table.
+- **Users**: searchable, with how many games and My games each has saved.
+- **Errors**: the `errors` table, latest or commonest first, with the stack
+  and browser. **Mark fixed** deletes the row; if it happens again it comes
+  back counting from one.
+- **Tables**: every table's rows, newest first, filtered by one column. Ids
+  link through: a user to their games, a game to its turns.
+- **Log**: every delete made from here — who, when, and what it was in
+  words ("Ann (ann@x.com), 3 games, 1 My game") — kept in `admin_log`
+  (`migrations/0010`), written in the same batch as the delete itself.
+  Nothing deletes from it.
+
+Users, games, My games, shared games and errors can be deleted, each behind
+a second tap; deleting a user takes their games, turns, players and My games
+with them. The other tables are look-only.
+
+It answers only the accounts named in `ADMIN_EMAILS`, a comma-separated
+secret, so who the admins are never sits in the repo:
+
+```sh
+npx wrangler secret put ADMIN_EMAILS     # e.g. you@gmail.com,someone@else.com
+```
+
+Unset, nobody is an admin. It is checked against the signed-in account's
+email on every request, so taking an address out takes its access away at
+once. An admin's profile links to it. An admin can't delete their own
+account from there. The routes are in `worker/admin.js`.
 
 ### Migrations
 

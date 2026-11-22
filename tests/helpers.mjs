@@ -15,6 +15,7 @@ import { mkdtempSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join as path, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createHmac } from 'node:crypto';
 import puppeteer from 'puppeteer-core';
 
 const ROOT = path(dirname(fileURLToPath(import.meta.url)), '..');
@@ -36,7 +37,7 @@ export async function startServer() {
   if (migrate.status !== 0) throw new Error('migrations failed:\n' + migrate.stdout + migrate.stderr);
 
   server = spawn(process.execPath, [WRANGLER, 'dev', '--port', String(PORT), '--persist-to', dataDir, '--test-scheduled',
-    '--var', 'GOOGLE_CLIENT_SECRET:test-only', '--var', 'SESSION_SECRET:test-only-secret', '--var', 'LIMITS:off',
+    '--var', 'GOOGLE_CLIENT_SECRET:test-only', '--var', 'SESSION_SECRET:test-only-secret', '--var', 'LIMITS:off', '--var', 'ADMIN_EMAILS:admin@test.local',
     // more settings for one run, as NAME:value pairs split by spaces — such as
     // Cloudflare's always-pass or always-fail Turnstile test keys
     ...(process.env.TEST_VARS || '').split(/\s+/).filter(Boolean).flatMap((v) => ['--var', v])],
@@ -150,3 +151,25 @@ export const api = (path, method = 'GET', body) =>
 
 // Long enough for a change to reach the other phones: they look every 1–3s.
 export const settle = () => wait(4500);
+
+/* ---------------- accounts ---------------- */
+
+// SQL run straight on the test server's database, for what only Google
+// sign-in would otherwise make: an account.
+export function sql(command) {
+  const env = { ...process.env, CI: 'true', WRANGLER_SEND_METRICS: 'false' };
+  const r = spawnSync(process.execPath, [WRANGLER, 'd1', 'execute', 'scorechalk', '--local', '--persist-to', dataDir, '--json', '--command', command],
+    { cwd: ROOT, env, encoding: 'utf8' });
+  if (r.status !== 0) throw new Error('sql failed:\n' + r.stdout + r.stderr);
+  return JSON.parse(r.stdout)[0].results;
+}
+
+// A signed-in account: the user row, and the session cookie for it, signed
+// as worker/auth.js signs one, with the test server's secret.
+export function account(email, name = email.split('@')[0]) {
+  const id = crypto.randomUUID();
+  sql(`INSERT INTO users (id, google_sub, email, display_name, created_at) VALUES ('${id}', 'test-${id}', '${email}', '${name}', ${Date.now()})`);
+  const body = Buffer.from(JSON.stringify({ uid: id, exp: Date.now() + 3600e3 })).toString('base64url');
+  const sig = createHmac('sha256', 'test-only-secret').update(body).digest('base64url');
+  return { id, cookie: `sc_session=${body}.${sig}` };
+}

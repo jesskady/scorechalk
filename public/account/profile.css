@@ -175,3 +175,6 @@
 button.row-menu-item{width:100%;text-align:left;font:inherit;font-size:14px}
 .row-menu-danger{color:#e2857a}
 .prof-empty a{color:var(--green)}
+
+/* only for an admin: see /admin/ */
+.prof-admin{margin-left:auto;color:var(--dim);font-size:13px;text-decoration:none;padding:6px 2px;flex:none}

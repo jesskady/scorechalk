@@ -11,6 +11,7 @@ import { getStats } from './stats.js';
 import { listCustomGames, putCustomGame, deleteCustomGame } from './custom-games.js';
 import { reportError, recordError, cleanErrors } from './errors.js';
 import { accountKey } from './guard.js';
+import { admin, isAdminEmail } from './admin.js';
 import { shareCheck, createShare, getShare, putShare, putCells, claimSeat, freeSeat, deleteShare, cleanShares, previewFor } from './share.js';
 
 const CANONICAL = 'scorechalk.com';
@@ -63,7 +64,15 @@ async function route(request, env) {
       // Deliberately not an error when auth is unconfigured: the site is
       // usable signed out, so "nobody is signed in" is the honest answer.
       if (!authConfigured(env)) return json({ user: null, auth: false });
-      return json({ ...(await me(request, env)), auth: true });
+      const who = await me(request, env);
+      // only ever true for an admin, so the profile can link to /admin/
+      return json({ ...who, admin: isAdminEmail(env, who.user && who.user.email), auth: true });
+    }
+
+    // the admin side: see worker/admin.js
+    if (url.pathname.startsWith('/api/admin/')) {
+      if (!authConfigured(env)) return json({ error: 'Sign-in is not configured.' }, 503);
+      return admin(request, env, url);
     }
 
     // Writes from a signed-in account — saving games, My games — are limited

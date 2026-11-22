@@ -257,7 +257,7 @@
     return card('My custom games', body);
   }
 
-  function showProfile(user) {
+  function showProfile(user, isAdmin) {
     const head = el('div', 'prof-head');
     const id = el('div', 'prof-id');
     id.append(el('h1', null, user.display_name));
@@ -269,6 +269,11 @@
 
     const loading = el('p', 'prof-empty', 'Loading your games…');
     box.replaceChildren(head, statsCard, card('Your games', loading), customCard());
+    if (isAdmin) {
+      const a = el('a', 'prof-admin', 'Admin ›');
+      a.href = '/admin/';
+      head.append(a);
+    }
 
     fetch('/api/stats?game_type=darts', { headers: { accept: 'application/json' } })
       .then((r) => (r.ok ? r.json() : null))
@@ -305,7 +310,7 @@
         box.replaceChildren(el('p', 'prof-empty', 'Sign-in is not configured on this deployment.'));
         return;
       }
-      if (data.user) showProfile(data.user);
+      if (data.user) showProfile(data.user, data.admin);
       else showSignedOut();
     })
     .catch(() => {

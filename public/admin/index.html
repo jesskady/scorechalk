@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#12161c">
+<meta name="robots" content="noindex">
+<title>Admin · Score Chalk</title>
+<!-- errors on this page: see /report.js -->
+<script src="/report.js?v=1"></script>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='15' fill='%23182029'/><circle cx='16' cy='16' r='11' fill='%232e7d4f'/><circle cx='16' cy='16' r='7' fill='%23182029'/><circle cx='16' cy='16' r='3.5' fill='%23c0392b'/></svg>">
+<link rel="stylesheet" href="/shared.css?v=32">
+<link rel="stylesheet" href="/admin/admin.css?v=3">
+</head>
+<body>
+
+<main class="adm">
+  <header class="adm-head">
+    <a class="adm-back" href="/account/">&lsaquo; Your profile</a>
+    <h1>Admin</h1>
+  </header>
+
+  <nav class="adm-tabs hidden" id="tabs">
+    <a href="#overview" data-tab="overview">Overview</a>
+    <a href="#activity" data-tab="activity">Activity</a>
+    <a href="#users" data-tab="users">Users</a>
+    <a href="#errors" data-tab="errors">Errors</a>
+    <a href="#tables" data-tab="tables">Tables</a>
+    <a href="#log" data-tab="log">Log</a>
+  </nav>
+
+  <!-- Filled in by admin.js, once /api/admin says this account is an admin -->
+  <div id="view" class="adm-view"><p class="adm-note">Loading…</p></div>
+</main>
+
+<script src="/admin/admin.js?v=3" defer></script>
+</body>
+</html>
