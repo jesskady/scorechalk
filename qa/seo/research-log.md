@@ -2,6 +2,19 @@
 
 Topics, sources and queries per run, newest first. Use it to avoid repeating ground.
 
+## 2026-11-22 (run 2)
+
+This run reached the live site (scorechalk.com returned 200). The PageSpeed Insights API returned 429 again, so nothing was measured. WebFetch couldn't resolve developers.google.com because it isn't in the session's allowed domains, so Google docs were read only through search-result summaries.
+
+Topics:
+1. **Favicon and site name in Google Search.** Query: "Google Search favicon requirements multiple of 48px crawlable rel icon home page data URI". Sources: developers.google.com/search/docs/appearance/favicon-in-search (via search summary); searchenginejournal.com/google-now-recommends-higher-resolution-favicons/530793/; logo.dev/docs/brand-visibility/google-favicon. Takeaways: the icon is read from the home page and has to be crawlable by Googlebot-Image at a stable URL, square, and 48px or larger is recommended. Data URIs aren't documented as supported. This fed SEO-017.
+2. **AI-search visibility / llms.txt.** Query: "llms.txt adoption evidence AI search citations Google ChatGPT 2026". Sources: ahrefs.com/blog/llmstxt-study/ (97% of files never fetched, May 2026); searchenginejournal.com/llms-txt-shows-no-clear-effect-on-ai-citations-based-on-300k-domains/; searchengineland.com/llm-only-pages-ai-search-467690. Takeaway: Google says it isn't used for search and there's no measurable citation lift, so no suggestion was made. robots.txt already allows all bots, including OAI-SearchBot. Bing indexing (SEO-004/005) is the route that matters for ChatGPT search.
+3. **Redirect status codes / trailing slashes on Workers static assets.** Queries: "Google search 307 redirect trailing slash Cloudflare Workers static assets html_handling canonical"; "Google search 307 temporary redirect canonical signal source URL indexed Search Central". Sources: developers.cloudflare.com/workers/static-assets/routing/advanced/html-handling; github.com/cloudflare/workers-sdk/issues/5262; developers.google.com/search/docs/crawling-indexing/301-redirects. Takeaway: the asset store uses 307, which Google treats as a weak canonical signal. This fed SEO-018. The live HTTP checks also found SEO-016 (no HTTPS redirect).
+4. **PWA directories.** Query: "PWA directory submit progressive web app listing store.app appsco.pe 2026". Sources: Product Hunt listings for pwastore.io and PWA List; alternativeto.net/software/pwa-list/about (discontinued May 2025); mobiloud.com/blog/publishing-pwa-app-store. Couldn't confirm appsco.pe. This fed SEO-020.
+5. **Seasonal / holiday card games.** Query: "most popular card games played at Christmas family holiday score keeping …". Sources: denofgeek.com best card games this Christmas; talkofthehouse.com 12 best family card games for holidays (2026); cbc.ca; onmilwaukee.com (euchre, sheepshead). Takeaway: Skyjo, Five Crowns, UNO, Oh Hell and Rummy 500 recur. This fed SEO-021.
+
+Not yet explored (ideas for future runs): keyword volumes (needs Search Console data); r/TechSEO threads on JS-rendered app pages; Commander/EDH and darts communities that allow tools (EDHREC, r/Darts rules); hreflang/UK vs US darts terms; Phase 10 and Rummikub search demand; image SEO (alt text, image sitemap for og/ images); Core Web Vitals once PSI is reachable (consider an API key).
+
 ## 2026-11-22 (first run)
 
 Live site and PageSpeed Insights were **not reachable** from the sandbox: scorechalk.com blocked by the session's network policy (curl 403 from the egress proxy, WebFetch DNS failure). PSI API returned 429 (daily quota on the keyless shared project). The audit is source-only.
