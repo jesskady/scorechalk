@@ -27,3 +27,4 @@ await import('./cribbage.mjs');
 await import('./server.mjs');
 await import('./offline.mjs');
 await import('./tournament.mjs');
+await import('./admin.mjs');
