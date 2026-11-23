@@ -2,6 +2,18 @@
 
 Topics, sources and queries per run, newest first. Use it to avoid repeating ground.
 
+## 2026-11-23 (run 3)
+
+The live site was reachable (all public pages 200). The PageSpeed Insights API returned 429 ("Queries per day" quota) for the third run in a row. A local Lighthouse install was not permitted in the sandbox, so a Playwright lab run with Moto G4 emulation, 4x CPU and ~1.6 Mbps/150 ms throttling measured LCP and CLS instead (approximate, not Lighthouse scores). WebFetch couldn't resolve developers.google.com or draftsim.com because they're outside the allowed domains, so those were read from search summaries only. No site changes since run 2: origin/main is still at 00c063b.
+
+Topics:
+1. **Image SEO for a site with no images.** Queries: "Google image SEO best practices web app pages without images image search traffic 2026"; "Google Search Central \"Google doesn't index CSS images\" img element alt text image sitemap og:image preferred image". Sources: developers.google.com/search/docs/appearance/google-images (via summary); searchenginejournal.com/google-on-alt-text-seo-accessibility/; hobo-web.co.uk images and alt text checklist. Takeaway: descriptive alt text plus the surrounding page content drives image ranking, and schema.org `image` and og:image act as preferred-image hints. Could not confirm the CSS-background claim. The live site has zero `<img>`. This fed SEO-023.
+2. **Phase 10 / printable score-sheet demand.** Query: "Phase 10 score sheet online free score keeper Rummikub score sheet". Sources: App Store listings (Phase 10 Score Sheet id689040336, Phase 10 Scoreboard id6448874592, Phase 10 Scoring id1553523814, Phase 10 Score id6742808817). Many printable-template pages turned up, including scraped spam on .ac.uk/.gov.br subdomains. Takeaway: paid single-game apps exist, and "printable" intent dominates the results. Nothing came back for Rummikub. This fed SEO-024 and strengthened SEO-011.
+3. **MTG / Commander community and roundups.** Queries: "EDHREC commander life counter app recommendations community tools listing"; "draftsim top 11 life counter apps for Magic ranked 2026 web browser life counter". Sources: draftsim.com "Top 11 Life Counter Apps for Magic Ranked" (Feb 12 2026) and draftsim.com/best-mtg-life-counter-app/ (updated Aug 5 2026), both via snippets; App Store pages for EDH Life, CounterSpell, Lifetap, Mythic Tools; Google Play Pod Pips. Takeaway: EDHREC has no tools directory. The roundups list native apps only, and the features they compare on are commander/partner damage, monarch and themes. This fed SEO-025.
+4. **Darts communities / launch venues.** Query: "r/Darts subreddit rules self promotion apps scoring app post allowed". Sources: producthunt.com posts for Stem Darts Scorer, Darty, Darts (Juraj Furaj), Dart Scoreboard; App Store Dartcom. Takeaway: couldn't get the r/Darts rules (no reddit results). Product Hunt regularly hosts darts scorer launches. This fed SEO-026.
+
+Not yet explored (ideas for future runs): r/Darts and r/EDH rules (need reddit.com reachable); hreflang/UK vs US darts terms; Rummikub and Skyjo search demand; Google Trends seasonality for "yahtzee score sheet"; a PSI API key or allowing developers.google.com so Google docs can be fetched directly; image sitemap once images exist; Google Discover / web-stories (probably not relevant).
+
 ## 2026-11-22 (run 2)
 
 This run reached the live site (scorechalk.com returned 200). The PageSpeed Insights API returned 429 again, so nothing was measured. WebFetch couldn't resolve developers.google.com because it isn't in the session's allowed domains, so Google docs were read only through search-result summaries.
