@@ -2,6 +2,18 @@
 
 Topics, sources and queries per run, newest first. Use it to avoid repeating ground.
 
+## 2026-11-24 (run 4)
+
+The live site was reachable (all public pages 200). No site changes since run 3: origin/main is still at 00c063b. The PageSpeed Insights API returned 429 ("Queries per day" on the keyless shared project) for the fourth run in a row, and no lab substitute was run this time because nothing on the site changed since run 3's measurement.
+
+Topics:
+1. **Darts checkout-chart search results.** Query: "darts checkout chart 501 printable every finish 170 to 2". Sources: news.williamhill.com/darts/checkout-table/; darts-uk.co.uk/Checkout.html; darts501.com/Check.html; dartscheckout.pages.dev; dartsweb.pages.dev/articles/checkout-calculator; scraped "printable dart out chart" pages on lboro.ac.uk, icmbio.gov.br and other hijacked subdomains. Takeaway: the results are a bookmaker, small hobby sites and spam. The darts app already has checkout logic. This fed SEO-027.
+2. **Skyjo scorekeeper competition.** Query: "Skyjo score sheet app online score keeper". Sources: App Store listings for Skyjo Companion (id6753746299), Skyjo Score Keeper & Stats (id6772789161), Skyjo Score (id6755699654), Skyjo Score Tracker (id6759169576), Skyjo Party 2, Scory (id6538715670), SkyJo Score Board via mwm.ai; Google Play developer VTR (SkyCount). Takeaway: lots of iOS-only apps, no web scorer found, and the automatic doubling rule is the feature they all sell. This fed SEO-028.
+3. **JavaScript rendering for non-Google crawlers.** Query: "Google Search Central JavaScript SEO basics web app content rendered client-side 2026". Sources: developers.google.com/search/docs/crawling-indexing/javascript/javascript-seo-basics (via summary); searchengineland.com/no-javascript-fallbacks-474605; dynomapper.com JavaScript SEO; dev.to "JavaScript SEO in 2026". Takeaway: Google still recommends server or pre-rendering. Bing, AI crawlers and link-preview bots often don't run JS (one third-party test, so treat it as a lead). The claim that Google removed its cautions in 2026 is unverified. This fed SEO-029.
+4. **Multiple h1 headings.** Query: "Google Search Central \"one h1\" multiple h1 headings dialog headings SEO John Mueller". Sources: searchengineland.com/multiple-h1s-wont-get-in-the-way-of-your-seo-google-says-322909; searchenginejournal.com/google-h1-headings-seo/; seroundtable.com/google-h1-tags-23699.html; boia.org multiple-h1 accessibility. Takeaway: multiple h1s don't hurt Google ranking, but they hurt accessibility, and Google's docs (quoted secondhand) still prefer one descriptive h1. That's why SEO-029 is Low.
+
+Not yet explored (ideas for future runs): r/Darts and r/EDH rules (need reddit.com reachable); hreflang/UK vs US darts terms; Rummikub demand; Google Trends seasonality for "yahtzee score sheet"; a PSI API key; image sitemap once images exist; cribbage "counting hands" / "cribbage hand calculator" as a reference-page angle like SEO-027; Yahtzee probability/strategy content.
+
 ## 2026-11-23 (run 3)
 
 The live site was reachable (all public pages 200). The PageSpeed Insights API returned 429 ("Queries per day" quota) for the third run in a row. A local Lighthouse install was not permitted in the sandbox, so a Playwright lab run with Moto G4 emulation, 4x CPU and ~1.6 Mbps/150 ms throttling measured LCP and CLS instead (approximate, not Lighthouse scores). WebFetch couldn't resolve developers.google.com or draftsim.com because they're outside the allowed domains, so those were read from search summaries only. No site changes since run 2: origin/main is still at 00c063b.
