@@ -1915,15 +1915,21 @@ function decide(r) {
   showWin(r);
 }
 
+// The bar stays while the scores say someone has won, ended or not: after
+// End game and back to the scores, its button opens the result again.
 function renderWinBar() {
-  const r = S && liveOn() && !S.endedAt ? result() : null;
+  const r = S && liveOn() ? result() : null;
   $('winBar').classList.toggle('hidden', !r);
   if (!r) return;
-  $('winBarText').innerHTML = `${esc(winText(r))}<small>Keep scoring, or Undo, if that wasn't the end.</small>`;
+  const over = !!S.endedAt;
+  $('winBarText').innerHTML = `${esc(winText(r))}<small>${over
+    ? 'The game is over. Undo takes it back.'
+    : "Keep scoring, or Undo, if that wasn't the end."}</small>`;
+  $('winBarBtn').textContent = over ? 'See results' : 'End game';
 }
 $('winBarBtn').onclick = () => {
   const r = result();
-  if (r && !S.endedAt) showWin(r); else renderWinBar();
+  if (r) showWin(r); else renderWinBar();
 };
 
 function showWin(r) {
@@ -1960,7 +1966,7 @@ $('rematchBtn').onclick = () => {
   $('winOverlay').classList.add('hidden');
   render();
 };
-$('keepBtn').onclick = () => $('winOverlay').classList.add('hidden');
+$('keepBtn').onclick = () => { $('winOverlay').classList.add('hidden'); renderWinBar(); };
 $('newBtn').onclick = endGame;
 
 // Clear the game and go back to the setup it came from.

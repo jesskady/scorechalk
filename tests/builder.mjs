@@ -222,6 +222,12 @@ describe('Builder, live', () => {
     assert.equal(await barText(pg), 'Bob wins!');
     await endGame(pg);
     assert.equal(await pg.evaluate(() => winName.textContent), 'Bob wins!');
+    // back to the scores, the bar stays, and opens the result again
+    await pg.click('#keepBtn'); await wait(200);
+    assert.equal(await barText(pg), 'Bob wins!');
+    assert.equal(await pg.evaluate(() => winBarBtn.textContent), 'See results');
+    await endGame(pg);
+    assert.equal(await pg.evaluate(() => winOverlay.classList.contains('hidden')), false, 'the result again');
     assert.deepEqual(pg.errors, []);
     await pg.close();
   });
