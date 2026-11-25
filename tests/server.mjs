@@ -61,7 +61,8 @@ describe('the server', () => {
 
   test('the scoring guides are there, each leading to its game, with data search engines can read', async () => {
     const guides = { 'cribbage-score-keeper': '/cribbage/', 'yahtzee-score-sheet': '/yahtzee/', 'darts-scorer': '/darts/',
-      'mtg-life-counter': '/magic/', 'canasta-score-keeper': '/builder/#canasta', 'farkle-score-sheet': '/builder/#farkle', 'score-keeper': '/builder/' };
+      'mtg-life-counter': '/magic/', 'canasta-score-keeper': '/builder/#canasta', 'farkle-score-sheet': '/builder/#farkle', 'score-keeper': '/builder/',
+      'uno-score-keeper': '/builder/#uno', 'euchre-score-keeper': '/builder/#euchre' };
     const sitemap = await (await fetch(U + '/sitemap.xml')).text();
     for (const [slug, game] of Object.entries(guides)) {
       const r = await fetch(`${U}/${slug}/`);

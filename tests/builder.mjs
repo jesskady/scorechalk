@@ -208,6 +208,38 @@ describe('Builder, live', () => {
     await pg.close();
   });
 
+  test('UNO and Euchre: tap who scored, then what they made', async () => {
+    const tapNamed = (pg, label) => pg.evaluate((l) => [...document.querySelectorAll('#quickpad .key b')]
+      .find((b) => b.textContent === l).closest('.key').click(), label);
+
+    // UNO: the player who went out collects everyone else's cards, to 500
+    const uno = await phone();
+    await open(uno, '/builder/#uno');
+    assert.match(await uno.evaluate(() => rulesText.textContent), /4 players · First to 500/);
+    await startGame(uno);
+    assert.equal(await uno.evaluate(() => S.cfg.live), true);
+    await uno.click('#tiles .tile[data-p="2"] .tname'); await wait(100);
+    await tapNamed(uno, 'Wild'); await tapNamed(uno, 'Skip');
+    await uno.type('#typedIn', '7'); await uno.click('#typedAdd'); await wait(300);
+    assert.equal(await tileScore(uno, 2), '77', 'a Wild, a Skip and a 7');
+    assert.equal(await tileScore(uno, 0), '0', 'nobody else scores');
+    assert.deepEqual(uno.errors, []);
+    await uno.close();
+
+    // Euchre: two sides to 10; a loner march is 4
+    const eu = await phone();
+    await open(eu, '/builder/#euchre');
+    assert.match(await eu.evaluate(() => rulesText.textContent), /First to 10 · 2 teams/);
+    await startGame(eu);
+    assert.equal(await eu.evaluate(() => S.cfg.names.length), 2, 'scored as two sides');
+    await eu.click('#tiles .tile[data-p="1"] .tname'); await wait(100);
+    for (const k of ['Loner march', 'Loner march', 'March']) { await tapNamed(eu, k); await wait(150); }
+    await wait(300);
+    assert.match(await eu.evaluate(() => winName.textContent), /win/, 'a side at 10 wins at once');
+    assert.deepEqual(eu.errors, []);
+    await eu.close();
+  });
+
   test('the setup offers the buttons only for a live game', async () => {
     const pg = await phone();
     await open(pg, '/builder/');

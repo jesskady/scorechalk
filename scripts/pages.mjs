@@ -10,7 +10,7 @@ export const ORIGIN = 'https://scorechalk.com';
 export const PAGES = [
   '/', '/darts/', '/cribbage/', '/yahtzee/', '/magic/', '/builder/', '/tournament/',
   '/cribbage-score-keeper/', '/yahtzee-score-sheet/', '/darts-scorer/', '/mtg-life-counter/',
-  '/canasta-score-keeper/', '/farkle-score-sheet/', '/score-keeper/',
+  '/canasta-score-keeper/', '/farkle-score-sheet/', '/uno-score-keeper/', '/euchre-score-keeper/', '/score-keeper/',
   '/privacy/', '/terms/',
 ];
 
