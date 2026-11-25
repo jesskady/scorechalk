@@ -74,6 +74,15 @@ function leaveGame() {
 
 const tourneyUrl = (tid) => '/tournament/?g=' + encodeURIComponent(tid);
 
+// A tournament's match leads back to the tournament, in words: the badge
+// (the way home everywhere else) would say the wrong place.
+function toTourney(a, id) {
+  a.href = tourneyUrl(id);
+  a.classList.remove('mark');
+  a.removeAttribute('aria-label');
+  a.innerHTML = '&lsaquo; Tournament';
+}
+
 // The tournament this game is a match of, when that tournament is on this
 // device. A shared match carries its tournament's id to every phone in it,
 // and to the others it is a game like any other.
@@ -238,8 +247,7 @@ function buildSetup() {
     $('modeRow').closest('.card').classList.add('hidden');
     $('setupSub').textContent = match.name;
     $('tourneyLink').classList.add('hidden');    // in one already
-    $('setupBack').href = tourneyUrl(match.tid);
-    $('setupBack').innerHTML = '&lsaquo; Tournament';
+    toTourney($('setupBack'), match.tid);
     return;    // no Resume: a match starts its own game
   }
 
@@ -395,8 +403,7 @@ function showGame() {
   $('setup').classList.add('hidden');
   $('game').classList.remove('hidden');
   if (tid()) {
-    $('gameBack').href = tourneyUrl(tid());
-    $('gameBack').innerHTML = '&lsaquo; Tournament';
+    toTourney($('gameBack'), tid());
   }
   render();
 }

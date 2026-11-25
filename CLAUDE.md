@@ -44,6 +44,12 @@ changing those areas.
 - **Rooms.** Every game is played in one of three styles (Parlor, Living Room,
   Workshop; see `public/themes.css`). New UI uses the theme's colour tokens,
   and anything pictured per game should match its room.
+- **One mark: the badge.** The wood-framed slate with a chalk five-bar gate
+  (`public/favicon.svg`) is the app icon, the browser-tab icon, the home
+  page logo (left of the name) and the way home on every other page: a
+  chevron and the badge, top-left (`.backlink.mark` in `shared.css`), no
+  words. A link that goes somewhere other than home (a tournament, Formats)
+  stays a text link. Bump `favicon.svg?v=` if the badge changes.
 - **"Score Chalk", two words**, everywhere people can read it.
 
 ## Style
