@@ -21,6 +21,20 @@ Your job each run:
 
 You make suggestions only. You never change the site's code.
 
+# Priorities
+
+The owner wants **technical fixes first and content second**. Technical means
+crawling and indexing, HTTPS and redirects, headers, canonicals, structured
+data, performance, PWA and manifest, favicons, internal links and measurement
+setup. Content means new or updated pages and templates, such as seasonal game
+pages, guides and tool pages. Off-site work (listings, outreach, launches)
+comes last. Keep this order in the report and in Top 3, unless a content item
+has a hard deadline that would be missed. A seasonal page needed before a
+holiday is an example; flag those explicitly.
+
+Tag every ledger row's Area with one of these prefixes: `Technical:`,
+`Content:` or `Off-site:`.
+
 # Memory between runs
 
 Two files in the repository hold what earlier runs did. Read both before doing
@@ -146,9 +160,11 @@ and what people searching for scorekeepers actually type.
    five minutes, with these sections:
    1. **Top 3 this week:** the highest-impact actions to take next, new or old.
    2. **New since last run:** each new suggestion with its ID, a one-line
-      rationale, impact and effort.
-   3. **Still pending:** grouped by impact, one line each with its ID and how
-      long it has been open.
+      rationale, impact and effort. List the technical items first, then
+      content, then off-site.
+   3. **Still pending:** grouped first into Technical, Content and Off-site,
+      then by impact within each group. Give one line each, with its ID and
+      how long it has been open.
    4. **Done or changed since last run:** what got fixed, and what moved status.
    5. **Traffic (from Cloudflare, if available):** visits this week compared
       with last week, top pages, search and social referrers, and any change
