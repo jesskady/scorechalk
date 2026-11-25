@@ -357,11 +357,18 @@ deployment from that file.
 ```sh
 npx wrangler login     # once per machine
 npm test               # before deploying
-npm run deploy         # wrangler deploy
+npm run deploy         # wrangler deploy, then the IndexNow ping
 ```
+
+After the deploy, `scripts/indexnow.mjs` tells Bing and the other IndexNow
+search engines which pages changed since the last ping (`--dry-run` lists
+them). After committing a change to a page, `npm run sitemap` rewrites
+`public/sitemap.xml` with each page's last-changed date; commit that too. The
+list of pages for both is `scripts/pages.mjs`.
 
 A new migration goes to the live database *before* the deploy that needs it
 (see Migrations above).
 
-Unknown paths 404 (`not_found_handling: "none"`). There is no client-side
-routing to rescue, so a wrong path is genuinely not found.
+Unknown paths 404, with `public/404.html` as the page (`not_found_handling:
+"404-page"`). There is no client-side routing to rescue, so a wrong path is
+genuinely not found.
