@@ -259,7 +259,7 @@
 
   <!-- A live game that reaches its end offers the win rather than declaring
        it: scoring and Undo go on until someone taps End game. See offerWin. -->
-  <div class="win-bar hidden" id="winBar" role="status">
+  <div class="win-bar hidden" id="winBar" aria-live="polite">
     <span id="winBarText"></span>
     <button id="winBarBtn" type="button">End game</button>
   </div>
