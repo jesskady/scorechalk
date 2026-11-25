@@ -2,6 +2,17 @@
 
 Topics, sources and queries per run, newest first. Use it to avoid repeating ground.
 
+## 2026-11-25 (run 6, second run today)
+
+The live site was reachable. All 17 public pages returned 200, and origin/main is still at 00c063b, so nothing has changed since run 5. The PageSpeed Insights API returned 429 ("Queries per day" on the keyless shared project) for the sixth run in a row.
+
+Topics:
+1. **Euchre score-keeper demand.** Query: "Euchre score keeper online web app keep score to 10". Sources: App Store Euchre Scoreboard (id6463570097), Euchre Scores (id1635001635), Euchre Tournament ScoreKeeper (id1216507904), Euchre Helper (id6475269292); solitaire.org/american-euchre (a game, not a scorer); github.com/sageguy09/Euchre500. Takeaway: no browser tally turned up. The builder already supports teams and a target score, so this is a template plus a page (SEO-033).
+2. **UNO score-keeper demand.** Query: "UNO score keeper online free scoring points card values 500". Sources: App Store Score Counter for UNO (id1030743967), UnoTally (id6471903830), Uno Score Keeper (id1614579095), UNO! Score: Scoreboard Master (id6472586272), UNO Score Book (id6468909765), Uno Points Counter (id6739287989); PartyPot's UNO page; howstuffworks UNO rules. Takeaway: lots of iOS-only scorers, one app-first web page, and simple scoring (face value, actions 20, wilds 50, first to 500). Added to SEO-021 rather than made a new row.
+3. **Other darts games (Killer, Shanghai, Around the Clock).** Query: "Killer darts game scorer app online around the clock shanghai darts scoring". Sources: App Store Dartsmind (id1018594473), DARTS Scorekeeper 2026 (id1504732492), Dart Scorer Cricket and X01 (id1490202999); Microsoft Store darts apps. Takeaway: competitors bundle these as party modes alongside Cricket. They need features and aren't worth a separate row yet, so they're noted under SEO-013.
+
+Not yet explored (ideas for future runs): r/Darts and r/EDH rules (need reddit.com reachable); Google Trends seasonality for "yahtzee score sheet"; a PSI API key; image sitemap once images exist; Yahtzee probability/strategy content; Oh Hell / Spades bidding-score demand on the web; Microsoft Store PWA search visibility.
+
 ## 2026-11-25 (run 5)
 
 The live site was reachable: all 17 public pages returned 200, and origin/main is still at 00c063b, so nothing on the site has changed. The PageSpeed Insights API returned 429 ("Queries per day" on the keyless shared project) for / and /darts-scorer/, for the fifth run in a row.
