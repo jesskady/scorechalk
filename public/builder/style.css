@@ -659,7 +659,6 @@ button.cell:active{background:var(--line)}
 }
 @media (hover:hover){.pick-opt:hover{border-color:var(--green)}}
 .pick-opt:active{transform:scale(.99)}
-.pick-opt.is-current{border-color:var(--green-d)}
 .pick-opt img{
   width:100%;height:auto;max-height:300px;object-fit:cover;object-position:top;border-radius:8px;
   border:1px solid var(--line);background:var(--bg2);pointer-events:none;

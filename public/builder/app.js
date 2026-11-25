@@ -925,12 +925,14 @@ let pickAt = 0;
 function showPick(i) {
   pickAt = i;
   const k = PICKS[i], now = k.chosen() ? k.get() : null;
+  // pictured in the room this game is played in
+  const room = themeOf(cfg);
   $('pickTitle').textContent = k.title;
   $('pickLede').textContent = k.lede;
   $('pickNote').textContent = k.note;
   $('pickOpts').innerHTML = k.opts.map((o) => `
     <button class="pick-opt${o.mode === now ? ' is-current' : ''}" type="button" data-mode="${o.mode}">
-      <img src="previews/view-${o.mode}.webp" alt="${esc(o.label)}: ${esc(o.text)}" loading="lazy">
+      <img src="previews/view-${o.mode}-${room}.webp" alt="${esc(o.label)}: ${esc(o.text)}" loading="lazy">
       <span class="pick-label"><b>${esc(o.label)}</b>${o.mode === now ? '<i>Last time</i>' : ''}</span>
       <span class="pick-text">${esc(o.text)}</span>
     </button>`).join('');
