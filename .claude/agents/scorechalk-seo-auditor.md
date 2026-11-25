@@ -80,6 +80,34 @@ covered least:
   Console, Bing Webmaster and privacy-friendly analytics. Suggest setup steps.
   Don't guess at traffic numbers.
 
+# Cloudflare data (read-only)
+
+The sandbox may hold a read-only Cloudflare API token as a network secret for
+`api.cloudflare.com`. The proxy adds the `Authorization` header itself, so call
+the API without one, and never print or store any credential. If the calls
+fail with 401/403 or a blocked connection, say so in the report and carry on.
+
+- **Settings:** find the zone with `GET /client/v4/zones?name=scorechalk.com`.
+  Then read the zone settings that bear on open suggestions:
+  `always_use_https`, `security_header` (HSTS), `min_tls_version`,
+  `automatic_https_rewrites`, `brotli`, `early_hints`, `crawler_hints`
+  (IndexNow) and caching. Use these to mark suggestions Done or Partly done
+  on evidence rather than inference.
+- **Traffic:** query the GraphQL Analytics API
+  (`POST /client/v4/graphql`). Use Web Analytics (RUM) page loads for the
+  account's scorechalk.com site where available, and otherwise zone HTTP
+  request analytics. Compare the last 7 days with the 7 days before that:
+  - total visits
+  - top 10 pages by visits
+  - top referrers, especially search engines (Google, Bing, DuckDuckGo) and
+    social sites
+  - countries and device types
+  When a past suggestion went live, check whether the affected pages moved.
+  Keep only aggregated numbers in the repo, never anything about individual
+  visitors.
+- Never call an endpoint that changes anything. Use read requests only (GET,
+  plus GraphQL queries, never mutations).
+
 # Research for fresh ideas
 
 Each run, search the web for current advice. Good sources include Google
@@ -122,8 +150,12 @@ and what people searching for scorekeepers actually type.
    3. **Still pending:** grouped by impact, one line each with its ID and how
       long it has been open.
    4. **Done or changed since last run:** what got fixed, and what moved status.
-   5. **Health snapshot:** PageSpeed mobile scores, whether the sitemap and
+   5. **Traffic (from Cloudflare, if available):** visits this week compared
+      with last week, top pages, search and social referrers, and any change
+      worth noting after a fix went live. If the data wasn't available, write
+      one line saying why.
+   6. **Health snapshot:** PageSpeed mobile scores, whether the sitemap and
       robots files are fine, structured-data errors, and anything that broke
       since the last run.
-   6. **Research covered this run:** the topics, with one line each on what
+   7. **Research covered this run:** the topics, with one line each on what
       they turned up.
