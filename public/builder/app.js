@@ -158,7 +158,7 @@ function newGame(c) {
     parts: [],        // what made pend: { label, d } per tap, for the breakdown
     sign: c.mode === 'down' ? -1 : 1,
     // the scoresheet, for a game taken in turns; the switch changes this
-    // game only, and every new game opens in the sheet again
+    // game only; a new game opens as chosen at Start (see PICKS), or here
     view: 'sheet',
   };
 }
@@ -355,7 +355,7 @@ function nextPlayer(from) {
 /* ---------------- screens ---------------- */
 
 function show(id) {
-  for (const s of ['setup', 'game']) $(s).classList.toggle('hidden', s !== id);
+  for (const s of ['setup', 'pick', 'game']) $(s).classList.toggle('hidden', s !== id);
   // in a game, the sign-in button would sit on the view switch
   document.body.classList.toggle('playing', id === 'game');
   // and the screen stays on through it: see /awake.js
@@ -884,11 +884,70 @@ $('startBtn').onclick = async () => {
     if (!a) return;
   }
   saveCfg();
+  // a game taken in turns can be kept as a board or a sheet: ask which
+  if (cfg.turns || roundsOn(cfg)) { showPick(0); return; }
+  beginGame();
+};
+
+function beginGame(view) {
   S = newGame({ ...cfg, source });
+  if (view) S.view = view;
   // in teams, you are the side your player is on
   S.me = setupMe === null ? null : (S.cfg.playerTeams ? S.cfg.playerTeams[setupMe] : setupMe);
   save();
   openGame(S);
+}
+
+/* ---------------- board or sheet: chosen before the first turn ----------------
+
+   A game taken in turns can be kept as a board (a big score each, the turn
+   entered below) or a sheet (a row a round, a column a player). The switch
+   at the top of the game has always changed it, but a switch never noticed
+   is no choice at all — so Start Game offers both, with a picture of each,
+   and says it can be switched. The choice is remembered on the device for
+   the next game; the switch in a game changes only that game. PICKS and
+   pickAt are shared in shape with cribbage's, which has two screens. */
+const VIEW_KEY = 'builder-view';
+const viewPref = () => { try { return localStorage.getItem(VIEW_KEY); } catch (e) { return null; } };
+const PICKS = [
+  { title: 'How do you want to keep score?',
+    lede: 'Everyone takes turns in this game, so it can be kept two ways.',
+    note: 'You can switch any time during the game, with Board · Sheet at the top.',
+    get: () => viewPref() || 'sheet', chosen: () => viewPref() !== null,
+    set: (m) => { try { localStorage.setItem(VIEW_KEY, m); } catch (e) {} },
+    opts: [
+      { mode: 'board', label: 'Board', text: 'A big running total for each player, with the turn entered underneath.' },
+      { mode: 'sheet', label: 'Sheet', text: 'Like a paper score sheet: a row for each round, a column for each player.' },
+    ] },
+];
+let pickAt = 0;
+
+function showPick(i) {
+  pickAt = i;
+  const k = PICKS[i], now = k.chosen() ? k.get() : null;
+  $('pickTitle').textContent = k.title;
+  $('pickLede').textContent = k.lede;
+  $('pickNote').textContent = k.note;
+  $('pickOpts').innerHTML = k.opts.map((o) => `
+    <button class="pick-opt${o.mode === now ? ' is-current' : ''}" type="button" data-mode="${o.mode}">
+      <img src="previews/view-${o.mode}.webp" alt="${esc(o.label)}: ${esc(o.text)}" loading="lazy">
+      <span class="pick-label"><b>${esc(o.label)}</b>${o.mode === now ? '<i>Last time</i>' : ''}</span>
+      <span class="pick-text">${esc(o.text)}</span>
+    </button>`).join('');
+  show('pick');
+}
+
+$('pickOpts').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-mode]');
+  if (!b) return;
+  PICKS[pickAt].set(b.dataset.mode);
+  if (pickAt + 1 < PICKS.length) { showPick(pickAt + 1); return; }
+  beginGame(b.dataset.mode);
+});
+
+$('pickBack').onclick = () => {
+  if (pickAt > 0) { showPick(pickAt - 1); return; }
+  show('setup');
 };
 
 // A game on screen has its id in the address: a link to it opens it.

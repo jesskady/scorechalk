@@ -37,7 +37,7 @@
 <link rel="stylesheet" href="../shared.css?v=36">
 <!-- the rooms a game can be played in; app.js sets data-room on the body -->
 <link rel="stylesheet" href="../themes.css?v=7">
-<link rel="stylesheet" href="style.css?v=46">
+<link rel="stylesheet" href="style.css?v=47">
 </head>
 <body data-room="workshop">
 
@@ -235,6 +235,21 @@
   <p class="guide-link"><a href="/score-keeper/">How to keep score for any game</a></p>
 </section>
 
+<!-- ============ HOW TO SEE THE SCORES ============
+     Between Start Game and a game taken in turns: the board or the sheet,
+     each with a picture (previews/, made by scripts/previews.mjs), so a
+     player knows both exist and picks one. It can be switched during the
+     game. Filled by showPick in app.js. -->
+<section id="pick" class="screen hidden">
+  <button class="backlink" id="pickBack" type="button">&lsaquo; Back</button>
+  <header class="brand pick-head">
+    <h2 id="pickTitle"></h2>
+    <p id="pickLede"></p>
+  </header>
+  <div class="pick-opts" id="pickOpts"></div>
+  <p class="pick-note" id="pickNote"></p>
+</section>
+
 <!-- ============ GAME ============ -->
 <section id="game" class="screen hidden">
   <header class="brand compact gamebar">
@@ -375,7 +390,7 @@
 <script src="/share.js?v=12"></script>
 <script src="/cloud.js?v=3"></script>
 <script src="/roster.js?v=1"></script>
-<script src="app.js?v=58"></script>
+<script src="app.js?v=59"></script>
 <script src="/pwa.js?v=1" defer></script>
 </body>
 </html>

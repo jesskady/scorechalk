@@ -14,7 +14,7 @@ const openCells = (pg) => pg.evaluate(() => [...document.querySelectorAll('#shee
 // a live game at its end offers the win: the bar says who, End game shows it
 const barText = (pg) => pg.evaluate(() => (winBar.classList.contains('hidden') ? '' : winBarText.firstChild.textContent));
 const endGame = async (pg) => { await pg.click('#winBarBtn'); await wait(300); };
-const tapKey =(pg, t) => pg.evaluate((t) => [...document.querySelectorAll('#quickpad .key')].find((k) => k.textContent === t).click(), t);
+const tapKey = (pg, t) => pg.evaluate((t) => [...document.querySelectorAll('#quickpad .key')].find((k) => k.textContent === t).click(), t);
 
 describe('the Builder', () => {
   test('a game taken in turns opens in the sheet, and scores in a bubble', async () => {
@@ -330,6 +330,46 @@ describe('the Builder setup, in steps', () => {
     await pg.click('#startBtn'); await wait(200);
     assert.equal(await pg.evaluate(() => step), 'scoring');
     assert.match(await pg.evaluate(() => startBtn.textContent), /quick-score button/);
+    await pg.close();
+  });
+});
+
+describe('the Builder, board or sheet', () => {
+  test('a game taken in turns asks board or sheet first, and remembers it; a live game does not ask', async () => {
+    const pg = await phone();
+    await open(pg, '/builder/');
+    await pg.evaluate(() => { Object.assign(cfg, { turns: true, useRounds: false, names: ['Ann', 'Bob'], players: 2 }); saveCfg(); renderSetup(); showStep(STEPS[STEPS.length - 1]); });
+    await pg.click('#startBtn'); await wait(400);
+    const opts = () => pg.evaluate(() => [...document.querySelectorAll('.pick-opt')].map((b) => b.dataset.mode + (b.classList.contains('is-current') ? '*' : '')));
+    assert.equal(await pg.evaluate(() => pick.classList.contains('hidden')), false);
+    assert.deepEqual(await opts(), ['board', 'sheet'], 'nothing marked: never chosen');
+    assert.match(await pg.evaluate(() => pickNote.textContent), /switch any time/);
+    await pg.click('#pickBack'); await wait(200);
+    assert.equal(await pg.evaluate(() => setup.classList.contains('hidden')), false, 'Back is the setup');
+
+    await pg.click('#startBtn'); await wait(300);
+    await pg.click('.pick-opt[data-mode="board"]'); await wait(500);
+    assert.deepEqual(await pg.evaluate(() => [S.view, sheetOn(), game.classList.contains('hidden')]), ['board', false, false]);
+
+    // the next game remembers, and says so
+    await pg.click('#quitBtn'); await wait(300);
+    const yes = await pg.$('#confirmYes'); if (yes && await yes.isVisible()) { await yes.click(); await wait(400); }
+    await open(pg, '/builder/');
+    await pg.evaluate(() => showStep(STEPS[STEPS.length - 1]));
+    await pg.click('#startBtn'); await wait(400);
+    const again = await pg.$('#confirmYes'); if (again && await again.isVisible()) { await again.click(); await wait(400); }
+    assert.deepEqual(await opts(), ['board*', 'sheet']);
+    await pg.click('.pick-opt[data-mode="sheet"]'); await wait(500);
+    assert.equal(await pg.evaluate(() => S.view), 'sheet');
+
+    // a live game has no sheet, so nothing to ask
+    await open(pg, '/builder/');
+    await pg.evaluate(() => { Object.assign(cfg, { turns: false, useRounds: false }); saveCfg(); renderSetup(); showStep(STEPS[STEPS.length - 1]); });
+    await pg.click('#startBtn'); await wait(400);
+    const third = await pg.$('#confirmYes'); if (third && await third.isVisible()) { await third.click(); await wait(400); }
+    assert.equal(await pg.evaluate(() => pick.classList.contains('hidden')), true);
+    assert.equal(await pg.evaluate(() => game.classList.contains('hidden')), false);
+    assert.deepEqual(pg.errors, []);
     await pg.close();
   });
 });
