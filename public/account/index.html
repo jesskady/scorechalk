@@ -14,15 +14,16 @@
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-title" content="Score Chalk">
 <meta name="mobile-web-app-capable" content="yes">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='15' fill='%23182029'/><circle cx='16' cy='16' r='11' fill='%232e7d4f'/><circle cx='16' cy='16' r='7' fill='%23182029'/><circle cx='16' cy='16' r='3.5' fill='%23c0392b'/></svg>">
-<link rel="stylesheet" href="/shared.css?v=35">
+<link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml">
+<link rel="icon" href="/icons/icon-192.png" sizes="192x192">
+<link rel="stylesheet" href="/shared.css?v=37">
 <link rel="stylesheet" href="/home.css?v=29">
 <link rel="stylesheet" href="/account/profile.css?v=36">
 </head>
 <body>
 
 <main class="screen profile">
-  <a class="backlink" href="/">&lsaquo; All games</a>
+  <a class="backlink mark" href="/" aria-label="All games"><span class="arrow" aria-hidden="true">&lsaquo;</span><img src="/favicon.svg?v=2" alt="" width="30" height="30"></a>
 
   <!-- Filled in by profile.js; starts empty so a signed-in visitor never sees
        the signed-out state flash first. -->
@@ -30,8 +31,8 @@
 </main>
 
 <script src="/account.js?v=29" defer></script>
-<script src="/builder/rules.js?v=10" defer></script>
-<script src="/account/profile.js?v=36" defer></script>
+<script src="/builder/rules.js?v=13" defer></script>
+<script src="/account/profile.js?v=37" defer></script>
 <script src="/pwa.js?v=1" defer></script>
 </body>
 </html>

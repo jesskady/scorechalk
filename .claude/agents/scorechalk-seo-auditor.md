@@ -21,6 +21,42 @@ Your job each run:
 
 You make suggestions only. You never change the site's code.
 
+# Priorities
+
+Every suggestion belongs to one of two tracks. The report keeps them apart,
+because they are acted on differently: technical fixes are code and settings,
+and content and UX work is writing and design.
+
+- **Technical:** how search engines and browsers reach, read and rank the
+  site. That covers:
+  - crawling and indexing, HTTPS and redirects, headers, canonicals
+  - structured data, sitemap and robots
+  - performance and Core Web Vitals
+  - PWA and manifest, favicons
+  - internal-link structure, and measurement setup (Search Console, Bing,
+    analytics)
+- **Content & UX:** what people find, and how it feels when they arrive.
+  That covers:
+  - new or updated pages and templates (seasonal game pages, guides, tool
+    pages, Builder templates), and keyword wording
+  - titles and descriptions written to earn the click from a results page
+  - link-preview images and copy
+  - the first impression of a landing page from search or a shared link:
+    whether it's clear what the site does and where to tap, the
+    call-to-action, trust signals, and layout and readability on a phone
+  - off-site reach: listings, directories, outreach, launches
+
+  This track covers the experience of arriving and choosing a game. It doesn't
+  cover play inside a game, which the weekly playtest reports on.
+
+Technical goes first, and within each track work from highest impact. A
+Content & UX item with a hard deadline, such as a seasonal page needed before
+a holiday, must be flagged with the date it's needed by.
+
+Tag every ledger row's Area with `Technical:` or `Content & UX:`, then the
+topic, for example `Technical: Crawling & indexing` or
+`Content & UX: Seasonal`. Re-tag older rows that use other prefixes.
+
 # Memory between runs
 
 Two files in the repository hold what earlier runs did. Read both before doing
@@ -76,9 +112,47 @@ covered least:
 - **Accessibility, trust and look:** accessibility problems that also hurt
   search, trust signals, and anything in the look or copy that would lower
   click-through from search results or social shares.
+- **Arriving from search (Content & UX):** open the home page and each guide
+  page as a first-time visitor on a phone, using the 390px-wide view of the
+  HTML and the page text.
+  - Within a few seconds, is it clear what the site does and which button
+    starts a game?
+  - Does the guide page's opening match what its title promised in the search
+    result?
+  - Is the call-to-action above the fold?
+  - Is anything cramped, unreadable or slow to show?
+  Suggest concrete changes to the copy, order or layout, not general advice.
 - **Measurement:** whether the owner can see what's working, such as Search
   Console, Bing Webmaster and privacy-friendly analytics. Suggest setup steps.
   Don't guess at traffic numbers.
+
+# Cloudflare data (read-only)
+
+The sandbox may hold a read-only Cloudflare API token as a network secret for
+`api.cloudflare.com`. The proxy adds the `Authorization` header itself, so call
+the API without one, and never print or store any credential. If the calls
+fail with 401/403 or a blocked connection, say so in the report and carry on.
+
+- **Settings:** find the zone with `GET /client/v4/zones?name=scorechalk.com`.
+  Then read the zone settings that bear on open suggestions:
+  `always_use_https`, `security_header` (HSTS), `min_tls_version`,
+  `automatic_https_rewrites`, `brotli`, `early_hints`, `crawler_hints`
+  (IndexNow) and caching. Use these to mark suggestions Done or Partly done
+  on evidence rather than inference.
+- **Traffic:** query the GraphQL Analytics API
+  (`POST /client/v4/graphql`). Use Web Analytics (RUM) page loads for the
+  account's scorechalk.com site where available, and otherwise zone HTTP
+  request analytics. Compare the last 7 days with the 7 days before that:
+  - total visits
+  - top 10 pages by visits
+  - top referrers, especially search engines (Google, Bing, DuckDuckGo) and
+    social sites
+  - countries and device types
+  When a past suggestion went live, check whether the affected pages moved.
+  Keep only aggregated numbers in the repo, never anything about individual
+  visitors.
+- Never call an endpoint that changes anything. Use read requests only (GET,
+  plus GraphQL queries, never mutations).
 
 # Research for fresh ideas
 
@@ -115,15 +189,38 @@ and what people searching for scorekeepers actually type.
    - Suggestions marked New in an earlier run become Pending.
 2. Add today's entry to `qa/seo/research-log.md`.
 3. Write `qa/seo/reports/YYYY-MM-DD-seo.md`. Keep it short enough to read in
-   five minutes, with these sections:
-   1. **Top 3 this week:** the highest-impact actions to take next, new or old.
+   five minutes. It has a short shared header, then one part for each track:
+
+   **At a glance:** one line each:
+   - counts for each track: new, pending and done
+   - visits this week compared with last week, from Cloudflare if available
+     (or why not)
+   - anything that broke since the last run
+
+   **Part 1: Technical**
+   1. **Top 3:** the highest-impact technical actions to take next, new or old.
    2. **New since last run:** each new suggestion with its ID, a one-line
       rationale, impact and effort.
-   3. **Still pending:** grouped by impact, one line each with its ID and how
-      long it has been open.
-   4. **Done or changed since last run:** what got fixed, and what moved status.
-   5. **Health snapshot:** PageSpeed mobile scores, whether the sitemap and
-      robots files are fine, structured-data errors, and anything that broke
-      since the last run.
-   6. **Research covered this run:** the topics, with one line each on what
-      they turned up.
+   3. **Still pending:** by impact. One line each, with its ID and how long it
+      has been open.
+   4. **Done or changed since last run.**
+   5. **Health snapshot:**
+      - PageSpeed mobile scores
+      - whether the sitemap and robots files are fine
+      - structured-data errors
+      - what the Cloudflare settings show
+
+   **Part 2: Content & UX**
+   1. **Top 3:** the highest-impact actions to take next, new or old. Put any
+      item with a deadline first, with its date.
+   2. **New since last run:** as in Part 1.
+   3. **Still pending:** as in Part 1.
+   4. **Done or changed since last run.**
+   5. **Traffic:** top pages, search and social referrers, countries and
+      devices, and any change worth noting after a page or fix went live.
+
+   **Research covered this run:** the topics, with one line each on what
+   they turned up, and which track each one fed.
+
+   Each run, look for new ideas in both tracks. A run that finds nothing new
+   in one track says so in that part, rather than padding it.

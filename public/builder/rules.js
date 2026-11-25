@@ -127,6 +127,27 @@ const TEMPLATES = [
       typed: true, signs: true, turns: true, teams: true, teamCount: 2, players: 4,
       theme: 'parlor',
     } },
+  // UNO: only the player who goes out scores, collecting what is left in
+  // everyone else's hands, and the first to 500 wins. So it's live — tap the
+  // winner, then their cards — Action card (Draw Two, Reverse, Skip) and Wild
+  // (either kind) buttons, and number
+  // cards typed at face value.
+  { id: 'uno', label: 'UNO',
+    rules: {
+      ...defaultRules(), name: 'UNO', win: 'target', target: 500,
+      quick: 'Action card 20, Wild 50',
+      typed: true, signs: false, turns: false, pad: true, players: 4,
+      theme: 'parlor',
+    } },
+  // Euchre: two partnerships to 10. Either side can score on any hand, so
+  // it's live too: tap the side, then what it made.
+  { id: 'euchre', label: 'Euchre',
+    rules: {
+      ...defaultRules(), name: 'Euchre', win: 'target', target: 10,
+      quick: 'Made it 1, March 2, Loner march 4, Euchred them 2',
+      typed: false, signs: false, turns: false, pad: true, teams: true, teamCount: 2, players: 4,
+      theme: 'parlor',
+    } },
 ];
 
 /* Quick-score text → the keys it describes, plus whatever could not be read.

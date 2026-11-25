@@ -11,6 +11,9 @@ async function custom(pg, settings) {
   await startGame(pg);
 }
 const openCells = (pg) => pg.evaluate(() => [...document.querySelectorAll('#sheet .cell.open')].map((c) => S.cfg.names[c.dataset.p]));
+// a live game at its end offers the win: the bar says who, End game shows it
+const barText = (pg) => pg.evaluate(() => (winBar.classList.contains('hidden') ? '' : winBarText.firstChild.textContent));
+const endGame = async (pg) => { await pg.click('#winBarBtn'); await wait(300); };
 const tapKey = (pg, t) => pg.evaluate((t) => [...document.querySelectorAll('#quickpad .key')].find((k) => k.textContent === t).click(), t);
 
 describe('the Builder', () => {
@@ -134,11 +137,13 @@ describe('Builder counters', () => {
     await pg.close();
   });
 
-  test('Wins at ends the game at once, ahead of a higher score', async () => {
+  test('Wins at decides the game, ahead of a higher score', async () => {
     const pg = await phone();
     await custom(pg, { names: ['Ann', 'Bob'], turns: false, counters: [LEVEL] });
     await pg.evaluate(() => liveAdd(0, 50));
     await tapCounter(pg, 1, 'lvl', 1); await tapCounter(pg, 1, 'lvl', 1); await wait(400);
+    assert.equal(await barText(pg), 'Bob wins!', 'offered, not declared');
+    await endGame(pg);
     assert.equal(await pg.evaluate(() => winName.textContent), 'Bob wins!');
     assert.equal(await pg.evaluate(() => winBy.textContent), 'Level reached 3');
     assert.equal(await pg.evaluate(() => winTable.querySelector('li span').textContent), 'Bob', 'the winner heads the standings');
@@ -203,9 +208,62 @@ describe('Builder, live', () => {
     assert.equal(await tileScore(pg, 1), '15');
     assert.equal(await pg.evaluate(() => S.log.length), 1);
     await pg.type('#typedIn', '5'); await pg.click('#typedAdd'); await wait(400);
-    assert.equal(await pg.evaluate(() => winName.textContent), 'Bob wins!', 'reaching the target ends a live game at once');
+    assert.equal(await barText(pg), 'Bob wins!', 'reaching the target offers the win');
+    assert.equal(await pg.evaluate(() => winOverlay.classList.contains('hidden')), true, 'nothing covers the game');
+    // scoring goes on under the bar, and Undo back below the line takes it away
+    await pg.type('#typedIn', '4'); await pg.click('#typedAdd'); await wait(300);
+    assert.equal(await tileScore(pg, 1), '24');
+    // (quick taps on one player run together into one entry, so one Undo may
+    // take back more than the last tap: whatever it leaves is under 20)
+    await pg.click('#undoBtn'); await wait(300);
+    assert.ok(Number(await tileScore(pg, 1)) < 20);
+    assert.equal(await barText(pg), '', 'under the line again: no bar');
+    await pg.evaluate(() => liveAdd(1, 20 - S.scores[1])); await wait(300);
+    assert.equal(await barText(pg), 'Bob wins!');
+    await endGame(pg);
+    assert.equal(await pg.evaluate(() => winName.textContent), 'Bob wins!');
+    // back to the scores, the bar stays, and opens the result again
+    await pg.click('#keepBtn'); await wait(200);
+    assert.equal(await barText(pg), 'Bob wins!');
+    assert.equal(await pg.evaluate(() => winBarBtn.textContent), 'See results');
+    await endGame(pg);
+    assert.equal(await pg.evaluate(() => winOverlay.classList.contains('hidden')), false, 'the result again');
     assert.deepEqual(pg.errors, []);
     await pg.close();
+  });
+
+  test('UNO and Euchre: tap who scored, then what they made', async () => {
+    const tapNamed = (pg, label) => pg.evaluate((l) => [...document.querySelectorAll('#quickpad .key b')]
+      .find((b) => b.textContent === l).closest('.key').click(), label);
+
+    // UNO: the player who went out collects everyone else's cards, to 500
+    const uno = await phone();
+    await open(uno, '/builder/#uno');
+    assert.match(await uno.evaluate(() => rulesText.textContent), /4 players · First to 500/);
+    await startGame(uno);
+    assert.equal(await uno.evaluate(() => S.cfg.live), true);
+    await uno.click('#tiles .tile[data-p="2"] .tname'); await wait(100);
+    await tapNamed(uno, 'Wild'); await tapNamed(uno, 'Action card');
+    await uno.type('#typedIn', '7'); await uno.click('#typedAdd'); await wait(300);
+    assert.equal(await tileScore(uno, 2), '77', 'a Wild, a Skip and a 7');
+    assert.equal(await tileScore(uno, 0), '0', 'nobody else scores');
+    assert.deepEqual(uno.errors, []);
+    await uno.close();
+
+    // Euchre: two sides to 10; a loner march is 4
+    const eu = await phone();
+    await open(eu, '/builder/#euchre');
+    assert.match(await eu.evaluate(() => rulesText.textContent), /First to 10 · 2 teams/);
+    await startGame(eu);
+    assert.equal(await eu.evaluate(() => S.cfg.names.length), 2, 'scored as two sides');
+    await eu.click('#tiles .tile[data-p="1"] .tname'); await wait(100);
+    for (const k of ['Loner march', 'Loner march', 'March']) { await tapNamed(eu, k); await wait(150); }
+    await wait(300);
+    assert.match(await barText(eu), /wins!/, 'a side at 10 is offered the win');
+    await endGame(eu);
+    assert.match(await eu.evaluate(() => winName.textContent), /wins!/);
+    assert.deepEqual(eu.errors, []);
+    await eu.close();
   });
 
   test('the setup offers the buttons only for a live game', async () => {
@@ -272,6 +330,46 @@ describe('the Builder setup, in steps', () => {
     await pg.click('#startBtn'); await wait(200);
     assert.equal(await pg.evaluate(() => step), 'scoring');
     assert.match(await pg.evaluate(() => startBtn.textContent), /quick-score button/);
+    await pg.close();
+  });
+});
+
+describe('the Builder, board or sheet', () => {
+  test('a game taken in turns asks board or sheet first, and remembers it; a live game does not ask', async () => {
+    const pg = await phone();
+    await open(pg, '/builder/');
+    await pg.evaluate(() => { Object.assign(cfg, { turns: true, useRounds: false, names: ['Ann', 'Bob'], players: 2 }); saveCfg(); renderSetup(); showStep(STEPS[STEPS.length - 1]); });
+    await pg.click('#startBtn'); await wait(400);
+    const opts = () => pg.evaluate(() => [...document.querySelectorAll('.pick-opt')].map((b) => b.dataset.mode + (b.classList.contains('is-current') ? '*' : '')));
+    assert.equal(await pg.evaluate(() => pick.classList.contains('hidden')), false);
+    assert.deepEqual(await opts(), ['sheet', 'board'], 'nothing marked: never chosen');
+    assert.match(await pg.evaluate(() => pickNote.textContent), /switch any time/);
+    await pg.click('#pickBack'); await wait(200);
+    assert.equal(await pg.evaluate(() => setup.classList.contains('hidden')), false, 'Back is the setup');
+
+    await pg.click('#startBtn'); await wait(300);
+    await pg.click('.pick-opt[data-mode="board"]'); await wait(500);
+    assert.deepEqual(await pg.evaluate(() => [S.view, sheetOn(), game.classList.contains('hidden')]), ['board', false, false]);
+
+    // the next game remembers, and says so
+    await pg.click('#quitBtn'); await wait(300);
+    const yes = await pg.$('#confirmYes'); if (yes && await yes.isVisible()) { await yes.click(); await wait(400); }
+    await open(pg, '/builder/');
+    await pg.evaluate(() => showStep(STEPS[STEPS.length - 1]));
+    await pg.click('#startBtn'); await wait(400);
+    const again = await pg.$('#confirmYes'); if (again && await again.isVisible()) { await again.click(); await wait(400); }
+    assert.deepEqual(await opts(), ['sheet', 'board*']);
+    await pg.click('.pick-opt[data-mode="sheet"]'); await wait(500);
+    assert.equal(await pg.evaluate(() => S.view), 'sheet');
+
+    // a live game has no sheet, so nothing to ask
+    await open(pg, '/builder/');
+    await pg.evaluate(() => { Object.assign(cfg, { turns: false, useRounds: false }); saveCfg(); renderSetup(); showStep(STEPS[STEPS.length - 1]); });
+    await pg.click('#startBtn'); await wait(400);
+    const third = await pg.$('#confirmYes'); if (third && await third.isVisible()) { await third.click(); await wait(400); }
+    assert.equal(await pg.evaluate(() => pick.classList.contains('hidden')), true);
+    assert.equal(await pg.evaluate(() => game.classList.contains('hidden')), false);
+    assert.deepEqual(pg.errors, []);
     await pg.close();
   });
 });

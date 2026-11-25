@@ -59,3 +59,41 @@ describe('Cribbage, as it leaves the phone', () => {
     await a.close();
   });
 });
+
+describe('Cribbage, choosing how to score', () => {
+  test('Start Game asks how to score the play, then how to count, each saying it can be switched', async () => {
+    const pg = await phone();
+    await open(pg, '/cribbage/');
+    await pg.click('#startBtn'); await wait(400);
+    const screen = () => pg.evaluate(() => ({
+      step: pickStep.textContent,
+      opts: [...document.querySelectorAll('.pick-opt')].map((b) => b.dataset.mode + (b.classList.contains('is-current') ? '*' : '')),
+      pictures: [...document.querySelectorAll('.pick-opt img')].every((i) => i.getAttribute('src').startsWith('previews/')),
+      note: pickNote.textContent,
+    }));
+    let s = await screen();
+    assert.deepEqual(s.opts, ['simple', 'detailed'], 'nothing marked: this phone has never chosen');
+    assert.equal(s.step, '1 of 2');
+    assert.ok(s.pictures);
+    assert.match(s.note, /switch any time/);
+
+    // Back goes back a step, and from the first to the setup
+    await pg.click('.pick-opt[data-mode="simple"]'); await wait(300);
+    s = await screen();
+    assert.deepEqual([s.step, ...s.opts], ['2 of 2', 'cards', 'buttons']);
+    await pg.click('#pickBack'); await wait(200);
+    assert.equal((await screen()).step, '1 of 2');
+    await pg.click('#pickBack'); await wait(200);
+    assert.equal(await pg.evaluate(() => setup.classList.contains('hidden')), false);
+
+    await pg.click('#startBtn'); await wait(300);
+    assert.deepEqual((await screen()).opts, ['simple*', 'detailed'], 'last time marked');
+    await pg.click('.pick-opt[data-mode="detailed"]'); await wait(300);
+    await pg.click('.pick-opt[data-mode="buttons"]'); await wait(500);
+    assert.deepEqual(await pg.evaluate(() => [playMode, handMode, game.classList.contains('hidden')]), ['detailed', 'buttons', false]);
+    // and the game's own switches show the same
+    assert.equal(await pg.evaluate(() => document.querySelector('#playModeRow .is-on').dataset.mode), 'detailed');
+    assert.deepEqual(pg.errors, []);
+    await pg.close();
+  });
+});

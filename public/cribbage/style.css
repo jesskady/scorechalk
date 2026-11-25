@@ -343,3 +343,35 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 .pcol.locked .ppad,
 .pcol.locked .psimple,
 .pcol.locked .heels{opacity:.35;pointer-events:none}
+
+/* ---------- How to score: the two choices before the first hand ---------- */
+#pick .backlink{background:none;border:0;padding:0;font:inherit;cursor:pointer}
+.pick-head{text-align:center;gap:6px}
+.pick-step{display:block;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.pick-head h2{font-family:var(--f-title);font-size:26px;line-height:1.15;color:var(--txt);margin:2px 0 0}
+.pick-head p{font-size:14px;color:var(--dim)}
+.pick-opts{display:grid;gap:14px;margin-top:6px}
+@media (min-width:640px){.pick-opts{grid-template-columns:1fr 1fr}}
+.pick-opt{
+  display:flex;flex-direction:column;gap:6px;text-align:left;width:100%;
+  background:var(--card);border:2px solid var(--line);border-radius:14px;padding:10px 10px 14px;
+  color:var(--txt);cursor:pointer;transition:border-color .15s ease, transform .15s ease;
+}
+@media (hover:hover){.pick-opt:hover{border-color:var(--green)}}
+.pick-opt:active{transform:scale(.99)}
+.pick-opt img{
+  width:100%;height:150px;object-fit:cover;object-position:top;border-radius:8px;
+  border:1px solid var(--line);background:var(--bg2);pointer-events:none;
+}
+.pick-label{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 4px 0}
+.pick-label b{font-size:19px}
+.pick-label i{font-style:normal;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--on-primary,#fff);background:var(--green-d);border-radius:999px;padding:3px 8px}
+.pick-text{font-size:14px;line-height:1.4;color:var(--dim);padding:0 4px}
+.pick-note{text-align:center;font-size:13.5px;line-height:1.45;color:var(--dim);margin-top:14px;padding:0 8px}
+/* the two choices side by side, so both fit on a phone without scrolling */
+.pick-opts{grid-template-columns:1fr 1fr;gap:10px}
+.pick-opt{padding:8px 8px 12px}
+.pick-opt img{height:auto;max-height:300px;aspect-ratio:auto}
+.pick-label b{font-size:18px}
+.pick-text{font-size:13px}

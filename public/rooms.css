@@ -47,21 +47,25 @@ html:has(body.home-rooms){background:var(--slate)}
     radial-gradient(50% 14% at 55% 75%, #ffffff09, transparent 70%);
 }
 .board-in{position:relative;max-width:1180px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr);gap:22px}
-.logo{display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap;padding-right:44px} /* clear of the account bubble */
+/* The badge, then the name; the tagline and the install button below. The
+   badge is the app icon's wood-framed slate with a five-bar gate in chalk,
+   the mark every scorekeeper makes: its frame keeps it apart from the
+   chalk lettering. On a wide screen it grows with the name, and the
+   tagline sits under the name rather than under both. */
+.logo{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:10px 14px;padding-right:44px} /* clear of the account bubble */
+.logo .mark{width:54px;height:54px;filter:drop-shadow(0 4px 8px #0008)}
 .logo h1{
-  margin:0;font-family:var(--f-chalk);font-weight:400;font-size:clamp(44px,8vw,84px);
+  margin:0;font-family:var(--f-chalk);font-weight:400;font-size:clamp(34px,10vw,84px);
   line-height:.95;letter-spacing:.01em;color:var(--chalk);text-wrap:balance;
   text-shadow:0 0 1px #fff6, 0 0 14px #ffffff14;
 }
-/* a five-bar gate in chalk: the mark every scorekeeper makes */
-.tally{width:54px;height:40px;margin-bottom:12px;flex:none}
-.logo p{margin:0 0 12px;font:500 15px/1.4 var(--f-body);color:var(--chalk-dim);max-width:34ch;flex:1 1 220px;min-width:0}
-/* on a phone the name is set smaller, so the tally sits just to its right
-   rather than dropping below it */
-@media (max-width:599px){
-  .logo{gap:10px 14px}
-  .logo h1{font-size:clamp(30px,9.5vw,40px)}
-  .tally{width:44px;height:33px;margin-bottom:4px}
+.logo > :not(.mark):not(h1){grid-column:1 / -1}
+.logo p{margin:0;font:500 15px/1.4 var(--f-body);color:var(--chalk-dim);max-width:34ch;min-width:0}
+@media (min-width:700px){
+  .logo{gap:12px 22px}
+  .logo .mark{width:104px;height:104px}
+  .logo > :not(.mark):not(h1){grid-column:2}
+  .logo p{font-size:17px}
 }
 
 /* the resume row scrolls on its own rather than widening the board */
@@ -260,7 +264,7 @@ a.chalk-card:active{transform:translateY(-1px)}
 /* the offer to install the app, where the browser makes one (see /pwa.js) */
 .install{
   font:700 13px/1 var(--f-body);color:var(--slate);background:var(--brass);
-  border:none;border-radius:999px;padding:9px 16px;margin:0 0 12px;cursor:pointer;
+  border:none;border-radius:999px;padding:9px 16px;margin:0 0 12px;cursor:pointer;justify-self:start;
 }
 .install[hidden]{display:none}
 
@@ -269,7 +273,7 @@ a.chalk-card:active{transform:translateY(-1px)}
 .guide-links a{color:inherit}
 
 /* ---------- a wide screen: room to breathe ---------- */
-/* Both rooms hold two games across, each card laid on its side — drawing to
+/* Both rooms hold four games, two across, so their rows line up, each card laid on its side — drawing to
    the left, name and note beside it — with wider gutters, so a desktop isn't
    the phone's layout stretched. */
 @media (min-width:900px){
@@ -278,9 +282,6 @@ a.chalk-card:active{transform:translateY(-1px)}
   .room-head{gap:10px;margin-bottom:34px}
   .room-head p{font-size:16px}
   .shelf,.living .shelf{grid-template-columns:repeat(2,minmax(0,1fr));gap:26px 24px}
-  /* the Parlor's two games stacked, as wide boards, so its rows line up
-     with the Living Room's two */
-  .parlor .shelf{grid-template-columns:minmax(0,560px)}
   .chalk-card,.pad-card{
     grid-template-columns:72px minmax(0,1fr);column-gap:20px;row-gap:8px;
     padding:22px 24px 24px;align-items:start;
@@ -302,5 +303,4 @@ a.chalk-card:active{transform:translateY(-1px)}
 }
 @media (min-width:1500px){
   .shelf,.living .shelf{gap:30px 28px}
-  .parlor .shelf{grid-template-columns:minmax(0,600px)}
 }

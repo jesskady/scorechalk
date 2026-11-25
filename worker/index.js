@@ -32,17 +32,83 @@ export default {
   // Every request, with any that throws kept as an error (see errors.js)
   // rather than left to the log's sampling.
   async fetch(request, env) {
+    const url = new URL(request.url);
+    const moved = toCanonical(request, url);
+    if (moved) return moved;
+    let res;
     try {
-      return await route(request, env);
+      res = await route(request, env, url);
     } catch (err) {
-      await recordError(env, err, new URL(request.url));
+      await recordError(env, err, url);
       return json({ error: 'Something went wrong. Try again in a moment.' }, 500);
     }
+    return finish(request, url, res);
   },
 };
 
-async function route(request, env) {
-    const url = new URL(request.url);
+/* How the visitor reached Cloudflare: 'https', 'http', or '' when nobody
+   says. Cloudflare's edge sets cf-visitor; `wrangler dev` and the tests
+   don't. They also present every request as http://scorechalk.com (the
+   routes in wrangler.jsonc), so the URL alone can't tell a visitor on plain
+   http from a local run. */
+function scheme(request) {
+  try { return JSON.parse(request.headers.get('cf-visitor') || '{}').scheme || ''; } catch (e) { return ''; }
+}
+
+/* One address for the live site: https://scorechalk.com. Plain http and the
+   www host are sent there in one permanent hop, so search engines see a
+   single copy of each page. A GET is sent with 301; anything else with 308,
+   which keeps the method and body. */
+function toCanonical(request, url) {
+  const www = url.hostname === 'www.' + CANONICAL;
+  const plain = url.hostname === CANONICAL && scheme(request) === 'http';
+  if (!www && !plain) return null;
+  url.hostname = CANONICAL;
+  url.protocol = 'https:';
+  const read = request.method === 'GET' || request.method === 'HEAD';
+  return Response.redirect(url.toString(), read ? 301 : 308);
+}
+
+// game pages that a shared game's link opens, as /darts/?s=<token>
+const GAME_PAGE = /^\/(darts|cribbage|yahtzee|magic|builder)\/$/;
+
+/* What every response gets on its way out, for browsers and search engines:
+   - HSTS on the live site, so a browser never tries plain http again.
+   - The asset store's trailing-slash redirects (/darts → /darts/) made
+     permanent: it answers 307, which tells search engines the move is
+     temporary.
+   - noindex where a page isn't one to be found by search: a shared game's
+     link (the players' names are in its title), the profile, the admin side
+     and the not-found page. robots.txt lets these be crawled, so that the
+     noindex can be seen.
+   - Long caching for files that don't change under their name: anything
+     loaded with ?v= (bumped whenever the file changes; see the note in each
+     page's head) and the icons and link-card images. */
+function finish(request, url, res) {
+  const out = new Response(res.body, res);
+  const h = out.headers;
+  if (url.hostname === CANONICAL && scheme(request) === 'https') h.set('strict-transport-security', 'max-age=31536000');
+
+  if (out.status === 307 && h.has('location') && !url.pathname.startsWith('/api/') && !url.pathname.startsWith('/auth/')) {
+    return new Response(null, { status: 301, headers: h });
+  }
+
+  const p = url.pathname;
+  if ((GAME_PAGE.test(p) && url.searchParams.has('s')) || p.startsWith('/account/') ||
+      p.startsWith('/admin/') || p === '/404' || p === '/404.html') {
+    h.set('x-robots-tag', 'noindex');
+  }
+
+  if (out.status === 200 && request.method === 'GET' && !p.startsWith('/api/') && !p.startsWith('/auth/')) {
+    if (url.searchParams.has('v')) h.set('cache-control', 'public, max-age=31536000, immutable');
+    else if (p.startsWith('/icons/') || p.startsWith('/og/') || p === '/favicon.svg') {
+      h.set('cache-control', 'public, max-age=2592000');
+    }
+  }
+  return out;
+}
+
+async function route(request, env, url) {
 
     // a page's script error, from /report.js: limited per visitor like the
     // shared games, so it can't be used to fill the table
@@ -55,9 +121,10 @@ async function route(request, env) {
       return reportError(request, env);
     }
 
-    if (url.hostname === 'www.' + CANONICAL) {
-      url.hostname = CANONICAL;
-      return Response.redirect(url.toString(), 301);
+    // the icon is /favicon.svg and /icons/icon-192.png (see each page's head);
+    // this is for whatever still asks for the old default
+    if (url.pathname === '/favicon.ico') {
+      return Response.redirect(new URL('/icons/icon-192.png', url).toString(), 301);
     }
 
     if (url.pathname === '/api/me') {
@@ -180,7 +247,7 @@ async function route(request, env) {
     // A link to a shared game — /cribbage/?s=<token> — shows a card in a
     // message naming who is playing and what the link is for, so the page's
     // own title and description are filled in for that game.
-    const page = url.pathname.match(/^\/(darts|cribbage|yahtzee|magic|builder)\/$/);
+    const page = url.pathname.match(GAME_PAGE);
     const token = url.searchParams.get('s');
     if (page && token && request.method === 'GET' && /^[A-Za-z0-9_-]{20,64}$/.test(token)) {
       const res = await env.ASSETS.fetch(request);

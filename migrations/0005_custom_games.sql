@@ -1,4 +1,4 @@
--- Games a user has built with the ScoreChalk Builder and saved to their
+-- Games a user has built with the Score Chalk Builder and saved to their
 -- profile: "My games".
 --
 -- These are rule sets, not plays — nothing here records a game being played.

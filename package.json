@@ -5,8 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev --port 8790",
-    "deploy": "wrangler deploy",
-    "test": "node --test --test-timeout=600000 tests/all.test.mjs"
+    "deploy": "wrangler deploy && node scripts/indexnow.mjs",
+    "test": "node --test --test-timeout=600000 tests/all.test.mjs",
+    "sitemap": "node scripts/sitemap.mjs",
+    "indexnow": "node scripts/indexnow.mjs",
+    "previews": "node scripts/previews.mjs"
   },
   "devDependencies": {
     "puppeteer-core": "^24.0.0",

@@ -1,7 +1,5 @@
 User-agent: *
 Disallow: /api/
 Disallow: /auth/
-Disallow: /account/
-Disallow: /admin/
 
 Sitemap: https://scorechalk.com/sitemap.xml

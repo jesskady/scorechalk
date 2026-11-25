@@ -238,7 +238,7 @@
     const empty = () => {
       const p = el('p', 'prof-empty');
       p.append('Games you save in the ');
-      const a = el('a', null, 'ScoreChalk Builder');
+      const a = el('a', null, 'Score Chalk Builder');
       a.href = '/builder/';
       p.append(a, ' will be listed here.');
       return p;

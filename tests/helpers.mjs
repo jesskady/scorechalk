@@ -110,6 +110,11 @@ export async function startGame(page) {
   await page.evaluate(() => { if (typeof STEPS !== 'undefined' && document.getElementById('startBtn').classList.contains('hidden')) showStep(STEPS[STEPS.length - 1]); });
   await page.click('#startBtn');
   await wait(600);
+  // cribbage asks how to score first: keep whatever this phone already uses
+  for (let k = 0; k < 3 && await page.evaluate(() => !!document.getElementById('pick') && !pick.classList.contains('hidden')); k++) {
+    await page.evaluate(() => document.querySelector(`.pick-opt[data-mode="${PICKS[pickAt].get()}"]`).click());
+    await wait(300);
+  }
   const yes = await page.$('#confirmYes');
   if (yes && await yes.isVisible()) { await yes.click(); await wait(500); }
 }

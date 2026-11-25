@@ -83,8 +83,10 @@
     "directory": "public",
 
     // The app has no client-side routing, so there is no route for a fallback
-    // to rescue. A wrong path is genuinely not found, and says so.
-    "not_found_handling": "none",
+    // to rescue. A wrong path is genuinely not found, and says so: with a 404
+    // status, and public/404.html as the page, so a person who followed a
+    // bad link has somewhere to go.
+    "not_found_handling": "404-page",
 
     "binding": "ASSETS",
 

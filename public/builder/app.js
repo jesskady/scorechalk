@@ -158,7 +158,7 @@ function newGame(c) {
     parts: [],        // what made pend: { label, d } per tap, for the breakdown
     sign: c.mode === 'down' ? -1 : 1,
     // the scoresheet, for a game taken in turns; the switch changes this
-    // game only, and every new game opens in the sheet again
+    // game only; a new game opens as chosen at Start (see PICKS), or here
     view: 'sheet',
   };
 }
@@ -262,7 +262,7 @@ function liveAdd(p, d, label = '') {
   settleEnd();
   save(); render();
   const r = result();
-  if (r && !S.endedAt) showWin(r);
+  if (r && !S.endedAt) decide(r);
   else if (!crossedBefore && lineCrossed()) flash(`${S.cfg.names[p]} reached ${fmt(S.cfg.target)}`);
 }
 
@@ -287,7 +287,7 @@ function bump(p, id, d) {
   settleEnd();
   save(); render();
   const r = result();
-  if (r && !S.endedAt) showWin(r);
+  if (r && !S.endedAt) decide(r);
 }
 
 // Someone has reached the target, or the limit when lowest wins.
@@ -355,7 +355,7 @@ function nextPlayer(from) {
 /* ---------------- screens ---------------- */
 
 function show(id) {
-  for (const s of ['setup', 'game']) $(s).classList.toggle('hidden', s !== id);
+  for (const s of ['setup', 'pick', 'game']) $(s).classList.toggle('hidden', s !== id);
   // in a game, the sign-in button would sit on the view switch
   document.body.classList.toggle('playing', id === 'game');
   // and the screen stays on through it: see /awake.js
@@ -411,7 +411,7 @@ function openSetup(src) {
 function renderTitle() {
   // titled as the game when it is one, since the home page links here too
   const t = TEMPLATES.find(t => t.id === source), g = myGame(source);
-  $('setupTitle').textContent = t ? t.label : g ? g.name : 'ScoreChalk Builder';
+  $('setupTitle').textContent = t ? t.label : g ? g.name : 'Score Chalk Builder';
   // not the rules: the Rules card shows those, as you've set them
   $('setupSub').textContent = t || g ? 'Add the players and start' : 'Build a scorekeeper for any game';
 }
@@ -884,11 +884,72 @@ $('startBtn').onclick = async () => {
     if (!a) return;
   }
   saveCfg();
+  // a game taken in turns can be kept as a board or a sheet: ask which
+  if (cfg.turns || roundsOn(cfg)) { showPick(0); return; }
+  beginGame();
+};
+
+function beginGame(view) {
   S = newGame({ ...cfg, source });
+  if (view) S.view = view;
   // in teams, you are the side your player is on
   S.me = setupMe === null ? null : (S.cfg.playerTeams ? S.cfg.playerTeams[setupMe] : setupMe);
   save();
   openGame(S);
+}
+
+/* ---------------- board or sheet: chosen before the first turn ----------------
+
+   A game taken in turns can be kept as a board (a big score each, the turn
+   entered below) or a sheet (a row a round, a column a player). The switch
+   at the top of the game has always changed it, but a switch never noticed
+   is no choice at all — so Start Game offers both, with a picture of each,
+   and says it can be switched. The choice is remembered on the device for
+   the next game; the switch in a game changes only that game. PICKS and
+   pickAt are shared in shape with cribbage's, which has two screens. */
+const VIEW_KEY = 'builder-view';
+const viewPref = () => { try { return localStorage.getItem(VIEW_KEY); } catch (e) { return null; } };
+const PICKS = [
+  { title: 'How do you want to keep score?',
+    lede: 'Everyone takes turns in this game, so it can be kept two ways.',
+    note: 'You can switch any time during the game, with Board · Sheet at the top.',
+    get: () => viewPref() || 'sheet', chosen: () => viewPref() !== null,
+    set: (m) => { try { localStorage.setItem(VIEW_KEY, m); } catch (e) {} },
+    opts: [
+      { mode: 'sheet', label: 'Sheet', text: 'Like a paper score sheet: a row for each round, a column for each player.' },
+      { mode: 'board', label: 'Board', text: 'A big running total for each player, with the turn entered underneath.' },
+    ] },
+];
+let pickAt = 0;
+
+function showPick(i) {
+  pickAt = i;
+  const k = PICKS[i], now = k.chosen() ? k.get() : null;
+  // pictured in the room this game is played in
+  const room = themeOf(cfg);
+  $('pickTitle').textContent = k.title;
+  $('pickLede').textContent = k.lede;
+  $('pickNote').textContent = k.note;
+  $('pickOpts').innerHTML = k.opts.map((o) => `
+    <button class="pick-opt${o.mode === now ? ' is-current' : ''}" type="button" data-mode="${o.mode}">
+      <img src="previews/view-${o.mode}-${room}.webp" alt="${esc(o.label)}: ${esc(o.text)}" loading="lazy">
+      <span class="pick-label"><b>${esc(o.label)}</b>${o.mode === now ? '<i>Last time</i>' : ''}</span>
+      <span class="pick-text">${esc(o.text)}</span>
+    </button>`).join('');
+  show('pick');
+}
+
+$('pickOpts').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-mode]');
+  if (!b) return;
+  PICKS[pickAt].set(b.dataset.mode);
+  if (pickAt + 1 < PICKS.length) { showPick(pickAt + 1); return; }
+  beginGame(b.dataset.mode);
+});
+
+$('pickBack').onclick = () => {
+  if (pickAt > 0) { showPick(pickAt - 1); return; }
+  show('setup');
 };
 
 // A game on screen has its id in the address: a link to it opens it.
@@ -1311,6 +1372,7 @@ function buildPad() {
 
 function render() {
   const c = S.cfg, n = c.names.length;
+  renderWinBar();
 
   // The round is the first that a side still in the game hasn't scored, as
   // the sheet shows it — and undo winds it back for free.
@@ -1833,7 +1895,7 @@ async function changeTurn() {
   flash(`${name}${where}: ${turnText(from)} → ${turnText(to)}`);
   // the change decided the game
   const res = result();
-  if (res && !S.endedAt) showWin(res);
+  if (res && !S.endedAt) decide(res);
 }
 
 /* After a score changes under a game that has ended, the end is looked at
@@ -1891,14 +1953,49 @@ $('entryOverlay').addEventListener('click', (e) => { if (e.target === $('entryOv
 
 /* ---------------- overlays ---------------- */
 
-function showWin(r) {
+// how a result is said, on the win screen and the bar that offers it
+function winText(r) {
   const c = S.cfg;
-  $('winName').textContent =
-    r.final ? 'Final scores' :
+  return r.final ? 'Final scores' :
     r.solo ? `${c.names[0]} is out` :
     r.winners.length === 0 ? 'Nobody left standing' :
     r.winners.length === 1 ? `${c.names[r.winners[0]]} wins!` :
     `Tie: ${r.winners.map(i => c.names[i]).join(' & ')}`;
+}
+
+/* A game has reached its end. Taken in turns, that is the end: the round
+   has been played out (see result). Live, a hand is often scored in several
+   taps, and the one that crosses the line may not be the last of them — so
+   the win is offered, not declared: the bar under the scores says who has
+   won, scoring and Undo go on, and End game shows the result. The bar
+   follows the scores (see renderWinBar), so an Undo back below the line
+   takes it away. */
+function decide(r) {
+  if (!r || S.endedAt) return;
+  if (liveOn()) { renderWinBar(); return; }
+  showWin(r);
+}
+
+// The bar stays while the scores say someone has won, ended or not: after
+// End game and back to the scores, its button opens the result again.
+function renderWinBar() {
+  const r = S && liveOn() ? result() : null;
+  $('winBar').classList.toggle('hidden', !r);
+  if (!r) return;
+  const over = !!S.endedAt;
+  $('winBarText').innerHTML = `${esc(winText(r))}<small>${over
+    ? 'The game is over. Undo takes it back.'
+    : "Keep scoring, or Undo, if that wasn't the end."}</small>`;
+  $('winBarBtn').textContent = over ? 'See results' : 'End game';
+}
+$('winBarBtn').onclick = () => {
+  const r = result();
+  if (r) showWin(r); else renderWinBar();
+};
+
+function showWin(r) {
+  const c = S.cfg;
+  $('winName').textContent = winText(r);
 
   // Standings in finishing order: lowest first when low wins, else highest.
   // Whoever won comes first, as a counter can win from behind on points,
@@ -1930,7 +2027,7 @@ $('rematchBtn').onclick = () => {
   $('winOverlay').classList.add('hidden');
   render();
 };
-$('keepBtn').onclick = () => $('winOverlay').classList.add('hidden');
+$('keepBtn').onclick = () => { $('winOverlay').classList.add('hidden'); renderWinBar(); };
 $('newBtn').onclick = endGame;
 
 // Clear the game and go back to the setup it came from.
@@ -2016,7 +2113,7 @@ SCShare.attach({
     if (entry) { render(); placeEntry(); } else if (busy) render(); else showGame();
     // the score that came in decided the game
     const r = result();
-    if (r && !S.endedAt) showWin(r);
+    if (r && !S.endedAt) decide(r);
   },
   // Shared by seat: a cell a score, '<player>:<round>', and a cell a
   // counter, '<player>:c_<id>', holding its value as it stands. Every
