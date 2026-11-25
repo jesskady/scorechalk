@@ -11,7 +11,10 @@ async function custom(pg, settings) {
   await startGame(pg);
 }
 const openCells = (pg) => pg.evaluate(() => [...document.querySelectorAll('#sheet .cell.open')].map((c) => S.cfg.names[c.dataset.p]));
-const tapKey = (pg, t) => pg.evaluate((t) => [...document.querySelectorAll('#quickpad .key')].find((k) => k.textContent === t).click(), t);
+// a live game at its end offers the win: the bar says who, End game shows it
+const barText = (pg) => pg.evaluate(() => (winBar.classList.contains('hidden') ? '' : winBarText.firstChild.textContent));
+const endGame = async (pg) => { await pg.click('#winBarBtn'); await wait(300); };
+const tapKey =(pg, t) => pg.evaluate((t) => [...document.querySelectorAll('#quickpad .key')].find((k) => k.textContent === t).click(), t);
 
 describe('the Builder', () => {
   test('a game taken in turns opens in the sheet, and scores in a bubble', async () => {
@@ -134,11 +137,13 @@ describe('Builder counters', () => {
     await pg.close();
   });
 
-  test('Wins at ends the game at once, ahead of a higher score', async () => {
+  test('Wins at decides the game, ahead of a higher score', async () => {
     const pg = await phone();
     await custom(pg, { names: ['Ann', 'Bob'], turns: false, counters: [LEVEL] });
     await pg.evaluate(() => liveAdd(0, 50));
     await tapCounter(pg, 1, 'lvl', 1); await tapCounter(pg, 1, 'lvl', 1); await wait(400);
+    assert.equal(await barText(pg), 'Bob wins!', 'offered, not declared');
+    await endGame(pg);
     assert.equal(await pg.evaluate(() => winName.textContent), 'Bob wins!');
     assert.equal(await pg.evaluate(() => winBy.textContent), 'Level reached 3');
     assert.equal(await pg.evaluate(() => winTable.querySelector('li span').textContent), 'Bob', 'the winner heads the standings');
@@ -203,7 +208,20 @@ describe('Builder, live', () => {
     assert.equal(await tileScore(pg, 1), '15');
     assert.equal(await pg.evaluate(() => S.log.length), 1);
     await pg.type('#typedIn', '5'); await pg.click('#typedAdd'); await wait(400);
-    assert.equal(await pg.evaluate(() => winName.textContent), 'Bob wins!', 'reaching the target ends a live game at once');
+    assert.equal(await barText(pg), 'Bob wins!', 'reaching the target offers the win');
+    assert.equal(await pg.evaluate(() => winOverlay.classList.contains('hidden')), true, 'nothing covers the game');
+    // scoring goes on under the bar, and Undo back below the line takes it away
+    await pg.type('#typedIn', '4'); await pg.click('#typedAdd'); await wait(300);
+    assert.equal(await tileScore(pg, 1), '24');
+    // (quick taps on one player run together into one entry, so one Undo may
+    // take back more than the last tap: whatever it leaves is under 20)
+    await pg.click('#undoBtn'); await wait(300);
+    assert.ok(Number(await tileScore(pg, 1)) < 20);
+    assert.equal(await barText(pg), '', 'under the line again: no bar');
+    await pg.evaluate(() => liveAdd(1, 20 - S.scores[1])); await wait(300);
+    assert.equal(await barText(pg), 'Bob wins!');
+    await endGame(pg);
+    assert.equal(await pg.evaluate(() => winName.textContent), 'Bob wins!');
     assert.deepEqual(pg.errors, []);
     await pg.close();
   });
@@ -219,7 +237,7 @@ describe('Builder, live', () => {
     await startGame(uno);
     assert.equal(await uno.evaluate(() => S.cfg.live), true);
     await uno.click('#tiles .tile[data-p="2"] .tname'); await wait(100);
-    await tapNamed(uno, 'Wild'); await tapNamed(uno, 'Skip');
+    await tapNamed(uno, 'Wild'); await tapNamed(uno, 'Action card');
     await uno.type('#typedIn', '7'); await uno.click('#typedAdd'); await wait(300);
     assert.equal(await tileScore(uno, 2), '77', 'a Wild, a Skip and a 7');
     assert.equal(await tileScore(uno, 0), '0', 'nobody else scores');
@@ -235,7 +253,9 @@ describe('Builder, live', () => {
     await eu.click('#tiles .tile[data-p="1"] .tname'); await wait(100);
     for (const k of ['Loner march', 'Loner march', 'March']) { await tapNamed(eu, k); await wait(150); }
     await wait(300);
-    assert.match(await eu.evaluate(() => winName.textContent), /win/, 'a side at 10 wins at once');
+    assert.match(await barText(eu), /wins!/, 'a side at 10 is offered the win');
+    await endGame(eu);
+    assert.match(await eu.evaluate(() => winName.textContent), /wins!/);
     assert.deepEqual(eu.errors, []);
     await eu.close();
   });

@@ -262,7 +262,7 @@ function liveAdd(p, d, label = '') {
   settleEnd();
   save(); render();
   const r = result();
-  if (r && !S.endedAt) showWin(r);
+  if (r && !S.endedAt) decide(r);
   else if (!crossedBefore && lineCrossed()) flash(`${S.cfg.names[p]} reached ${fmt(S.cfg.target)}`);
 }
 
@@ -287,7 +287,7 @@ function bump(p, id, d) {
   settleEnd();
   save(); render();
   const r = result();
-  if (r && !S.endedAt) showWin(r);
+  if (r && !S.endedAt) decide(r);
 }
 
 // Someone has reached the target, or the limit when lowest wins.
@@ -1311,6 +1311,7 @@ function buildPad() {
 
 function render() {
   const c = S.cfg, n = c.names.length;
+  renderWinBar();
 
   // The round is the first that a side still in the game hasn't scored, as
   // the sheet shows it — and undo winds it back for free.
@@ -1833,7 +1834,7 @@ async function changeTurn() {
   flash(`${name}${where}: ${turnText(from)} → ${turnText(to)}`);
   // the change decided the game
   const res = result();
-  if (res && !S.endedAt) showWin(res);
+  if (res && !S.endedAt) decide(res);
 }
 
 /* After a score changes under a game that has ended, the end is looked at
@@ -1891,14 +1892,43 @@ $('entryOverlay').addEventListener('click', (e) => { if (e.target === $('entryOv
 
 /* ---------------- overlays ---------------- */
 
-function showWin(r) {
+// how a result is said, on the win screen and the bar that offers it
+function winText(r) {
   const c = S.cfg;
-  $('winName').textContent =
-    r.final ? 'Final scores' :
+  return r.final ? 'Final scores' :
     r.solo ? `${c.names[0]} is out` :
     r.winners.length === 0 ? 'Nobody left standing' :
     r.winners.length === 1 ? `${c.names[r.winners[0]]} wins!` :
     `Tie: ${r.winners.map(i => c.names[i]).join(' & ')}`;
+}
+
+/* A game has reached its end. Taken in turns, that is the end: the round
+   has been played out (see result). Live, a hand is often scored in several
+   taps, and the one that crosses the line may not be the last of them — so
+   the win is offered, not declared: the bar under the scores says who has
+   won, scoring and Undo go on, and End game shows the result. The bar
+   follows the scores (see renderWinBar), so an Undo back below the line
+   takes it away. */
+function decide(r) {
+  if (!r || S.endedAt) return;
+  if (liveOn()) { renderWinBar(); return; }
+  showWin(r);
+}
+
+function renderWinBar() {
+  const r = S && liveOn() && !S.endedAt ? result() : null;
+  $('winBar').classList.toggle('hidden', !r);
+  if (!r) return;
+  $('winBarText').innerHTML = `${esc(winText(r))}<small>Keep scoring, or Undo, if that wasn't the end.</small>`;
+}
+$('winBarBtn').onclick = () => {
+  const r = result();
+  if (r && !S.endedAt) showWin(r); else renderWinBar();
+};
+
+function showWin(r) {
+  const c = S.cfg;
+  $('winName').textContent = winText(r);
 
   // Standings in finishing order: lowest first when low wins, else highest.
   // Whoever won comes first, as a counter can win from behind on points,
@@ -2016,7 +2046,7 @@ SCShare.attach({
     if (entry) { render(); placeEntry(); } else if (busy) render(); else showGame();
     // the score that came in decided the game
     const r = result();
-    if (r && !S.endedAt) showWin(r);
+    if (r && !S.endedAt) decide(r);
   },
   // Shared by seat: a cell a score, '<player>:<round>', and a cell a
   // counter, '<player>:c_<id>', holding its value as it stands. Every

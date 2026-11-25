@@ -37,7 +37,7 @@
 <link rel="stylesheet" href="../shared.css?v=36">
 <!-- the rooms a game can be played in; app.js sets data-room on the body -->
 <link rel="stylesheet" href="../themes.css?v=7">
-<link rel="stylesheet" href="style.css?v=45">
+<link rel="stylesheet" href="style.css?v=46">
 </head>
 <body data-room="workshop">
 
@@ -257,6 +257,13 @@
        or one with counters; built by buildTiles() -->
   <div class="tiles hidden" id="tiles"></div>
 
+  <!-- A live game that reaches its end offers the win rather than declaring
+       it: scoring and Undo go on until someone taps End game. See offerWin. -->
+  <div class="win-bar hidden" id="winBar" role="status">
+    <span id="winBarText"></span>
+    <button id="winBarBtn" type="button">End game</button>
+  </div>
+
   <!-- the scoresheet view: a row a round, a column a player; built by
        buildSheet(), filled by renderSheet() -->
   <div class="sheet-wrap hidden" id="sheetWrap"><div class="sheet" id="sheet"></div></div>
@@ -362,13 +369,13 @@
 </div>
 
 <script src="/account.js?v=29" defer></script>
-<script src="rules.js?v=12"></script>
+<script src="rules.js?v=13"></script>
 <script src="/awake.js?v=1"></script>
 <script src="/store.js?v=3"></script>
 <script src="/share.js?v=12"></script>
 <script src="/cloud.js?v=3"></script>
 <script src="/roster.js?v=1"></script>
-<script src="app.js?v=56"></script>
+<script src="app.js?v=57"></script>
 <script src="/pwa.js?v=1" defer></script>
 </body>
 </html>

@@ -129,12 +129,13 @@ const TEMPLATES = [
     } },
   // UNO: only the player who goes out scores, collecting what is left in
   // everyone else's hands, and the first to 500 wins. So it's live — tap the
-  // winner, then their cards — with a button per action card and number
+  // winner, then their cards — Action card (Draw Two, Reverse, Skip) and Wild
+  // (either kind) buttons, and number
   // cards typed at face value.
   { id: 'uno', label: 'UNO',
     rules: {
       ...defaultRules(), name: 'UNO', win: 'target', target: 500,
-      quick: 'Draw Two 20, Reverse 20, Skip 20, Wild 50, Wild Draw Four 50',
+      quick: 'Action card 20, Wild 50',
       typed: true, signs: false, turns: false, pad: true, players: 4,
       theme: 'parlor',
     } },
