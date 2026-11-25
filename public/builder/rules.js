@@ -136,7 +136,7 @@ const TEMPLATES = [
       ...defaultRules(), name: 'UNO', win: 'target', target: 500,
       quick: 'Draw Two 20, Reverse 20, Skip 20, Wild 50, Wild Draw Four 50',
       typed: true, signs: false, turns: false, pad: true, players: 4,
-      theme: 'living',
+      theme: 'parlor',
     } },
   // Euchre: two partnerships to 10. Either side can score on any hand, so
   // it's live too: tap the side, then what it made.

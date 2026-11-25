@@ -269,7 +269,7 @@ a.chalk-card:active{transform:translateY(-1px)}
 .guide-links a{color:inherit}
 
 /* ---------- a wide screen: room to breathe ---------- */
-/* Both rooms hold two games across, each card laid on its side — drawing to
+/* Both rooms hold four games, two across, so their rows line up, each card laid on its side — drawing to
    the left, name and note beside it — with wider gutters, so a desktop isn't
    the phone's layout stretched. */
 @media (min-width:900px){
@@ -278,9 +278,6 @@ a.chalk-card:active{transform:translateY(-1px)}
   .room-head{gap:10px;margin-bottom:34px}
   .room-head p{font-size:16px}
   .shelf,.living .shelf{grid-template-columns:repeat(2,minmax(0,1fr));gap:26px 24px}
-  /* the Parlor's two games stacked, as wide boards, so its rows line up
-     with the Living Room's two */
-  .parlor .shelf{grid-template-columns:minmax(0,560px)}
   .chalk-card,.pad-card{
     grid-template-columns:72px minmax(0,1fr);column-gap:20px;row-gap:8px;
     padding:22px 24px 24px;align-items:start;
@@ -302,5 +299,4 @@ a.chalk-card:active{transform:translateY(-1px)}
 }
 @media (min-width:1500px){
   .shelf,.living .shelf{gap:30px 28px}
-  .parlor .shelf{grid-template-columns:minmax(0,600px)}
 }
