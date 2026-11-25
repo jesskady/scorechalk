@@ -1,4 +1,4 @@
-/* My games: rule sets built with the ScoreChalk Builder and saved to a
+/* My games: rule sets built with the Score Chalk Builder and saved to a
  * profile.
  *
  * One PUT both creates and updates, keyed by a client-chosen id, so a save

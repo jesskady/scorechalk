@@ -411,7 +411,7 @@ function openSetup(src) {
 function renderTitle() {
   // titled as the game when it is one, since the home page links here too
   const t = TEMPLATES.find(t => t.id === source), g = myGame(source);
-  $('setupTitle').textContent = t ? t.label : g ? g.name : 'ScoreChalk Builder';
+  $('setupTitle').textContent = t ? t.label : g ? g.name : 'Score Chalk Builder';
   // not the rules: the Rules card shows those, as you've set them
   $('setupSub').textContent = t || g ? 'Add the players and start' : 'Build a scorekeeper for any game';
 }
