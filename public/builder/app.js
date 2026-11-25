@@ -916,8 +916,8 @@ const PICKS = [
     get: () => viewPref() || 'sheet', chosen: () => viewPref() !== null,
     set: (m) => { try { localStorage.setItem(VIEW_KEY, m); } catch (e) {} },
     opts: [
-      { mode: 'board', label: 'Board', text: 'A big running total for each player, with the turn entered underneath.' },
       { mode: 'sheet', label: 'Sheet', text: 'Like a paper score sheet: a row for each round, a column for each player.' },
+      { mode: 'board', label: 'Board', text: 'A big running total for each player, with the turn entered underneath.' },
     ] },
 ];
 let pickAt = 0;

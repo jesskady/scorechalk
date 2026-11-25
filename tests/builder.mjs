@@ -342,7 +342,7 @@ describe('the Builder, board or sheet', () => {
     await pg.click('#startBtn'); await wait(400);
     const opts = () => pg.evaluate(() => [...document.querySelectorAll('.pick-opt')].map((b) => b.dataset.mode + (b.classList.contains('is-current') ? '*' : '')));
     assert.equal(await pg.evaluate(() => pick.classList.contains('hidden')), false);
-    assert.deepEqual(await opts(), ['board', 'sheet'], 'nothing marked: never chosen');
+    assert.deepEqual(await opts(), ['sheet', 'board'], 'nothing marked: never chosen');
     assert.match(await pg.evaluate(() => pickNote.textContent), /switch any time/);
     await pg.click('#pickBack'); await wait(200);
     assert.equal(await pg.evaluate(() => setup.classList.contains('hidden')), false, 'Back is the setup');
@@ -358,7 +358,7 @@ describe('the Builder, board or sheet', () => {
     await pg.evaluate(() => showStep(STEPS[STEPS.length - 1]));
     await pg.click('#startBtn'); await wait(400);
     const again = await pg.$('#confirmYes'); if (again && await again.isVisible()) { await again.click(); await wait(400); }
-    assert.deepEqual(await opts(), ['board*', 'sheet']);
+    assert.deepEqual(await opts(), ['sheet', 'board*']);
     await pg.click('.pick-opt[data-mode="sheet"]'); await wait(500);
     assert.equal(await pg.evaluate(() => S.view), 'sheet');
 
