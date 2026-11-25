@@ -46,14 +46,23 @@ export default {
   },
 };
 
+/* How the visitor reached Cloudflare: 'https', 'http', or '' when nobody
+   says. Cloudflare's edge sets cf-visitor; `wrangler dev` and the tests
+   don't. They also present every request as http://scorechalk.com (the
+   routes in wrangler.jsonc), so the URL alone can't tell a visitor on plain
+   http from a local run. */
+function scheme(request) {
+  try { return JSON.parse(request.headers.get('cf-visitor') || '{}').scheme || ''; } catch (e) { return ''; }
+}
+
 /* One address for the live site: https://scorechalk.com. Plain http and the
    www host are sent there in one permanent hop, so search engines see a
-   single copy of each page. Only the live hosts are moved; `wrangler dev`
-   and the tests run on localhost over http and are left alone. A GET is
-   sent with 301; anything else with 308, which keeps the method and body. */
+   single copy of each page. A GET is sent with 301; anything else with 308,
+   which keeps the method and body. */
 function toCanonical(request, url) {
-  const live = url.hostname === CANONICAL || url.hostname === 'www.' + CANONICAL;
-  if (!live || (url.hostname === CANONICAL && url.protocol === 'https:')) return null;
+  const www = url.hostname === 'www.' + CANONICAL;
+  const plain = url.hostname === CANONICAL && scheme(request) === 'http';
+  if (!www && !plain) return null;
   url.hostname = CANONICAL;
   url.protocol = 'https:';
   const read = request.method === 'GET' || request.method === 'HEAD';
@@ -78,7 +87,7 @@ const GAME_PAGE = /^\/(darts|cribbage|yahtzee|magic|builder)\/$/;
 function finish(request, url, res) {
   const out = new Response(res.body, res);
   const h = out.headers;
-  if (url.hostname === CANONICAL) h.set('strict-transport-security', 'max-age=31536000');
+  if (url.hostname === CANONICAL && scheme(request) === 'https') h.set('strict-transport-security', 'max-age=31536000');
 
   if (out.status === 307 && h.has('location') && !url.pathname.startsWith('/api/') && !url.pathname.startsWith('/auth/')) {
     return new Response(null, { status: 301, headers: h });

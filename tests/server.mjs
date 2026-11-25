@@ -78,6 +78,19 @@ describe('the server', () => {
   test('search engines get one address per page, and leave alone what is not for them', async () => {
     const get = (path) => fetch(U + path, { redirect: 'manual' });
 
+    // as Cloudflare's edge reports a visitor on plain http, and on https
+    // (wrangler dev presents every request as http://scorechalk.com)
+    const plain = await fetch(U + '/darts/?x=1', { redirect: 'manual', headers: { 'cf-visitor': '{"scheme":"http"}' } });
+    assert.equal(plain.status, 301);
+    // wrangler dev points a redirect back at itself, so only the path is
+    // checked here; that it goes to https is checked against the live site
+    const to = new URL(plain.headers.get('location'));
+    assert.equal(to.pathname + to.search, '/darts/?x=1');
+    const secure = await fetch(U + '/', { redirect: 'manual', headers: { 'cf-visitor': '{"scheme":"https"}' } });
+    assert.equal(secure.status, 200);
+    assert.match(secure.headers.get('strict-transport-security'), /max-age=31536000/);
+    assert.equal((await get('/')).status, 200, 'a local run is not moved');
+
     // trailing-slash moves are permanent, not the asset store's 307
     const moved = await get('/darts');
     assert.equal(moved.status, 301);
