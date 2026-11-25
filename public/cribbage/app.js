@@ -284,13 +284,78 @@ $('countRow').addEventListener('click', (e) => {
   renderSetup();
 });
 
-$('startBtn').onclick = async () => {
+/* ---------------- how to score: chosen before the first hand ----------------
+
+   Start Game asks two things, a screen each: how the play is scored, and
+   how hands are counted. Both have always been switchable during the game,
+   but a switch you have never noticed is no choice at all — so each is
+   offered here, with a picture of what it looks like, and the choice made
+   last time marked. Tapping one sets it (remembered on the device, as the
+   switches in the game do) and moves on. */
+const PICKS = [
+  { title: 'How do you want to score the play?',
+    lede: 'Pegging: the points scored as the cards are played.',
+    note: 'You can switch any time during the game, with Simple · Detailed above the players.',
+    key: PLAY_MODE_KEY, get: () => playMode, set: (m) => { playMode = m; try { localStorage.setItem(PLAY_MODE_KEY, m); } catch (e) {} },
+    opts: [
+      { mode: 'simple', label: 'Simple', text: 'Three buttons, +1, +2 and +3, with a reminder of what each covers. Bigger scores are a few taps.' },
+      { mode: 'detailed', label: 'Detailed', text: 'A button for every kind of score: fifteen, pairs, runs, go, 31 and last card.' },
+    ] },
+  { title: 'How do you want to count hands?',
+    lede: 'The count: each hand, then the crib, after the play.',
+    note: 'You can switch any time during the game, with Cards · Buttons on each hand.',
+    key: MODE_KEY, get: () => handMode, set: (m) => { handMode = m; try { localStorage.setItem(MODE_KEY, m); } catch (e) {} },
+    opts: [
+      { mode: 'cards', label: 'Cards', text: 'Tap the cards in the hand and the starter, and it counts the hand for you.' },
+      { mode: 'buttons', label: 'Buttons', text: "Tap the fifteens, pairs and runs you find, or type the hand's total." },
+    ] },
+];
+let pickAt = 0;
+// whether this phone has a choice of its own yet, rather than the default
+const chosen = (key) => { try { return localStorage.getItem(key) !== null; } catch (e) { return false; } };
+
+function showPick(i) {
+  pickAt = i;
+  const k = PICKS[i], now = chosen(k.key) ? k.get() : null;
+  $('pickStep').textContent = `${i + 1} of ${PICKS.length}`;
+  $('pickTitle').textContent = k.title;
+  $('pickLede').textContent = k.lede;
+  $('pickNote').textContent = k.note;
+  $('pickOpts').innerHTML = k.opts.map((o) => `
+    <button class="pick-opt${o.mode === now ? ' is-current' : ''}" type="button" data-mode="${o.mode}">
+      <img src="previews/${i === 0 ? 'play' : 'hand'}-${o.mode}.webp" alt="${esc(o.label)}: ${esc(o.text)}" loading="lazy">
+      <span class="pick-label"><b>${esc(o.label)}</b>${o.mode === now ? '<i>Last time</i>' : ''}</span>
+      <span class="pick-text">${esc(o.text)}</span>
+    </button>`).join('');
+  $('setup').classList.add('hidden');
+  $('pick').classList.remove('hidden');
+  window.scrollTo(0, 0);
+}
+
+$('pickOpts').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-mode]');
+  if (!b) return;
+  PICKS[pickAt].set(b.dataset.mode);
+  if (pickAt + 1 < PICKS.length) { showPick(pickAt + 1); return; }
+  $('pick').classList.add('hidden');
+  beginGame();
+});
+
+$('pickBack').onclick = () => {
+  if (pickAt > 0) { showPick(pickAt - 1); return; }
+  $('pick').classList.add('hidden');
+  $('setup').classList.remove('hidden');
+};
+
+$('startBtn').onclick = () => showPick(0);
+
+function beginGame() {
   // a new game of its own: any in progress stay, under Pick up where you left off
   S = newGame(Array.from({ length: setupN }, (_, i) => nameOf(i)), setupDealer);
   S.me = setupMe;
   save();
   openGame(S);
-};
+}
 
 $('resumeBtn').onclick = () => { const s = load(); if (s) openGame(s); };
 
