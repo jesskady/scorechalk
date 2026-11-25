@@ -2,6 +2,17 @@
 
 Topics, sources and queries per run, newest first. Use it to avoid repeating ground.
 
+## 2026-11-25 (run 5)
+
+The live site was reachable: all 17 public pages returned 200, and origin/main is still at 00c063b, so nothing on the site has changed. The PageSpeed Insights API returned 429 ("Queries per day" on the keyless shared project) for / and /darts-scorer/, for the fifth run in a row.
+
+Topics:
+1. **Cribbage hand calculator results.** Query: "cribbage hand calculator online count cribbage hand score". Sources: cribbagebox.pages.dev/tools/cribbage-hand-calculator and /tools/cribbage-score-calculator; everycalculators.com cribbage-scoring-, cribbage-score- and cribbage-points-calculator pages; a Chrome Web Store "Cribbage Practice" extension; en.wikipedia.org/wiki/Cribbage_statistics. Takeaway: the field is calculator farms that add up counts you type in, plus one small pages.dev tool. Score Chalk already has a real hand counter in the app, so it needs a URL of its own (SEO-030).
+2. **Rummikub scoring demand.** Query: "Rummikub score sheet online score keeper app scoring rules". Sources: App Store RummiScore (id641917522), Rummikub Score Timer (id1280370021, poor reviews); en.wikipedia.org/wiki/Rummikub; pagat.com/rummy/rummikub.html. Takeaway: scoring is zero-sum (the winner collects the losers' rack totals, joker = 30), there are iOS-only scorers, and no web score sheet turned up (SEO-031).
+3. **UK vs US darts terms.** Query: "\"dart counter\" vs \"darts scorer\" app UK US terminology online darts scoreboard". Sources: App Store listings for DartCounter (id999533915, US/GB/NZ/ZA), Dartcom (id6502088470), Darts Scorekeeper Pro (id6756204283), DartScore+ (id6758393926). Takeaway: no regional split, so hreflang isn't needed. "Dart counter", "scoreboard" and "scorekeeper" are used everywhere as synonyms, and /darts-scorer/ uses none of them (SEO-032).
+
+Not yet explored (ideas for future runs): r/Darts and r/EDH rules (need reddit.com reachable); Google Trends seasonality for "yahtzee score sheet"; a PSI API key; image sitemap once images exist; other darts games (Around the Clock, Killer, Shanghai) and how much demand they have; Euchre score-keeper demand (it's on the holiday list); Uno score keeper.
+
 ## 2026-11-24 (run 4)
 
 The live site was reachable (all public pages 200). No site changes since run 3: origin/main is still at 00c063b. The PageSpeed Insights API returned 429 ("Queries per day" on the keyless shared project) for the fourth run in a row, and no lab substitute was run this time because nothing on the site changed since run 3's measurement.
