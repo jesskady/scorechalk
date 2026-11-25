@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "wrangler dev --port 8790",
     "deploy": "wrangler deploy",
-    "test": "node --test --test-timeout=600000 tests/all.test.mjs"
+    "test": "node --test --test-timeout=600000 tests/all.test.mjs",
+    "sitemap": "node scripts/sitemap.mjs"
   },
   "devDependencies": {
     "puppeteer-core": "^24.0.0",

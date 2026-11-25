@@ -1,18 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://scorechalk.com/</loc></url>
-  <url><loc>https://scorechalk.com/darts/</loc></url>
-  <url><loc>https://scorechalk.com/cribbage/</loc></url>
-  <url><loc>https://scorechalk.com/yahtzee/</loc></url>
-  <url><loc>https://scorechalk.com/magic/</loc></url>
-  <url><loc>https://scorechalk.com/builder/</loc></url>
-  <url><loc>https://scorechalk.com/cribbage-score-keeper/</loc></url>
-  <url><loc>https://scorechalk.com/yahtzee-score-sheet/</loc></url>
-  <url><loc>https://scorechalk.com/darts-scorer/</loc></url>
-  <url><loc>https://scorechalk.com/mtg-life-counter/</loc></url>
-  <url><loc>https://scorechalk.com/canasta-score-keeper/</loc></url>
-  <url><loc>https://scorechalk.com/farkle-score-sheet/</loc></url>
-  <url><loc>https://scorechalk.com/score-keeper/</loc></url>
-  <url><loc>https://scorechalk.com/privacy/</loc></url>
-  <url><loc>https://scorechalk.com/terms/</loc></url>
+  <url><loc>https://scorechalk.com/</loc><lastmod>2026-11-24</lastmod></url>
+  <url><loc>https://scorechalk.com/darts/</loc><lastmod>2026-11-24</lastmod></url>
+  <url><loc>https://scorechalk.com/cribbage/</loc><lastmod>2026-11-24</lastmod></url>
+  <url><loc>https://scorechalk.com/yahtzee/</loc><lastmod>2026-11-24</lastmod></url>
+  <url><loc>https://scorechalk.com/magic/</loc><lastmod>2026-11-24</lastmod></url>
+  <url><loc>https://scorechalk.com/builder/</loc><lastmod>2026-11-24</lastmod></url>
+  <url><loc>https://scorechalk.com/tournament/</loc><lastmod>2026-11-24</lastmod></url>
+  <url><loc>https://scorechalk.com/cribbage-score-keeper/</loc><lastmod>2026-11-24</lastmod></url>
+  <url><loc>https://scorechalk.com/yahtzee-score-sheet/</loc><lastmod>2026-11-24</lastmod></url>
+  <url><loc>https://scorechalk.com/darts-scorer/</loc><lastmod>2026-11-24</lastmod></url>
+  <url><loc>https://scorechalk.com/mtg-life-counter/</loc><lastmod>2026-11-24</lastmod></url>
+  <url><loc>https://scorechalk.com/canasta-score-keeper/</loc><lastmod>2026-11-24</lastmod></url>
+  <url><loc>https://scorechalk.com/farkle-score-sheet/</loc><lastmod>2026-11-24</lastmod></url>
+  <url><loc>https://scorechalk.com/score-keeper/</loc><lastmod>2026-11-24</lastmod></url>
+  <url><loc>https://scorechalk.com/privacy/</loc><lastmod>2026-11-24</lastmod></url>
+  <url><loc>https://scorechalk.com/terms/</loc><lastmod>2026-11-24</lastmod></url>
 </urlset>

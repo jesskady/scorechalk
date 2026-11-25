@@ -75,6 +75,57 @@ describe('the server', () => {
     assert.match(await (await fetch(U + '/robots.txt')).text(), /Sitemap: https:\/\/scorechalk\.com\/sitemap\.xml/);
   });
 
+  test('search engines get one address per page, and leave alone what is not for them', async () => {
+    const get = (path) => fetch(U + path, { redirect: 'manual' });
+
+    // trailing-slash moves are permanent, not the asset store's 307
+    const moved = await get('/darts');
+    assert.equal(moved.status, 301);
+    assert.equal(new URL(moved.headers.get('location'), U).pathname, '/darts/');
+
+    // a shared game's link, the profile and the not-found page are noindex;
+    // the game page itself is not
+    assert.equal((await get('/darts/')).headers.get('x-robots-tag'), null);
+    assert.equal((await get('/darts/?s=' + 'a'.repeat(24))).headers.get('x-robots-tag'), 'noindex');
+    assert.equal((await get('/account/')).headers.get('x-robots-tag'), 'noindex');
+    const missing = await get('/no-such-page/');
+    assert.equal(missing.status, 404);
+    assert.match(await missing.text(), /Nothing here/);
+    assert.doesNotMatch(await (await get('/robots.txt')).text(), /Disallow: \/account\//, 'crawlable, so the noindex is seen');
+
+    // an icon file search engines can fetch, and the old default sent to it
+    const svg = await get('/favicon.svg');
+    assert.equal(svg.status, 200);
+    assert.match(svg.headers.get('content-type'), /svg/);
+    const ico = await get('/favicon.ico');
+    assert.equal(ico.status, 301);
+    assert.equal(new URL(ico.headers.get('location'), U).pathname, '/icons/icon-192.png');
+
+    // files kept long: versioned ones for good, icons for a month; pages never
+    assert.match((await get('/shared.css?v=36')).headers.get('cache-control'), /immutable/);
+    assert.match((await get('/icons/icon-192.png')).headers.get('cache-control'), /max-age=2592000/);
+    assert.doesNotMatch((await get('/')).headers.get('cache-control') || '', /immutable|2592000/);
+
+    // the home page says what it is, and is the one address for itself
+    const home = await (await get('/')).text();
+    assert.match(home, /<title>Score Chalk — Free Score Keeper/);
+    assert.match(home, /<link rel="canonical" href="https:\/\/scorechalk\.com\/">/);
+    const ld = JSON.parse(home.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)[1]);
+    assert.deepEqual(ld.map((x) => x['@type']), ['WebSite', 'Organization']);
+
+    // each game's setup leads to its guide (the guides lead back: see above)
+    const guides = { darts: '/darts-scorer/', cribbage: '/cribbage-score-keeper/', yahtzee: '/yahtzee-score-sheet/',
+      magic: '/mtg-life-counter/', builder: '/score-keeper/' };
+    for (const [game, guide] of Object.entries(guides)) {
+      const html = await (await get(`/${game}/`)).text();
+      assert.ok(html.includes(`<p class="guide-link"><a href="${guide}">`), game + ' links to its guide');
+      assert.ok(html.includes(`<link rel="canonical" href="https://scorechalk.com/${game}/">`), game + ' has its canonical');
+    }
+
+    const sitemap = await (await get('/sitemap.xml')).text();
+    assert.match(sitemap, /\/tournament\/<\/loc><lastmod>\d{4}-\d\d-\d\d<\/lastmod>/);
+  });
+
   test('the policy pages are there', async () => {
     for (const path of ['/privacy/', '/terms/']) {
       const r = await fetch(U + path);
