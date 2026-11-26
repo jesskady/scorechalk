@@ -34,7 +34,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredericka+the+Great&family=Josefin+Sans:wght@400;600;700&family=Bree+Serif&family=Kalam:wght@400;700&display=swap">
-<link rel="stylesheet" href="../shared.css?v=37">
+<link rel="stylesheet" href="../shared.css?v=39">
 <!-- the rooms a game can be played in; app.js sets data-room on the body -->
 <link rel="stylesheet" href="../themes.css?v=7">
 <link rel="stylesheet" href="style.css?v=48">
@@ -46,7 +46,13 @@
      setup, #play the game — so the phone's back button steps between them,
      and the home page can link straight to a template. See route(). -->
 <section id="setup" class="screen hidden">
-  <a class="backlink mark" href="/" aria-label="All games"><span class="arrow" aria-hidden="true">&lsaquo;</span><img src="/favicon.svg?v=2" alt="" width="30" height="30"></a>
+  <!-- home (the badge), and under it the way back to the list of every
+       game, only for whoever has just come from there -->
+  <nav class="crumbs" aria-label="Breadcrumb">
+    <a class="backlink mark" href="/" aria-label="Home"><span class="arrow" aria-hidden="true">&lsaquo;</span><img src="/favicon.svg?v=2" alt="" width="30" height="30"></a>
+    <a class="crumb" href="/games/" hidden>&lsaquo; All games</a>
+  </nav>
+  <script>try { const r = new URL(document.referrer); if (r.origin === location.origin && r.pathname === '/games/') document.querySelector('.crumb').hidden = false; } catch (e) {}</script>
 
   <header class="brand">
     <h1 id="setupTitle" class="room-title">Score Chalk Builder</h1>

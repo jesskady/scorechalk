@@ -81,6 +81,9 @@ function toTourney(a, id) {
   a.classList.remove('mark');
   a.removeAttribute('aria-label');
   a.innerHTML = '&lsaquo; Tournament';
+  // a match's way back is its tournament alone: no step to the list of games
+  const crumb = a.parentElement.querySelector('.crumb');
+  if (crumb) crumb.hidden = true;
 }
 
 // The tournament this game is a match of, when that tournament is on this

@@ -36,9 +36,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredericka+the+Great&family=Josefin+Sans:wght@400;600;700&family=Bree+Serif&family=Kalam:wght@400;700&family=Karla:wght@400;500;700&display=swap">
-<link rel="stylesheet" href="shared.css?v=37">
+<link rel="stylesheet" href="shared.css?v=39">
 <!-- the home page's own: home.css still serves the account pages -->
-<link rel="stylesheet" href="rooms.css?v=13">
+<link rel="stylesheet" href="rooms.css?v=14">
 </head>
 <body class="home-rooms">
 
@@ -70,9 +70,10 @@
 </header>
 
 <!-- ============ The two rooms ============
-     Adding a game means a folder under public/ and a card in the room it
-     belongs to: the Parlor for party and pub games, the Living Room for
-     family and tabletop ones. -->
+     Adding a game means a folder under public/ (or a Builder template) and
+     a row on /games/, the list of every game. Each room here shows four:
+     the Parlor for party and pub games, the Living Room for family and
+     tabletop ones. -->
 <main class="rooms">
   <section class="room parlor" id="parlor" aria-labelledby="parlor-h">
     <div class="room-head">
@@ -124,6 +125,8 @@
         <small>First to 500. Tap who went out, then the cards left in everyone's hands.</small>
       </a>
     </div>
+    <!-- four games a room here; every game, with a search, is on /games/ -->
+    <a class="see-all" href="/games/">See all games <span aria-hidden="true">&rarr;</span></a>
   </section>
 
   <section class="room living" id="living" aria-labelledby="living-h">
@@ -178,6 +181,7 @@
         <span class="tag">20 · 40</span>
       </a>
     </div>
+    <a class="see-all" href="/games/">See all games <span aria-hidden="true">&rarr;</span></a>
   </section>
 </main>
 

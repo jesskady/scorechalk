@@ -65,4 +65,47 @@ describe('game links', () => {
     assert.equal(await pg.evaluate(() => S), null);
     await pg.close();
   });
+
+  test('every game is on the all-games page, and the search narrows it', async () => {
+    const pg = await phone();
+    await open(pg, '/');
+    await pg.click('.parlor .see-all');
+    await pg.waitForSelector('#q');
+    assert.equal(new URL(pg.url()).pathname, '/games/');
+    const shown = () => pg.$$eval('#list li:not([hidden]) b', (bs) => bs.map((b) => b.textContent));
+    const all = await shown();
+    assert.ok(all.length >= 13, 'every game, and the Builder');
+    // each card on the home page has its row here
+    await open(pg, '/');
+    const home = await pg.$$eval('.shelf a', (as) => as.map((a) => a.getAttribute('href')));
+    await open(pg, '/games/');
+    const rows = await pg.$$eval('#list a', (as) => as.map((a) => a.getAttribute('href')));
+    for (const h of home) assert.ok(rows.includes(h), `${h} is on /games/`);
+    // a phone's width, with no sideways scroll
+    assert.ok(await pg.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+
+    await pg.type('#q', 'dice');
+    assert.deepEqual(await shown(), ['Farkle', 'Yahtzee', 'Any other game']);
+    assert.match(await pg.$eval('#count', (e) => e.textContent), /2 of \d+ games/);
+    await pg.click('#q', { clickCount: 3 }); await pg.type('#q', 'nothing like it');
+    assert.deepEqual(await shown(), ['Any other game'], 'the Builder is always offered');
+    assert.equal(await pg.$eval('#none', (e) => e.hidden), false);
+    // the search is kept in the address, and Enter opens a single match
+    await open(pg, '/games/?q=moon');
+    assert.deepEqual(await shown(), ['Hearts', 'Any other game']);
+    await Promise.all([pg.waitForNavigation(), pg.focus('#q').then(() => pg.keyboard.press('Enter'))]);
+    assert.ok(pg.url().endsWith('/builder/#hearts'));
+    // and the game leads back to the list, under the badge that goes home
+    await pg.waitForSelector('#setup .crumb', { visible: true });
+    await Promise.all([pg.waitForNavigation(), pg.click('#setup .crumb')]);
+    assert.equal(new URL(pg.url()).pathname, '/games/');
+    // but only for whoever came from the list: not straight in, nor from home
+    await open(pg, '/darts/');
+    assert.equal(await pg.$eval('#setup .crumb', (a) => a.hidden), true);
+    await open(pg, '/');
+    await Promise.all([pg.waitForNavigation(), pg.click('.shelf a[href="/yahtzee/"]')]);
+    assert.equal(await pg.$eval('#setup .crumb', (a) => a.hidden), true);
+    assert.deepEqual(pg.errors, []);
+    await pg.close();
+  });
 });
