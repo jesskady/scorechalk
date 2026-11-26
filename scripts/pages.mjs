@@ -8,7 +8,7 @@ import { execFileSync } from 'node:child_process';
 export const ORIGIN = 'https://scorechalk.com';
 
 export const PAGES = [
-  '/', '/games/', '/darts/', '/cribbage/', '/yahtzee/', '/magic/', '/builder/', '/tournament/',
+  '/', '/games/', '/darts/', '/cribbage/', '/yahtzee/', '/bridge/', '/magic/', '/builder/', '/tournament/',
   '/cribbage-score-keeper/', '/yahtzee-score-sheet/', '/darts-scorer/', '/mtg-life-counter/',
   '/canasta-score-keeper/', '/farkle-score-sheet/', '/uno-score-keeper/', '/euchre-score-keeper/',
   '/hearts-score-keeper/', '/phase-10-score-keeper/', '/five-crowns-score-keeper/', '/rummy-500-score-keeper/',
