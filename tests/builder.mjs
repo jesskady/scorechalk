@@ -266,6 +266,61 @@ describe('Builder, live', () => {
     await eu.close();
   });
 
+  test('Hearts, Rummy 500, Five Crowns and Phase 10: each template plays to its own end', async () => {
+    // a whole round at once: one score for each player, in turn
+    const round = (pg, ...vs) => pg.evaluate((vs) => { for (const v of vs) { S.pend = v; S.parts = [{ label: '', d: v }]; commit(v); } }, vs);
+    const start = async (id, rules) => {
+      const pg = await phone();
+      await open(pg, `/builder/#${id}`);
+      assert.match(await pg.evaluate(() => rulesText.textContent), rules, id);
+      await startGame(pg);
+      await wait(300);
+      return pg;
+    };
+    const winner = (pg) => pg.evaluate(() => (winOverlay.classList.contains('hidden') ? '' : winName.textContent));
+
+    // Hearts: once anyone reaches 100, the round is played out and the lowest wins
+    const he = await start('hearts', /4 players · Ends at 100, lowest wins · keys Queen of spades 13, Shot the moon 26/);
+    await he.click('#sheet button.cell.open[data-p="0"]'); await wait(300);
+    await he.evaluate(() => [...document.querySelectorAll('#quickpad .key b')].find((b) => b.textContent === 'Queen of spades').closest('.key').click());
+    assert.equal(await he.evaluate(() => S.pend), 13, 'the Queen is a key');
+    await he.click('#commitBtn'); await wait(400);
+    await round(he, 5, 8, 0);
+    await round(he, 90, 0, 2, 24);
+    assert.equal(await winner(he), 'Player 2 wins!', 'Player 1 passed 100 (103, 5, 10, 24): the fewest wins');
+    assert.deepEqual(he.errors, []);
+    await he.close();
+
+    // Rummy 500: a hand can go below nothing; first to 500
+    const ru = await start('rummy-500', /3 players · First to 500 · keys Ace 15, Ten or face card 10 · any score typed · can subtract/);
+    await round(ru, 120, -35, 60);
+    await round(ru, 390, 10, 15);
+    assert.equal(await ru.evaluate(() => S.scores.join(' ')), '510 -25 75');
+    assert.equal(await winner(ru), 'Player 1 wins!');
+    await ru.close();
+
+    // Five Crowns: eleven rounds, then the lowest total wins
+    const fc = await start('five-crowns', /4 players · 11 rounds, lowest wins · keys Wild card 20, Joker 50/);
+    for (let r = 1; r <= 10; r++) await round(fc, 10, 5, 20, 0);
+    assert.equal(await winner(fc), '', 'not over after ten');
+    await round(fc, 10, 5, 20, 60);
+    assert.equal(await winner(fc), 'Player 2 wins!', '55 beats 60');
+    assert.deepEqual(fc.errors, []);
+    await fc.close();
+
+    // Phase 10: the first to finish the tenth phase wins, whatever the score
+    const ph = await start('phase-10', /4 players · keys Card 1–9 5, Card 10–12 10, Skip 15, Wild 25 · counting Phases done \(wins at 10\)/);
+    await round(ph, 0, 25, 40, 5);
+    for (let k = 0; k < 10; k++) await tapCounter(ph, 2, 'phase', 1);
+    await wait(400);
+    await ph.evaluate(() => { if (!winOverlay.classList.contains('hidden')) return; const b = document.getElementById('winBarBtn'); if (b && !winBar.classList.contains('hidden')) b.click(); });
+    await wait(300);
+    assert.equal(await winner(ph), 'Player 3 wins!');
+    assert.equal(await ph.evaluate(() => winBy.textContent), 'Phases done reached 10');
+    assert.deepEqual(ph.errors, []);
+    await ph.close();
+  });
+
   test('the setup offers the buttons only for a live game', async () => {
     const pg = await phone();
     await open(pg, '/builder/');
