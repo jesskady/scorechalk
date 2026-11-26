@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#12161c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Bridge · Score Chalk</title>
+<!-- visits, and errors on these pages: see /report.js -->
+<script src="/report.js?v=1"></script>
+<!-- Score Chalk as an app: installable, and working offline (see /pwa.js) -->
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="Score Chalk">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="A rubber bridge score pad: enter each hand's contract, doubles and tricks, and it scores above and below the line, games, vulnerability, slams and the rubber.">
+<link rel="canonical" href="https://scorechalk.com/bridge/">
+<link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml">
+<link rel="icon" href="/icons/icon-192.png" sizes="192x192">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredericka+the+Great&family=Josefin+Sans:wght@400;600;700&family=Bree+Serif&family=Kalam:wght@400;700&display=swap">
+<link rel="stylesheet" href="../shared.css?v=39">
+<!-- the room this game is played in (data-room on the body) -->
+<link rel="stylesheet" href="../themes.css?v=7">
+<link rel="stylesheet" href="style.css?v=1">
+</head>
+<body data-room="living" data-game="bridge">
+
+<!-- ============ SETUP ============ -->
+<section id="setup" class="screen">
+  <!-- home (the badge), and under it the way back to the list of every
+       game, only for whoever has just come from there -->
+  <nav class="crumbs" aria-label="Breadcrumb">
+    <a class="backlink mark" href="/" aria-label="Home"><span class="arrow" aria-hidden="true">&lsaquo;</span><img src="/favicon.svg?v=2" alt="" width="30" height="30"></a>
+    <a class="crumb" href="/games/" hidden>&lsaquo; All games</a>
+  </nav>
+  <script>try { const r = new URL(document.referrer); if (r.origin === location.origin && r.pathname === '/games/') document.querySelector('.crumb').hidden = false; } catch (e) {}</script>
+
+  <header class="brand">
+    <h1 class="room-title">Bridge</h1>
+    <p>A rubber bridge score pad: above and below the line</p>
+  </header>
+
+  <!-- Partners sit opposite: North with South, East with West. The first
+       pair is We on the pad, the second They. -->
+  <div class="card">
+    <span class="field-label">We</span>
+    <div class="pair">
+      <input id="n0" type="text" placeholder="North" autocomplete="off" maxlength="14">
+      <span class="amp">&amp;</span>
+      <input id="n2" type="text" placeholder="South" autocomplete="off" maxlength="14">
+    </div>
+  </div>
+  <div class="card">
+    <span class="field-label">They</span>
+    <div class="pair">
+      <input id="n1" type="text" placeholder="East" autocomplete="off" maxlength="14">
+      <span class="amp">&amp;</span>
+      <input id="n3" type="text" placeholder="West" autocomplete="off" maxlength="14">
+    </div>
+  </div>
+
+  <button id="startBtn" class="primary big">Start a rubber</button>
+  <button id="resumeBtn" class="ghost hidden">Resume the rubber in progress</button>
+</section>
+
+<!-- ============ THE PAD ============ -->
+<section id="game" class="screen hidden">
+  <header class="topbar">
+    <a class="backlink mark" href="/" aria-label="Home"><span class="arrow" aria-hidden="true">&lsaquo;</span><img src="/favicon.svg?v=2" alt="" width="30" height="30"></a>
+    <h1 class="room-title" id="title">Bridge</h1>
+    <span></span>
+  </header>
+
+  <!-- the pad: We and They side by side, bonuses above the line, the
+       contracts below it, game by game. Drawn by renderPad(). -->
+  <div class="pad paper plain" id="pad"></div>
+
+  <button id="handBtn" class="primary big">Score a hand</button>
+  <div class="mini-row">
+    <button id="undoBtn" class="ghost">Undo</button>
+    <button id="endBtn" class="ghost">End rubber</button>
+    <button id="quitBtn" class="ghost">New rubber</button>
+  </div>
+  <p id="msg" class="msg"></p>
+
+  <!-- every hand, newest first -->
+  <ol class="hands" id="hands"></ol>
+</section>
+
+<!-- ============ A HAND ============ -->
+<div id="handOverlay" class="overlay hidden">
+  <div class="hand-card paper plain" role="dialog" aria-labelledby="handTitle">
+    <div class="entry-top">
+      <b id="handTitle">Hand 1</b>
+      <button class="entry-x" id="handClose" aria-label="Close">×</button>
+    </div>
+
+    <span class="field-label">Declarer</span>
+    <div class="opts two" id="declRow"></div>
+
+    <span class="field-label">Contract</span>
+    <div class="opts seven" id="levelRow"></div>
+    <div class="opts five" id="strainRow"></div>
+
+    <div class="opts three" id="dblRow"></div>
+
+    <span class="field-label">Tricks taken by declarer</span>
+    <div class="tricks">
+      <button type="button" class="step" id="tMinus" aria-label="One trick fewer">&minus;</button>
+      <div class="tricks-mid"><b id="tCount">–</b><small id="tSays"></small></div>
+      <button type="button" class="step" id="tPlus" aria-label="One trick more">+</button>
+    </div>
+
+    <details class="honors" id="honorsBox">
+      <summary>Honors</summary>
+      <div class="opts three" id="honorsRow"></div>
+      <div class="opts two" id="honorsSideRow"></div>
+    </details>
+
+    <p class="preview" id="preview"></p>
+    <button id="enterBtn" class="primary big">Enter the hand</button>
+  </div>
+</div>
+
+<!-- ============ CONFIRM ============ -->
+<div id="confirmOverlay" class="overlay confirm hidden">
+  <div class="win-card">
+    <h2>Are you sure?</h2>
+    <p id="confirmText"></p>
+    <button id="confirmYes" class="danger big">Yes</button>
+    <button id="confirmNo" class="ghost">Cancel</button>
+  </div>
+</div>
+
+<!-- ============ THE RUBBER ============ -->
+<div id="winOverlay" class="overlay hidden">
+  <div class="win-card">
+    <div class="trophy">🏆</div>
+    <h2 id="winName"></h2>
+    <p id="winWhy"></p>
+    <ol id="winTable" class="standings"></ol>
+    <button id="againBtn" class="primary big">Another rubber</button>
+    <button id="keepBtn" class="ghost">Back to the pad</button>
+  </div>
+</div>
+
+<script src="/account.js?v=29" defer></script>
+<script src="/awake.js?v=1"></script>
+<script src="/store.js?v=3"></script>
+<script src="app.js?v=1"></script>
+<script src="/pwa.js?v=1" defer></script>
+</body>
+</html>
