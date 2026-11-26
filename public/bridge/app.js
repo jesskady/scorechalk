@@ -110,9 +110,10 @@ function score(hands, ended) {
 }
 
 // "4♠" or "3NT", with X or XX for a double or redouble
-const contractText = (h) => `${h.level}${strain(h.strain).sym}${['', ' X', ' XX'][h.dbl]}`;
+const contractText = (h) => `${h.level}${(strain(h.strain) || { sym: '' }).sym}${['', ' X', ' XX'][h.dbl]}`;
 const contractHtml = (h) => {
-  const st = strain(h.strain);
+  // a bid half made (a level, no suit yet) shows what there is
+  const st = strain(h.strain) || { sym: '', red: false };
   return `${h.level}<span class="${st.red ? 'red' : ''}">${st.sym}</span>${['', ' X', ' XX'][h.dbl]}`;
 };
 // how a hand went: "made", "made, 1 over", "down 2"
@@ -288,7 +289,7 @@ function renderHand() {
   $('bidPart').classList.toggle('hidden', step !== 'bid');
   $('scorePart').classList.toggle('hidden', step !== 'score');
   $('playBtn').disabled = H.decl === null || !H.level || !H.strain;
-  if (H.level) $('cardContract').innerHTML = `${contractHtml(H)} <small>by ${esc(S.names[H.decl] || '')}</small>`;
+  if (H.level && H.strain) $('cardContract').innerHTML = `${contractHtml(H)} <small>by ${esc(S.names[H.decl] || '')}</small>`;
   fill('declRow', [0, 2, 1, 3].map((p) => opt(
     `${esc(S.names[p])}<small>${p % 2 ? 'They' : 'We'}${r.vul[p % 2] ? ' · vul' : ''}</small>`,
     H.decl === p, () => { H.decl = p; })));
