@@ -15,10 +15,15 @@ changing those areas.
 - **Run `npm test` before deploying.** It's the whole suite, about 4 minutes,
   driving real browsers. When changing an interface, add or update a test the
   way the existing ones are written, as a person would use it.
-- **Deploy with `npm run deploy`**, not `wrangler deploy`: it also tells
-  IndexNow (Bing and others) which pages changed.
-- **After changing a page, run `npm run sitemap`** and commit the sitemap. The
-  list of pages is `scripts/pages.mjs`; a new public page goes there too.
+- **Deploy with `npm run deploy`**, not `wrangler deploy`: it rebuilds the
+  sitemap's dates from git first, and afterwards tells IndexNow (Bing and
+  others) which pages changed. Commit before deploying (the dates come from
+  commits), and commit `public/sitemap.xml` if the deploy says it changed.
+  The list of pages is `scripts/pages.mjs`; a new public page goes there too.
+- **A commit that only changes what every page shares** (the header, the
+  badge, a `?v=` bump) ends its message with the line `Sitemap: chrome`, so
+  it doesn't move every page's date in the sitemap or ping every page to
+  IndexNow. Never on a commit that also changes a page's content.
 - **After changing how a game or the home page looks, run `npm run store-shots`**
   and commit what it writes: the manifest's screenshots (Chrome's install
   dialog, app stores, PWA directories) and the shortcut icons.

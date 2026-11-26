@@ -4,7 +4,8 @@
    doesn't use IndexNow; it has the sitemap's dates.
 
    `npm run deploy` runs this after `wrangler deploy`. It sends the pages
-   whose files changed since the commit it last sent for, which it keeps in
+   whose content changed since the commit it last sent for (commits marked
+   `Sitemap: chrome` don't count; see pages.mjs), which it keeps in
    .wrangler/indexnow-last (not in git, so each machine keeps its own). The
    first time, with nothing kept, it sends every page. A failed ping never
    fails the deploy: it says so, and the next deploy sends those pages again.
@@ -16,7 +17,7 @@
    `node scripts/indexnow.mjs --dry-run` lists what would be sent. */
 
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
-import { ORIGIN, PAGES, source, git } from './pages.mjs';
+import { ORIGIN, PAGES, git, contentCommits } from './pages.mjs';
 
 const KEY = '4be6f923f66ca69a5ae6683142929759';
 const KEPT = '.wrangler/indexnow-last';
@@ -28,7 +29,7 @@ try { last = readFileSync(KEPT, 'utf8').trim(); } catch (e) { /* first time */ }
 try { if (last) git('cat-file', '-e', last + '^{commit}'); } catch (e) { last = ''; }
 
 const changed = last
-  ? PAGES.filter((p) => git('diff', '--name-only', last, head, '--', source(p)) !== '')
+  ? PAGES.filter((p) => contentCommits(p, `${last}..${head}`).length)
   : PAGES;
 
 if (!changed.length) {
