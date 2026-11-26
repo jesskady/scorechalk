@@ -24,7 +24,7 @@
 <link rel="stylesheet" href="../shared.css?v=39">
 <!-- the room this game is played in (data-room on the body) -->
 <link rel="stylesheet" href="../themes.css?v=7">
-<link rel="stylesheet" href="style.css?v=1">
+<link rel="stylesheet" href="style.css?v=2">
 </head>
 <body data-room="living" data-game="bridge">
 
@@ -74,11 +74,19 @@
     <span></span>
   </header>
 
+  <!-- A hand in two steps, as it is played: the bid, which stays on show
+       at the top while the hand is played, then the tricks. -->
+  <div class="playing-now hidden" id="nowBox">
+    <span class="now-label">Playing</span>
+    <b class="now-contract" id="nowContract"></b>
+    <span class="now-who" id="nowWho"></span>
+    <button type="button" class="now-edit" id="nowEdit">Change the bid</button>
+  </div>
   <!-- the pad: We and They side by side, bonuses above the line, the
        contracts below it, game by game. Drawn by renderPad(). -->
   <div class="pad paper plain" id="pad"></div>
 
-  <button id="handBtn" class="primary big">Score a hand</button>
+  <button id="handBtn" class="primary big">Bid a hand</button>
   <div class="mini-row">
     <button id="undoBtn" class="ghost">Undo</button>
     <button id="endBtn" class="ghost">End rubber</button>
@@ -98,6 +106,7 @@
       <button class="entry-x" id="handClose" aria-label="Close">×</button>
     </div>
 
+    <div class="part" id="bidPart">
     <span class="field-label">Declarer</span>
     <div class="opts two" id="declRow"></div>
 
@@ -106,7 +115,11 @@
     <div class="opts five" id="strainRow"></div>
 
     <div class="opts three" id="dblRow"></div>
+    <button id="playBtn" class="primary big">Play the hand</button>
+    </div>
 
+    <div class="part" id="scorePart">
+    <p class="card-contract" id="cardContract"></p>
     <span class="field-label">Tricks taken by declarer</span>
     <div class="tricks">
       <button type="button" class="step" id="tMinus" aria-label="One trick fewer">&minus;</button>
@@ -122,6 +135,7 @@
 
     <p class="preview" id="preview"></p>
     <button id="enterBtn" class="primary big">Enter the hand</button>
+    </div>
   </div>
 </div>
 
@@ -150,7 +164,7 @@
 <script src="/account.js?v=29" defer></script>
 <script src="/awake.js?v=1"></script>
 <script src="/store.js?v=3"></script>
-<script src="app.js?v=1"></script>
+<script src="app.js?v=2"></script>
 <script src="/pwa.js?v=1" defer></script>
 </body>
 </html>

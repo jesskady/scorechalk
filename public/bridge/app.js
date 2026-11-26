@@ -126,7 +126,8 @@ function resultText(h) {
 const sideName = (names, s) => `${names[s]} & ${names[s + 2]}`;
 
 function newGame(names) {
-  return { id: crypto.randomUUID(), startedAt: Date.now(), names, hands: [], ended: false, over: false };
+  // bid: the contract being played, from the bid until its tricks go in
+  return { id: crypto.randomUUID(), startedAt: Date.now(), names, hands: [], bid: null, ended: false, over: false };
 }
 
 function save() {
@@ -177,6 +178,7 @@ function render() {
   renderPad(r);
   renderHands(r);
   $('handBtn').disabled = r.over || S.ended;
+  $('handBtn').textContent = S.bid ? 'Score the hand' : 'Bid a hand';
   $('endBtn').disabled = r.over || S.ended || !S.hands.length;
 }
 
@@ -189,14 +191,17 @@ function renderPad(r) {
     <div class="side-head">
       <span class="we">${s ? 'They' : 'We'}</span>
       <b class="hand">${esc(sideName(S.names, s))}</b>
-      <small>${r.won[s] ? `${r.won[s]} game${r.won[s] > 1 ? 's' : ''}` : '&nbsp;'}${r.vul[s] && !r.over ? ' · <em>vulnerable</em>' : ''}</small>
+      <small>${r.won[s] ? `${r.won[s]} game${r.won[s] > 1 ? 's' : ''}` : 'no games'}</small>
+      <span class="vul ${r.vul[s] ? 'on' : ''}">${r.vul[s] ? 'Vulnerable' : 'Not vulnerable'}</span>
     </div>`).join('');
   const entry = (e) => `<div class="e"><b class="hand">${fmt(e.pts)}</b><small>${esc(e.label)}</small></div>`;
+  // below the line, the contract that made it, as large as it was bid
+  const contract = (e) => `<div class="e c"><b class="hand">${fmt(e.pts)}</b><span class="bid">${contractHtml(S.hands[e.h])}</span></div>`;
   const above = [0, 1].map((s) => `<div class="col above-col">${[...r.above[s]].reverse().map(entry).join('')}</div>`).join('');
   const games = r.games.map((g, k) => {
     // an empty game still to be played: nothing to draw yet
     if (!g.below[0].length && !g.below[1].length && g.winner === null) return '';
-    const cols = [0, 1].map((s) => `<div class="col">${g.below[s].map(entry).join('')}</div>`).join('');
+    const cols = [0, 1].map((s) => `<div class="col">${g.below[s].map(contract).join('')}</div>`).join('');
     const rule = g.winner !== null ? `<div class="game-rule"><span>Game ${k + 1}: ${g.winner ? 'They' : 'We'}</span></div>` : '';
     return `<div class="game">${cols}</div>${rule}`;
   }).join('');
@@ -207,6 +212,14 @@ function renderPad(r) {
     <div class="below">${games || '<p class="empty">Contracts made go below the line. 100 makes a game.</p>'}</div>
     <div class="pad-total">${[0, 1].map((s) => `<div><small>Total</small><b class="hand">${fmt(r.totals[s])}</b></div>`).join('')}</div>`;
   $('title').textContent = r.over || S.ended ? 'Bridge · rubber over' : `Bridge · hand ${S.hands.length + 1}`;
+  // the bid being played, on show until its tricks go in
+  const b = S.bid;
+  $('nowBox').classList.toggle('hidden', !b);
+  if (b) {
+    const side = b.decl % 2;
+    $('nowContract').innerHTML = contractHtml(b);
+    $('nowWho').innerHTML = `by ${esc(S.names[b.decl])} (${side ? 'They' : 'We'})${r.vul[side] ? ' · <em>vulnerable</em>' : ''}`;
+  }
 }
 
 // Every hand, newest first: the contract, by whom, how it went, and what it scored.
@@ -244,12 +257,27 @@ function opt(label, on, onTap, cls = '') {
 }
 function fill(row, items) { const el = $(row); el.innerHTML = ''; items.forEach((b) => el.appendChild(b)); }
 
-$('handBtn').onclick = () => {
-  H = { decl: null, level: null, strain: null, dbl: 0, tricks: null, honors: 0, honorsSide: 0 };
+let step = 'bid';   // which half of the card is showing: 'bid' or 'score'
+
+function openHand(which) {
+  const b = S.bid;
+  H = b ? { ...b, tricks: 6 + b.level, honors: 0, honorsSide: 0 }
+    : { decl: null, level: null, strain: null, dbl: 0, tricks: null, honors: 0, honorsSide: 0 };
+  step = which;
   $('honorsBox').open = false;
-  $('handTitle').textContent = `Hand ${S.hands.length + 1}`;
+  $('handTitle').textContent = which === 'bid' ? `Hand ${S.hands.length + 1}: the bid` : `Hand ${S.hands.length + 1}: the tricks`;
   $('handOverlay').classList.remove('hidden');
   renderHand();
+}
+$('handBtn').onclick = () => openHand(S.bid ? 'score' : 'bid');
+$('nowEdit').onclick = () => openHand('bid');
+
+// The bid is made: it goes on show over the pad while the hand is played.
+$('playBtn').onclick = () => {
+  const { decl, level, strain: st, dbl } = H;
+  S.bid = { decl, level, strain: st, dbl };
+  closeHand();
+  save(); render();
 };
 const closeHand = () => { $('handOverlay').classList.add('hidden'); H = null; };
 $('handClose').onclick = closeHand;
@@ -257,13 +285,15 @@ $('handOverlay').addEventListener('click', (e) => { if (e.target === $('handOver
 
 function renderHand() {
   const r = score(S.hands, S.ended);
+  $('bidPart').classList.toggle('hidden', step !== 'bid');
+  $('scorePart').classList.toggle('hidden', step !== 'score');
+  $('playBtn').disabled = H.decl === null || !H.level || !H.strain;
+  if (H.level) $('cardContract').innerHTML = `${contractHtml(H)} <small>by ${esc(S.names[H.decl] || '')}</small>`;
   fill('declRow', [0, 2, 1, 3].map((p) => opt(
     `${esc(S.names[p])}<small>${p % 2 ? 'They' : 'We'}${r.vul[p % 2] ? ' · vul' : ''}</small>`,
     H.decl === p, () => { H.decl = p; })));
   fill('levelRow', [1, 2, 3, 4, 5, 6, 7].map((n) => opt(String(n), H.level === n, () => {
     H.level = n;
-    // the tricks start at exactly the contract: most hands make it or are close
-    if (H.tricks === null || !H.touched) H.tricks = 6 + n;
   })));
   fill('strainRow', STRAINS.map((st) => opt(st.sym, H.strain === st.id, () => { H.strain = st.id; }, st.red ? 'red' : '')));
   fill('dblRow', ['Not doubled', 'Doubled', 'Redoubled'].map((t, k) => opt(t, H.dbl === k, () => { H.dbl = k; })));
@@ -294,6 +324,7 @@ $('tPlus').onclick = () => { if (H.tricks < 13) { H.tricks++; H.touched = true; 
 $('enterBtn').onclick = () => {
   const { touched, ...hand } = H;
   S.hands.push(hand);
+  S.bid = null;
   closeHand();
   save(); render();
   const r = score(S.hands, false);
@@ -305,6 +336,7 @@ $('enterBtn').onclick = () => {
 
 $('undoBtn').onclick = () => {
   if (S.ended) { S.ended = false; save(); render(); flash('The rubber is open again'); return; }
+  if (S.bid) { const b = S.bid; S.bid = null; save(); render(); flash(`Took back the bid of ${contractText(b)}`); return; }
   const h = S.hands.pop();
   if (!h) { flash('Nothing to undo'); return; }
   $('winOverlay').classList.add('hidden');

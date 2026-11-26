@@ -48,7 +48,10 @@ body.playing .acct{display:none}
 .side-head .we{display:block;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--paper-dim)}
 .side-head b{display:block;font-size:20px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .side-head small{display:block;font-size:12px;color:var(--paper-dim);min-height:1.2em}
-.side-head em{font-style:normal;color:var(--red);font-weight:700}
+/* vulnerable: stamped in red; not: said quietly, so it's never a guess */
+.vul{display:inline-block;margin-top:4px;font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--paper-dim);border:1.5px dashed color-mix(in srgb, var(--paper-dim) 55%, transparent);border-radius:4px;padding:2px 6px 1px}
+.vul.on{color:#fff;background:var(--red);border:1.5px solid var(--red);transform:rotate(-2deg)}
 
 /* above the line: newest highest, sitting on the line */
 .above{min-height:96px}
@@ -60,6 +63,10 @@ body.playing .acct{display:none}
 .line{height:0;border-top:3px solid var(--paper-ink)}
 .below{min-height:70px}
 .game .col{justify-content:flex-start;min-height:34px}
+/* below the line, the contract that scored, written as large as its points */
+.e.c{gap:8px}
+.e .bid{font-size:18px;font-weight:800;font-family:inherit;white-space:nowrap}
+.red{color:var(--red)}
 .game-rule{border-top:1.5px solid var(--paper-ink);text-align:center;margin-bottom:2px}
 .game-rule span{display:inline-block;font-size:10.5px;color:var(--paper-dim);padding:1px 6px;transform:translateY(-1px)}
 .empty{font-size:12.5px;color:var(--paper-dim);text-align:center;padding:22px 16px}
@@ -139,3 +146,17 @@ body.playing .acct{display:none}
 .standings{list-style:none;display:flex;flex-direction:column;gap:4px;text-align:left}
 .standings li{display:flex;justify-content:space-between;gap:10px;padding:6px 10px;border-radius:8px;background:var(--bg2);font-size:15px}
 .standings li b{font-variant-numeric:tabular-nums}
+
+/* ---------- the hand being played ----------
+   Over the pad, large, until its tricks go in: the contract, by whom, and
+   whether they are vulnerable. */
+.playing-now{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:2px 12px;
+  background:var(--card);border:2px solid var(--green);border-radius:12px;padding:8px 12px}
+.now-label{grid-row:1 / span 2;font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--green-d)}
+.now-contract{font-size:34px;line-height:1;font-weight:800}
+.now-who{grid-column:2;font-size:13px;color:var(--dim)}
+.now-who em{font-style:normal;color:var(--red);font-weight:700}
+.now-edit{grid-column:3;grid-row:1 / span 2;font-size:12.5px;color:var(--dim);text-decoration:underline;text-underline-offset:3px;padding:6px 2px}
+.part{display:flex;flex-direction:column;gap:8px}
+.card-contract{text-align:center;font-size:30px;font-weight:800;line-height:1.1}
+.card-contract small{display:block;font-size:13px;font-weight:500;color:var(--paper-dim)}
