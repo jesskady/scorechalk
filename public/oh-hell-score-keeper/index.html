@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1c2723">
+<title>Oh Hell Score Keeper — Free Online Scoring for Oh Hell &amp; Up and Down the River</title>
+<!-- visits, and errors on these pages: see /report.js -->
+<script src="/report.js?v=1"></script>
+<!-- Score Chalk as an app: installable, and working offline (see /pwa.js) -->
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="Score Chalk">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="A free Oh Hell score keeper: enter each player's bid and the tricks they took, and only an exact bid scores, 10 plus 1 a trick. Thirteen hands, up and down the river, kept from every phone.">
+<link rel="canonical" href="https://scorechalk.com/oh-hell-score-keeper/">
+<meta property="og:site_name" content="Score Chalk">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://scorechalk.com/oh-hell-score-keeper/">
+<meta property="og:title" content="Oh Hell Score Keeper — Free Online Scoring for Oh Hell &amp; Up and Down the River">
+<meta property="og:description" content="A free Oh Hell score keeper: enter each player's bid and the tricks they took, and only an exact bid scores, 10 plus 1 a trick. Thirteen hands, up and down the river, kept from every phone.">
+<meta property="og:image" content="https://scorechalk.com/og/builder.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml">
+<link rel="icon" href="/icons/icon-192.png" sizes="192x192">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredericka+the+Great&display=swap">
+<link rel="stylesheet" href="/shared.css?v=39">
+<link rel="stylesheet" href="/guide.css?v=1">
+<script type="application/ld+json">[{"@context":"https://schema.org","@type":"WebApplication","name":"Score Chalk — Oh Hell score keeper","url":"https://scorechalk.com/oh-hell-score-keeper/","applicationCategory":"GameApplication","operatingSystem":"Any (web browser)","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"A free Oh Hell score keeper: enter each player's bid and the tricks they took, and only an exact bid scores, 10 plus 1 a trick. Thirteen hands, up and down the river, kept from every phone."},{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How do you score Oh Hell?","acceptedAnswer":{"@type":"Answer","text":"A player who takes exactly the tricks they bid scores 10 points plus 1 for each trick. A player who takes more or fewer scores nothing for the hand."}},{"@type":"Question","name":"How many hands are in Oh Hell?","acceptedAnswer":{"@type":"Answer","text":"A common game goes from one card up to seven and back down to one: thirteen hands. Some tables go higher, or only one way."}},{"@type":"Question","name":"What is the dealer's rule in Oh Hell?","acceptedAnswer":{"@type":"Answer","text":"The dealer bids last and usually can't make the bids add up to the number of tricks in the hand, so not everyone can make their bid."}},{"@type":"Question","name":"Is Oh Hell the same as Up and Down the River?","acceptedAnswer":{"@type":"Answer","text":"Yes: Oh Hell, Oh Heck, Blackout and Up and Down the River are names for the same exact-bid trick-taking game."}},{"@type":"Question","name":"Can I change the scoring to our house rules?","acceptedAnswer":{"@type":"Answer","text":"The number of hands can be changed and saved in the Builder. The scoring is the standard exact-bid one: 10 plus 1 a trick."}}]}]</script>
+<!-- Start is the one thing this page is for, so fetch the game page it opens
+     once the button is near the screen, and the tap lands at once. Prefetch,
+     not prerender: the game pages read saved games from storage on load.
+     Browsers without speculation rules ignore this. -->
+<script type="speculationrules">{"prefetch":[{"where":{"href_matches":["/builder/*","/darts/","/cribbage/","/yahtzee/","/magic/"]},"eagerness":"moderate"}]}</script>
+</head>
+<body class="guide">
+<!-- A scoring guide: written for people searching how to score Oh Hell,
+     with the way straight into the game. -->
+<main>
+  <a class="backlink mark" href="/" aria-label="All games"><span class="arrow" aria-hidden="true">&lsaquo;</span><img src="/favicon.svg?v=2" alt="" width="30" height="30"></a>
+  <section class="hero">
+    <span class="kicker">Score Chalk</span>
+    <h1>Oh Hell score keeper</h1>
+    <p class="lede">After every hand, enter each player's bid and the tricks they took. Only an exact bid scores, and Score Chalk adds it up over thirteen hands, up and down the river.</p>
+    <a class="start" href="/builder/#oh-hell">Start an Oh Hell game</a>
+    <span class="free">Free · no account · works on any phone</span>
+  </section>
+
+<h2>How Oh Hell scoring works</h2>
+<p>Oh Hell (also called Oh Heck, Blackout, or Up and Down the River) is played over a run of hands with a different number of cards each time: often <b>one card, up to seven, and back down to one</b>, thirteen hands in all. After the deal every player bids exactly how many tricks they will take. A player who takes <b>exactly their bid scores 10 points plus 1 a trick</b>. Anyone who takes more or fewer <b>scores nothing</b>. After the last hand, the highest total wins.</p>
+
+<h3>Scoring a hand</h3>
+<table><thead><tr><th>Bid</th><th>Took</th><th>Points</th></tr></thead><tbody><tr><td>0</td><td>0</td><td>10</td></tr><tr><td>3</td><td>3</td><td>13</td></tr><tr><td>3</td><td>2</td><td>0</td></tr><tr><td>2</td><td>4</td><td>0</td></tr></tbody></table>
+
+<h3>The dealer's bid</h3>
+<p>The dealer bids last, and in most games may not bid the number that would make all the bids add up to the tricks in the hand, so at least one player has to miss.</p>
+
+<h3>An example hand</h3>
+<p>In a five-card hand, Alex bids 2 and takes 2: 12. Jo bids 0 and takes none: 10. Sam bids 2 and takes 3, and Kim bids 1 and takes none, so they both score nothing.</p>
+<p class="note">Tables play it many ways: more or fewer hands, or a point off for each trick missed. The number of hands can be changed in the Builder; the scoring here is the exact-bid one.</p>
+
+  <h2>Keeping score with Score Chalk</h2>
+  <div class="features"><div class="feature"><b>Enter a hand in seconds</b>Bid and Took for each player, with a stepper for each. The hand's score shows before it goes in.</div><div class="feature"><b>Thirteen hands, counted for you</b>The sheet shows which hand you're on, and the game ends after the last one with the highest total the winner.</div><div class="feature"><b>A score sheet, as on paper</b>A row a hand and a column a player, with running totals. A hand that went in wrong can be changed later, and everything after it is worked out again.</div><div class="feature"><b>Undo</b>Entered a hand for the wrong player? Undo takes it back.</div><div class="feature"><b>Keep score together</b>Share the game and everyone joins from their own phone, picking which player they are. Everyone sees the whole table live, and someone can watch from anywhere with a read-only link.</div><div class="feature"><b>Free, nothing to install</b>Opens in any phone or computer browser. No account, no ads. Add it to your home screen and it works offline too.</div></div>
+
+  <h2>Questions</h2>
+  <details><summary>How do you score Oh Hell?</summary><p>A player who takes exactly the tricks they bid scores 10 points plus 1 for each trick. A player who takes more or fewer scores nothing for the hand.</p></details>
+  <details><summary>How many hands are in Oh Hell?</summary><p>A common game goes from one card up to seven and back down to one: thirteen hands. Some tables go higher, or only one way.</p></details>
+  <details><summary>What is the dealer's rule in Oh Hell?</summary><p>The dealer bids last and usually can't make the bids add up to the number of tricks in the hand, so not everyone can make their bid.</p></details>
+  <details><summary>Is Oh Hell the same as Up and Down the River?</summary><p>Yes: Oh Hell, Oh Heck, Blackout and Up and Down the River are names for the same exact-bid trick-taking game.</p></details>
+  <details><summary>Can I change the scoring to our house rules?</summary><p>The number of hands can be changed and saved in the Builder. The scoring is the standard exact-bid one: 10 plus 1 a trick.</p></details>
+
+  <p class="again"><a class="start" href="/builder/#oh-hell">Start an Oh Hell game</a></p>
+  <p class="others">Other scorekeepers: <a href="/spades-score-keeper/">Spades score keeper</a> <a href="/skyjo-score-keeper/">Skyjo score keeper</a> <a href="/rummikub-score-sheet/">Rummikub score sheet</a> <a href="/hearts-score-keeper/">Hearts score keeper</a> <a href="/phase-10-score-keeper/">Phase 10 score keeper</a> <a href="/five-crowns-score-keeper/">Five Crowns score keeper</a> <a href="/rummy-500-score-keeper/">Rummy 500 score keeper</a> <a href="/uno-score-keeper/">UNO score keeper</a> <a href="/euchre-score-keeper/">Euchre score keeper</a> <a href="/canasta-score-keeper/">Canasta score keeper</a> <a href="/cribbage-score-keeper/">Cribbage score keeper</a> <a href="/yahtzee-score-sheet/">Yahtzee score sheet</a> <a href="/farkle-score-sheet/">Farkle score sheet</a> <a href="/darts-scorer/">Darts scorer</a> <a href="/mtg-life-counter/">MTG life counter</a> <a href="/score-keeper/">Any game</a></p>
+</main>
+<script src="/pwa.js?v=1" defer></script>
+</body>
+</html>

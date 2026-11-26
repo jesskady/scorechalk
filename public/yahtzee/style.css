@@ -125,6 +125,7 @@ button.cell:active{background:var(--line)}
 .topbtns{display:flex;gap:6px}
 .tbtn{font-size:12.5px;font-weight:600;color:var(--dim);border:1px solid var(--line);border-radius:9px;padding:6px 10px}
 .tbtn:active{background:var(--card);color:var(--txt)}
+.tbtn.rules{text-decoration:none;min-width:30px;text-align:center;padding:6px 8px}
 
 /* a passing message, standing in for the title (see flash) */
 .topbar h1{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -202,3 +203,6 @@ button.cell:active{background:var(--line)}
 .entry-card.paper .entry-top b,.entry-card.paper .entry-hint,.entry-card.paper .entry-top small{color:var(--paper-ink)}
 .entry-card.paper .entry-hint,.entry-card.paper .entry-top small{color:var(--paper-dim)}
 .entry-card.paper .entry-x{color:var(--paper-dim)}
+/* on a phone the four top-bar buttons sit a little closer, so the name keeps its room */
+@media (max-width:420px){.topbtns{gap:4px}.tbtn{padding:6px 8px}.tbtn.rules{min-width:26px;padding:6px 7px}}
+@media (max-width:380px){.tbtn{padding:6px 6px}.topbar h1.room-title{font-size:16px}}

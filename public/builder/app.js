@@ -90,7 +90,9 @@ function sized(list, n) {
 function loadCfg(src) {
   const mine = src.startsWith('my:') ? {} : (loadJSON(RULES_KEY) || {})[src] || {};
   const teamOf = loadJSON(TEAMS_KEY);
-  const rules = { ...baseRules(src), ...mine };
+  // a game's own scoring (Spades, Skyjo) is part of the game, not a house
+  // rule: whatever was kept for it, it scores as its template does
+  const rules = { ...baseRules(src), ...mine, rule: baseRules(src).rule || '' };
   // copied, as they are changed in place: a template's own stay as they are
   rules.counters = (Array.isArray(rules.counters) ? rules.counters : []).map((k) => ({ ...k }));
   // a game opens with its own number of players, whatever the last one had
@@ -140,7 +142,7 @@ function newGame(c) {
     // live is decided here, so a game begun before there were live games
     // goes on being scored as it was
     cfg: { ...c, names, playerNames: players, members, playerTeams, quickKeys: parseQuick(c.quick).keys,
-           useRounds: rounds, turns: c.turns || rounds, live: isLive(c), pad: padOn(c) },
+           useRounds: rounds, turns: c.turns || rounds || !!ruleOf(c), live: !ruleOf(c) && isLive(c), pad: padOn(c) },
     scores: names.map(() => c.start),
     // each side's counters, by counter id; see counterOf
     counts: names.map(() => Object.fromEntries((c.counters || []).map((k) => [k.id, k.start]))),
@@ -156,6 +158,8 @@ function newGame(c) {
     edits: [],
     pend: 0,
     parts: [],        // what made pend: { label, d } per tap, for the breakdown
+    // a rule's entry being made: what happened this turn (see ROUND_RULES)
+    rin: ruleBlank(c.rule),
     sign: c.mode === 'down' ? -1 : 1,
     // the scoresheet, for a game taken in turns; the switch changes this
     // game only; a new game opens as chosen at Start (see PICKS), or here
@@ -170,13 +174,42 @@ function partsText(parts) {
   if (!parts || !parts.some((p) => p.label)) return '';
   const out = [];
   for (const p of parts) {
-    const text = p.label ? (p.d < 0 ? '−' : '') + p.label : signed(p.d);
+    // a rule's part says itself whether it was won or lost: "Bid 5, took 3: set"
+    const text = p.label ? (p.d < 0 && !p.said ? '−' : '') + p.label : signed(p.d);
     const last = out[out.length - 1];
     if (last && last.text === text) last.n++;
     else out.push({ text, n: 1 });
   }
   return out.map((o) => (o.n > 1 ? `${o.text} ×${o.n}` : o.text)).join(' · ');
 }
+
+/* A game scored by a rule (see ROUND_RULES) has its scores worked out from
+   every entry's `in`, again whenever anything changes: a score can depend
+   on the rest of its round, or on the game so far. */
+const ruleOn = () => !!(S && ruleOf(S.cfg));
+function rescore(st = S) {
+  if (!ruleOf(st.cfg)) return;
+  const res = ruleScores(st.cfg, st.log, st.cfg.names.length);
+  st.log.forEach((e, i) => { e.d = res[i].d; e.parts = res[i].parts; });
+  st.scores = st.cfg.names.map(() => st.cfg.start);
+  for (const e of st.log) st.scores[e.p] += e.d;
+}
+
+// What the entry being made would score, shown before it goes in: the
+// pad's total and its breakdown, for a new entry or one being changed.
+function ruleDraft() {
+  const p = entry ? entry.p : S.cur;
+  const i = entry && entry.i != null ? entry.i : null;
+  const log = S.log.map((e) => ({ p: e.p, in: e.in }));
+  const me = { p, in: { ...S.rin } };
+  if (i === null) log.push(me); else log[i] = me;
+  const res = ruleScores(S.cfg, log, S.cfg.names.length)[i === null ? log.length - 1 : i];
+  S.pend = res.d;
+  S.parts = res.parts;
+}
+// Skyjo's minus: on, the number typed is below zero, even before one is
+let cardsBelow = false;
+const freshRin = () => { S.rin = ruleBlank(S.cfg.rule); cardsBelow = false; };
 
 function loadJSON(k) {
   try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; }
@@ -400,7 +433,9 @@ window.addEventListener('hashchange', route);
 function openSetup(src) {
   source = src;
   cfg = loadCfg(src);
-  step = 'game';
+  // a ready-made game opens on its players; Custom walks the steps
+  editing = false;
+  step = src === 'custom' ? 'game' : 'players';
   renderTitle();
   renderPicker();
 
@@ -414,6 +449,14 @@ function renderTitle() {
   $('setupTitle').textContent = t ? t.label : g ? g.name : 'Score Chalk Builder';
   // not the rules: the Rules card shows those, as you've set them
   $('setupSub').textContent = t || g ? 'Add the players and start' : 'Build a scorekeeper for any game';
+  setGuide($('setupGuide'), source);
+}
+
+// a link to a game's scoring guide (see GUIDES in rules.js)
+function setGuide(a, src) {
+  const gd = guideOf(src);
+  a.href = gd.href;
+  a.textContent = gd.text;
 }
 
 function renderPicker() {
@@ -552,9 +595,26 @@ function renderSetup() {
     b.setAttribute('aria-checked', on);
   });
   renderCounterList();
+  renderRuleLimits();
 
   $('playersTab').textContent = String(n);
   showStep(step);
+}
+
+/* A game with scoring of its own (see ROUND_RULES) takes turns and counts
+   up, so the ways and endings that can't go with it are out of reach, as an
+   ending does for the direction. Its scoring is said in place of the
+   quick-score buttons, which it doesn't use. */
+function renderRuleLimits() {
+  const rule = ruleOf(cfg);
+  $('ruleCard').classList.toggle('hidden', !rule);
+  $('keysCard').classList.toggle('hidden', !!rule);
+  if (rule) $('ruleHint').textContent = rule.hint;
+  document.querySelectorAll('#turnsRow .way').forEach((b) => { b.disabled = !!rule && b.dataset.turns === '0'; });
+  if (rule) {
+    document.querySelectorAll('#modeRow .seg').forEach((b) => { if (b.dataset.mode === 'down') b.disabled = true; });
+    document.querySelectorAll('#winRow .seg').forEach((b, i) => { if (WIN_OPTS[i].id === 'zero') b.disabled = true; });
+  }
 }
 
 /* The setup's three steps, a screen each; the tabs reach any of them. The
@@ -564,10 +624,18 @@ function renderSetup() {
 const STEPS = ['game', 'players', 'scoring'];
 const STEP_NAMES = { game: 'Game', players: 'Players', scoring: 'Scoring' };
 let step = 'game';
+// A ready-made game opens on its players alone, its rules in a line; going
+// to any other step (Change the rules, or a problem found at Start) opens
+// the steps for the rest of this visit.
+let editing = false;
+const quickSetup = () => source !== 'custom' && !editing;
 
 function showStep(s) {
+  if (s !== 'players') editing = true;
   const moved = s !== step;
   step = s;
+  $('stages').classList.toggle('hidden', quickSetup());
+  $('quickRules').classList.toggle('hidden', !quickSetup());
   document.querySelectorAll('#stages .stage').forEach((b) => b.classList.toggle('is-on', b.dataset.step === s));
   document.querySelectorAll('#setup .pane').forEach((el) => el.classList.toggle('hidden', el.dataset.step !== s));
   const ready = source !== 'custom' && s === 'players';
@@ -583,6 +651,7 @@ $('stages').addEventListener('click', (e) => {
   if (b) showStep(b.dataset.step);
 });
 $('nextBtn').onclick = () => showStep(STEPS[STEPS.indexOf(step) + 1]);
+$('editRules').onclick = () => showStep('game');
 
 /* The counters on the setup screen, one row each: its name, where it
    starts, and what reaching a number does. Typing changes the rules
@@ -659,7 +728,7 @@ function saveCfg() {
   saveJSON(TEAMS_KEY, cfg.teamOf);
   if (source.startsWith('my:')) { renderRulesCard(); return; }
   const base = baseRules(source), mine = {};
-  for (const k of Object.keys(base)) if (!sameRule(cfg[k], base[k])) mine[k] = cfg[k];
+  for (const k of Object.keys(base)) if (k !== 'rule' && !sameRule(cfg[k], base[k])) mine[k] = cfg[k];
   const all = loadJSON(RULES_KEY) || {};
   if (Object.keys(mine).length) all[source] = mine; else delete all[source];
   saveJSON(RULES_KEY, all);
@@ -670,6 +739,9 @@ function renderRulesCard() {
   const t = TEMPLATES.find(t => t.id === source), g = myGame(source);
   const named = !!(t || g);              // custom is the one that isn't
   $('rulesText').textContent = describeRules(cfg);
+  // only when they differ from the game's own, not merely when some were kept
+  const own = rulesChanged();
+  $('quickText').textContent = (own ? 'Your rules: ' : '') + describeRules(cfg);
   $('rulesText').classList.toggle('hidden', !named);
 
   // Reset is always there, so a bumped button or dial can always be put
@@ -856,7 +928,7 @@ $('turnsRow').addEventListener('click', (e) => {
 $('pad').onclick = () => { cfg.pad = !padOn(cfg); saveCfg(); renderSetup(); };
 
 $('startBtn').onclick = async () => {
-  const usesPad = !isLive(cfg) || padOn(cfg);
+  const usesPad = !ruleOf(cfg) && (!isLive(cfg) || padOn(cfg));
   if (usesPad && !parseQuick(cfg.quick).keys.length && !cfg.typed) {
     flashSetup('Add at least one quick-score button, or switch on typed scores.', 'scoring');
     return;
@@ -1108,6 +1180,7 @@ function flashSetup(text, at) {
 
 function showGame() {
   show('game');
+  setGuide($('gameGuide'), S.cfg.source || 'custom');
   setRoom(themeOf(S.cfg));
   // only a game with no ending of its own needs telling when it is over
   const open = S.cfg.win === 'none' && !S.cfg.useRounds;
@@ -1368,10 +1441,106 @@ function buildPad() {
     pad.appendChild(b);
   }
   $('typedRow').classList.toggle('hidden', !S.cfg.typed);
+  const rule = ruleOn();
+  for (const id of ['quickpad', 'signRow', 'clearBtn']) $(id).classList.toggle('hidden', rule);
+  if (rule) $('typedRow').classList.add('hidden');
+  $('rulePad').classList.toggle('hidden', !rule);
+  if (rule) buildRulePad();
 }
+
+/* ---------------- a rule's pad ----------------
+
+   What happened this turn, for the rule to score: steppers for a bid and
+   the tricks taken, a box for what the cards or the rack add up to, and
+   switches for who ended the round or went out. Each change shows the
+   score it makes above, before Enter. */
+const stepper = (k, label) =>
+  `<div class="rp-row"><span>${label}</span><div class="stepper" data-k="${k}"><button type="button" data-d="-1" aria-label="${label} one less">&minus;</button><output></output><button type="button" data-d="1" aria-label="${label} one more">+</button></div></div>`;
+const numBox = (k, label, signed) =>
+  `<div class="rp-row"><span>${label}</span><div class="rp-num">${signed ? '<button type="button" class="sgn" data-neg aria-label="Below zero">&minus;</button>' : ''}<input data-k="${k}" type="number" inputmode="numeric" min="0" aria-label="${label}"></div></div>`;
+const segs = (k, opts) =>
+  `<div class="rp-segs" data-k="${k}">${opts.map(([v, t]) => `<button type="button" class="seg" data-v="${v}">${t}</button>`).join('')}</div>`;
+
+function buildRulePad() {
+  const r = S.cfg.rule, pad = $('rulePad');
+  if (!S.rin) freshRin();
+  if (r === 'spades') pad.innerHTML = stepper('bid', 'Bid') + stepper('took', 'Took') +
+    segs('nil', [['', 'No nil'], ['made', 'Nil made'], ['missed', 'Nil missed']]);
+  else if (r === 'ohhell') pad.innerHTML = stepper('bid', 'Bid') + stepper('took', 'Took');
+  else if (r === 'skyjo') pad.innerHTML = numBox('cards', 'Cards left add up to', true) +
+    segs('ended', [['', 'Didn\'t end it'], ['1', 'Ended the round']]) + '<p class="rp-note" id="rpNote"></p>';
+  else if (r === 'rummikub') pad.innerHTML = segs('out', [['', 'Still holding tiles'], ['1', 'Went out']]) +
+    numBox('rack', 'Tiles left add up to', false) + '<p class="rp-note" id="rpNote"></p>';
+}
+
+// The round the pad is entering, and who else has already ended it or gone
+// out in it: there is one of those a round.
+function rulePadRound() {
+  const p = entry ? entry.p : S.cur;
+  return entry ? entry.r : turnsBySide()[p].length + 1;
+}
+function takenBy(flag) {
+  const r = rulePadRound(), rounds = roundsOfLog();
+  const i = S.log.findIndex((e, k) => rounds[k] === r && e.in && e.in[flag] && !(entry && entry.i === k));
+  return i < 0 ? null : S.cfg.names[S.log[i].p];
+}
+
+function renderRulePad() {
+  const pad = $('rulePad'), rin = S.rin;
+  pad.querySelectorAll('.stepper').forEach((st) => { st.querySelector('output').textContent = rin[st.dataset.k]; });
+  pad.querySelectorAll('input[data-k]').forEach((inp) => {
+    const v = Math.abs(rin[inp.dataset.k]);
+    if (document.activeElement !== inp) inp.value = v ? v : '';
+    inp.placeholder = '0';
+    inp.disabled = inp.dataset.k === 'rack' && !!rin.out;
+  });
+  const neg = pad.querySelector('[data-neg]');
+  if (neg) neg.classList.toggle('is-on', cardsBelow);
+  pad.querySelectorAll('.rp-segs').forEach((g) => {
+    const k = g.dataset.k;
+    g.querySelectorAll('.seg').forEach((b) => {
+      const on = typeof rin[k] === 'boolean' ? rin[k] === !!b.dataset.v : rin[k] === b.dataset.v;
+      b.classList.toggle('is-on', on);
+    });
+  });
+  // one player ends the round, or goes out, each round
+  const flag = S.cfg.rule === 'skyjo' ? 'ended' : S.cfg.rule === 'rummikub' ? 'out' : null;
+  if (flag) {
+    const who = takenBy(flag);
+    const btn = pad.querySelector(`.rp-segs[data-k="${flag}"] [data-v="1"]`);
+    btn.disabled = !!who && !rin[flag];
+    $('rpNote').textContent = who ? `${who} ${flag === 'ended' ? 'ended' : 'went out in'} this round.`
+      : flag === 'ended' ? 'Doubled when the round is in, unless theirs is the lowest.' : 'Takes the other racks when the round is in.';
+  }
+}
+
+$('rulePad').addEventListener('click', (ev) => {
+  const b = ev.target.closest('button');
+  if (!b || !S || !ruleOn()) return;
+  const rin = S.rin;
+  const st = b.closest('.stepper');
+  if (st) rin[st.dataset.k] = Math.min(20, Math.max(0, rin[st.dataset.k] + Number(b.dataset.d)));
+  else if (b.hasAttribute('data-neg')) { cardsBelow = !cardsBelow; rin.cards = (cardsBelow ? -1 : 1) * Math.abs(rin.cards); }
+  else {
+    const g = b.closest('.rp-segs');
+    if (!g) return;
+    const k = g.dataset.k;
+    rin[k] = typeof ruleBlank(S.cfg.rule)[k] === 'boolean' ? !!b.dataset.v : b.dataset.v;
+    if (k === 'out' && rin.out) rin.rack = 0;
+  }
+  save(); render();
+});
+$('rulePad').addEventListener('input', (ev) => {
+  const inp = ev.target.closest('input[data-k]');
+  if (!inp || !S || !ruleOn()) return;
+  const v = Math.min(999, Math.round(Math.abs(Number(inp.value) || 0)));
+  S.rin[inp.dataset.k] = inp.dataset.k === 'cards' && cardsBelow ? -v : v;
+  save(); render();
+});
 
 function render() {
   const c = S.cfg, n = c.names.length;
+  if (ruleOn()) { if (!S.rin) freshRin(); ruleDraft(); renderRulePad(); }
   renderWinBar();
 
   // The round is the first that a side still in the game hasn't scored, as
@@ -1416,7 +1585,7 @@ function render() {
   // With nothing entered, a turn-based game scores 0 — a bust, a hole with
   // nothing on it — and play moves on. Without turns a 0 would change
   // nothing, so there is nothing to enter.
-  const zero = S.pend === 0, idle = zero && !c.turns;
+  const zero = S.pend === 0 && !ruleOn(), idle = zero && !c.turns;
   $('commitBtn').textContent = zero && c.turns
     ? `Score 0 for ${c.names[S.cur]}`
     : `Enter for ${c.names[S.cur]}`;
@@ -1424,7 +1593,7 @@ function render() {
   // changing a score: what it goes from and to, once it is different
   if (entry && entry.i != null) {
     const was = S.log[entry.i].d;
-    off = S.pend === was;
+    off = ruleOn() ? sameRule({ ...ruleBlank(c.rule), ...(S.log[entry.i].in || {}) }, S.rin) : S.pend === was;
     $('commitBtn').textContent = off ? 'No change yet' : `Change ${turnText(was)} → ${turnText(S.pend)}`;
   }
   $('commitBtn').disabled = off;
@@ -1486,8 +1655,10 @@ function commit(d) {
   const p = S.cur;
   if (!mayScore(p)) return;
   const crossedBefore = lineCrossed();
-  S.log.push({ p, d, cur: S.cur, parts: S.parts || [], ts: Date.now() });
-  S.scores[p] += d;
+  const e = { p, d, cur: S.cur, parts: S.parts || [], ts: Date.now() };
+  if (ruleOn()) { e.in = { ...S.rin }; freshRin(); }
+  S.log.push(e);
+  if (ruleOn()) rescore(); else S.scores[p] += d;
   S.pend = 0;
   S.parts = [];
   S.sign = S.cfg.mode === 'down' ? -1 : 1;
@@ -1538,12 +1709,13 @@ $('commitBtn').onclick = () => {
   if (Date.now() - lastCommit < 700) return;
   if (!S.pend && !S.cfg.turns) return;
   lastCommit = Date.now();
+  if (ruleOn()) ruleDraft();
   commit(S.pend);
 };
 
 $('undoBtn').onclick = () => {
   liveRun = null;   // whatever is taken back, the next tap starts afresh
-  if (S.pend || (S.parts && S.parts.length)) { S.pend = 0; S.parts = []; save(); render(); return; }
+  if (!ruleOn() && (S.pend || (S.parts && S.parts.length))) { S.pend = 0; S.parts = []; save(); render(); return; }
   const seat = SCShare.seat();
   const x = S.edits && S.edits[S.edits.length - 1];
   const editNext = !!x && x.after === S.log.length && (seat === null || x.p === seat);
@@ -1570,6 +1742,7 @@ $('undoBtn').onclick = () => {
     S.scores[t.p] += x.from - t.d;
     t.d = x.from;
     t.parts = x.fromParts;
+    if (x.fromIn) { t.in = x.fromIn; rescore(); }
     S.edits.pop();
     settleEnd();
     save(); render();
@@ -1587,6 +1760,7 @@ $('undoBtn').onclick = () => {
     S.edits = (S.edits || []).filter((y) => y.i !== j)
       .map((y) => ({ ...y, i: y.i > j ? y.i - 1 : y.i, after: y.after > j ? y.after - 1 : y.after }));
     S.clog = (S.clog || []).map((y) => ({ ...y, after: y.after > j ? y.after - 1 : y.after }));
+    rescore();
     if (S.endedAt && !result()) { S.endedAt = null; S.winnerIdx = null; }
     save(); render();
     flash(`Undid ${S.cfg.names[mine.p]} ${signed(mine.d)}`);
@@ -1596,6 +1770,7 @@ $('undoBtn').onclick = () => {
   if (!e) { flash('Nothing to undo'); return; }
   S.scores[e.p] -= e.d;
   S.cur = e.cur;
+  rescore();
   // changes to that score go with it
   if (S.edits) S.edits = S.edits.filter((y) => y.i < S.log.length);
   if (S.clog) S.clog.forEach((y) => { y.after = Math.min(y.after, S.log.length); });
@@ -1836,6 +2011,7 @@ function openEntry(p, r) {
   entry = { p, r };
   S.cur = p;
   S.pend = 0; S.parts = [];
+  if (ruleOn()) freshRin();
   S.sign = S.cfg.mode === 'down' ? -1 : 1;
   $('typedIn').value = '';
   save(); render();
@@ -1853,6 +2029,7 @@ function openEdit(i, sel) {
   entry = { p: e.p, r, i, sel };
   S.pend = e.d;
   S.parts = (e.parts || []).slice();
+  if (ruleOn()) { S.rin = { ...ruleBlank(S.cfg.rule), ...(e.in || {}) }; cardsBelow = S.rin.cards < 0; }
   S.sign = S.cfg.mode === 'down' ? -1 : 1;
   $('typedIn').value = '';
   render();
@@ -1878,15 +2055,18 @@ function roundsOfLog() {
    and Undo can take back. */
 async function changeTurn() {
   const { i, r } = entry, e = S.log[i];
+  if (ruleOn()) ruleDraft();
   const from = e.d, to = S.pend, name = S.cfg.names[e.p];
-  if (from === to) return;
+  const fromIn = e.in ? { ...e.in } : null;
+  if (ruleOn() ? sameRule(fromIn, S.rin) : from === to) return;
   const where = S.cfg.turns ? ` in round ${r}` : '';
   if (!(await askConfirm(`Change ${name}'s score${where} from ${turnText(from)} to ${turnText(to)}?`, 'Change'))) return;
   if (!S.edits) S.edits = [];
-  S.edits.push({ i, p: e.p, r, from, to, fromParts: e.parts || [], after: S.log.length, ts: Date.now() });
+  S.edits.push({ i, p: e.p, r, from, to, fromParts: e.parts || [], ...(fromIn ? { fromIn } : {}), after: S.log.length, ts: Date.now() });
   e.d = to;
   e.parts = S.parts;
   S.scores[e.p] += to - from;
+  if (ruleOn()) { e.in = { ...S.rin }; freshRin(); rescore(); }
   S.pend = 0; S.parts = [];
   settleEnd();
   save();
@@ -1922,6 +2102,7 @@ function closeEntry() {
   entry = null;
   $('entryOverlay').classList.add('hidden');
   $('game').insertBefore($('entry'), document.querySelector('#game .actions'));
+  if (S && ruleOn()) { freshRin(); S.pend = 0; S.parts = []; save(); render(); return; }
   if (S && (S.pend || (S.parts && S.parts.length))) { S.pend = 0; S.parts = []; save(); render(); }
 }
 
@@ -2125,7 +2306,7 @@ SCShare.attach({
       const out = {}, seen = [];
       for (const e of st.log) {
         const r = (seen[e.p] = (seen[e.p] || 0) + 1);
-        out[`${e.p}:${r}`] = { d: e.d, parts: e.parts || [], ...(e.ts ? { ts: e.ts } : {}) };
+        out[`${e.p}:${r}`] = { d: e.d, parts: e.parts || [], ...(e.in ? { in: e.in } : {}), ...(e.ts ? { ts: e.ts } : {}) };
       }
       st.cfg.names.forEach((_, p) => {
         for (const k of countersOf(st)) out[`${p}:c_${k.id}`] = { v: counterOf(st, p, k) };
@@ -2160,9 +2341,13 @@ function fromCells(base, list) {
       return;
     }
     const r = Number(rs);
-    if (r >= 1) log.push({ p, r, k, d: Number(value.d) || 0, parts: value.parts || [], ts: Number(value.ts) || 0 });
+    if (r >= 1) log.push({ p, r, k, d: Number(value.d) || 0, parts: value.parts || [], ts: Number(value.ts) || 0,
+      ...(value.in && typeof value.in === 'object' ? { in: value.in } : {}) });
   });
   log.sort((a, b) => a.r - b.r || a.k - b.k);
+  // A rule's scores come from what happened, worked out here as on every
+  // phone: a cell's own score may be from before the rest of its round.
+  if (ruleOf(c)) ruleScores(c, log, n).forEach((x, i) => { log[i].d = x.d; log[i].parts = x.parts; });
 
   const scores = c.names.map(() => c.start);
   for (const e of log) scores[e.p] += e.d;
@@ -2172,7 +2357,10 @@ function fromCells(base, list) {
   const edits = (base.edits || []).map((x) => ({ ...x, i: at(x.p, x.r) })).filter((x) => x.i >= 0);
   log.forEach((e, i) => {
     const was = before[`${e.p}:${e.r}`];
-    if (was && was.d !== e.d) edits.push({ i, p: e.p, r: e.r, from: was.d, to: e.d, fromParts: was.parts || [], after: log.length, ts: Date.now() });
+    // with a rule, a change is to what happened: a score moved by the rest
+    // of its round coming in is no change to it
+    const moved = ruleOf(c) ? was && !sameRule(was.in || null, e.in || null) : was && was.d !== e.d;
+    if (moved) edits.push({ i, p: e.p, r: e.r, from: was.d, to: e.d, fromParts: was.parts || [], ...(was.in ? { fromIn: was.in } : {}), after: log.length, ts: Date.now() });
   });
 
   // A counter that moved elsewhere goes in the history as a change, as one
@@ -2188,7 +2376,7 @@ function fromCells(base, list) {
 
   const st = {
     ...base,
-    log: log.map(({ p, d, parts, ts }) => ({ p, d, parts, cur: p, ...(ts ? { ts } : {}) })),
+    log: log.map(({ p, d, parts, ts, in: inp }) => ({ p, d, parts, cur: p, ...(inp ? { in: inp } : {}), ...(ts ? { ts } : {}) })),
     scores, counts, clog, edits, pend: 0, parts: [],
   };
 

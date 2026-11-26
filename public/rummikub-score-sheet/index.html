@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1c2723">
+<title>Rummikub Score Sheet — Free Online Rummikub Scoring</title>
+<!-- visits, and errors on these pages: see /report.js -->
+<script src="/report.js?v=1"></script>
+<!-- Score Chalk as an app: installable, and working offline (see /pwa.js) -->
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="Score Chalk">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="A free Rummikub score sheet: enter what each rack has left and who went out, and it scores the round. Every player loses their rack, the winner takes the total, and a joker counts 30. Kept from every phone.">
+<link rel="canonical" href="https://scorechalk.com/rummikub-score-sheet/">
+<meta property="og:site_name" content="Score Chalk">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://scorechalk.com/rummikub-score-sheet/">
+<meta property="og:title" content="Rummikub Score Sheet — Free Online Rummikub Scoring">
+<meta property="og:description" content="A free Rummikub score sheet: enter what each rack has left and who went out, and it scores the round. Every player loses their rack, the winner takes the total, and a joker counts 30. Kept from every phone.">
+<meta property="og:image" content="https://scorechalk.com/og/builder.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml">
+<link rel="icon" href="/icons/icon-192.png" sizes="192x192">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredericka+the+Great&display=swap">
+<link rel="stylesheet" href="/shared.css?v=39">
+<link rel="stylesheet" href="/guide.css?v=1">
+<script type="application/ld+json">[{"@context":"https://schema.org","@type":"WebApplication","name":"Score Chalk — Rummikub score sheet","url":"https://scorechalk.com/rummikub-score-sheet/","applicationCategory":"GameApplication","operatingSystem":"Any (web browser)","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"A free Rummikub score sheet: enter what each rack has left and who went out, and it scores the round. Every player loses their rack, the winner takes the total, and a joker counts 30. Kept from every phone."},{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How do you score Rummikub?","acceptedAnswer":{"@type":"Answer","text":"When a player goes out, every other player loses the total of the tiles left on their rack, and the player who went out scores the sum of all of them."}},{"@type":"Question","name":"How much is a joker worth in Rummikub?","acceptedAnswer":{"@type":"Answer","text":"A joker left on a rack counts 30 points against the player holding it."}},{"@type":"Question","name":"How do you win Rummikub?","acceptedAnswer":{"@type":"Answer","text":"Each round is won by going out first. Over several rounds, the player with the highest total wins."}},{"@type":"Question","name":"Can I play a set number of rounds?","acceptedAnswer":{"@type":"Answer","text":"Yes: the number of rounds can be fixed in the Builder, or play on and tap Finish when you stop."}}]}]</script>
+<!-- Start is the one thing this page is for, so fetch the game page it opens
+     once the button is near the screen, and the tap lands at once. Prefetch,
+     not prerender: the game pages read saved games from storage on load.
+     Browsers without speculation rules ignore this. -->
+<script type="speculationrules">{"prefetch":[{"where":{"href_matches":["/builder/*","/darts/","/cribbage/","/yahtzee/","/magic/"]},"eagerness":"moderate"}]}</script>
+</head>
+<body class="guide">
+<!-- A scoring guide: written for people searching how to score Rummikub,
+     with the way straight into the game. -->
+<main>
+  <a class="backlink mark" href="/" aria-label="All games"><span class="arrow" aria-hidden="true">&lsaquo;</span><img src="/favicon.svg?v=2" alt="" width="30" height="30"></a>
+  <section class="hero">
+    <span class="kicker">Score Chalk</span>
+    <h1>Rummikub score sheet</h1>
+    <p class="lede">When someone goes out, enter what's left on every other rack. Score Chalk takes each rack off its player and gives the total to the winner, a joker 30, round after round.</p>
+    <a class="start" href="/builder/#rummikub">Start a Rummikub game</a>
+    <span class="free">Free · no account · works on any phone</span>
+  </section>
+
+<h2>How Rummikub scoring works</h2>
+<p>A round of Rummikub ends when a player lays down their last tile. Everyone else adds up the tiles left on their rack, <b>each tile at its number and a joker at 30</b>, and <b>loses that many points</b>. The player who went out <b>scores the total</b> of everyone else's racks, so a round's scores always add up to zero. Play as many rounds as you agree, and the highest total wins.</p>
+
+<h3>Tile values</h3>
+<table><thead><tr><th>Tile</th><th>Points</th></tr></thead><tbody><tr><td>Number tile</td><td>Its number, 1 to 13</td></tr><tr><td>Joker</td><td>30</td></tr></tbody></table>
+
+<h3>An example round</h3>
+<p>Kim goes out. Alex has 12 left on their rack, Jo has a joker (30) and Sam has a 5. They score −12, −30 and −5, and Kim scores 47.</p>
+<p class="note">Some tables play to a target score or a set number of rounds. Rounds can be fixed in the Builder, or tap Finish whenever you stop.</p>
+
+  <h2>Keeping score with Score Chalk</h2>
+  <div class="features"><div class="feature"><b>Enter a round in seconds</b>Tap Went out for the winner, and type what each other rack adds up to. The winner's total fills in as the racks go in.</div><div class="feature"><b>Always adds up</b>Each rack comes off its player and goes to the winner, so nobody has to do the sum at the table.</div><div class="feature"><b>A score sheet, as on paper</b>A row a hand and a column a player, with running totals. A hand that went in wrong can be changed later, and everything after it is worked out again.</div><div class="feature"><b>Undo</b>Entered a hand for the wrong player? Undo takes it back.</div><div class="feature"><b>Keep score together</b>Share the game and everyone joins from their own phone, picking which player they are. Everyone sees the whole table live, and someone can watch from anywhere with a read-only link.</div><div class="feature"><b>Free, nothing to install</b>Opens in any phone or computer browser. No account, no ads. Add it to your home screen and it works offline too.</div></div>
+
+  <h2>Questions</h2>
+  <details><summary>How do you score Rummikub?</summary><p>When a player goes out, every other player loses the total of the tiles left on their rack, and the player who went out scores the sum of all of them.</p></details>
+  <details><summary>How much is a joker worth in Rummikub?</summary><p>A joker left on a rack counts 30 points against the player holding it.</p></details>
+  <details><summary>How do you win Rummikub?</summary><p>Each round is won by going out first. Over several rounds, the player with the highest total wins.</p></details>
+  <details><summary>Can I play a set number of rounds?</summary><p>Yes: the number of rounds can be fixed in the Builder, or play on and tap Finish when you stop.</p></details>
+
+  <p class="again"><a class="start" href="/builder/#rummikub">Start a Rummikub game</a></p>
+  <p class="others">Other scorekeepers: <a href="/spades-score-keeper/">Spades score keeper</a> <a href="/oh-hell-score-keeper/">Oh Hell score keeper</a> <a href="/skyjo-score-keeper/">Skyjo score keeper</a> <a href="/hearts-score-keeper/">Hearts score keeper</a> <a href="/phase-10-score-keeper/">Phase 10 score keeper</a> <a href="/five-crowns-score-keeper/">Five Crowns score keeper</a> <a href="/rummy-500-score-keeper/">Rummy 500 score keeper</a> <a href="/uno-score-keeper/">UNO score keeper</a> <a href="/euchre-score-keeper/">Euchre score keeper</a> <a href="/canasta-score-keeper/">Canasta score keeper</a> <a href="/cribbage-score-keeper/">Cribbage score keeper</a> <a href="/yahtzee-score-sheet/">Yahtzee score sheet</a> <a href="/farkle-score-sheet/">Farkle score sheet</a> <a href="/darts-scorer/">Darts scorer</a> <a href="/mtg-life-counter/">MTG life counter</a> <a href="/score-keeper/">Any game</a></p>
+</main>
+<script src="/pwa.js?v=1" defer></script>
+</body>
+</html>

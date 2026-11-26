@@ -37,7 +37,7 @@
 <link rel="stylesheet" href="../shared.css?v=39">
 <!-- the rooms a game can be played in; app.js sets data-room on the body -->
 <link rel="stylesheet" href="../themes.css?v=7">
-<link rel="stylesheet" href="style.css?v=48">
+<link rel="stylesheet" href="style.css?v=50">
 </head>
 <body data-room="workshop">
 
@@ -60,10 +60,17 @@
   </header>
 
 
+  <!-- A game whose rules are already made — a template, one of My games —
+       opens on its players with its rules in a line, and starts from there.
+       Its rules can still be changed: the link opens the steps below. -->
+  <div class="quick-rules hidden" id="quickRules">
+    <p id="quickText"></p>
+    <button type="button" class="linkish" id="editRules">Change the rules</button>
+  </div>
+
   <!-- Three steps, a screen each: what kind of game, who is playing, how it
-       scores. The tabs go to any of them; Next walks them in order. A game
-       whose rules are already made — a template, one of My games — can start
-       from the players. See showStep(). -->
+       scores. The tabs go to any of them; Next walks them in order. See
+       showStep(). -->
   <nav class="stages" id="stages">
     <button class="stage is-on" type="button" data-step="game"><i>1</i>Game</button>
     <button class="stage" type="button" data-step="players"><i>2</i>Players<b id="playersTab"></b></button>
@@ -192,7 +199,14 @@
     <small class="hint" id="winHint"></small>
   </div>
 
-  <div class="card">
+  <!-- A game with scoring of its own (Spades, Skyjo: see ROUND_RULES) says
+       how it scores instead of offering buttons; its pad asks what
+       happened in the hand. -->
+  <div class="card hidden" id="ruleCard">
+    <span class="field-label">How a hand is scored</span>
+    <small class="hint" id="ruleHint"></small>
+  </div>
+  <div class="card" id="keysCard">
     <!-- a live game (no turns) has − and + on each player; the buttons are
          a choice. A game taken in turns always has them. -->
     <button id="pad" class="toggle hidden" role="switch" aria-checked="false">
@@ -238,7 +252,7 @@
   <!-- signed in only; shown by renderRulesCard -->
   <button id="saveMine" class="ghost hidden">Save to My games</button>
   <!-- the scoring guide for this game, which links back here -->
-  <p class="guide-link"><a href="/score-keeper/">How to keep score for any game</a></p>
+  <p class="guide-link"><a id="setupGuide" href="/score-keeper/">How to keep score for any game</a></p>
 </section>
 
 <!-- ============ HOW TO SEE THE SCORES ============
@@ -309,6 +323,10 @@
     <button class="clear" id="clearBtn">Clear</button>
   </div>
 
+  <!-- a game scored by a rule: what happened this turn, which the rule
+       scores (see ROUND_RULES and buildRulePad) -->
+  <div class="rulepad hidden" id="rulePad"></div>
+
   <div class="quickpad" id="quickpad"></div>
 
   <div class="typedrow" id="typedRow">
@@ -333,6 +351,8 @@
 
   <!-- the entries so far, on the room's paper -->
   <div class="history paper" id="history"></div>
+  <!-- the rules, for a question mid-game; the game is kept, and Back returns -->
+  <p class="guide-link"><a id="gameGuide" href="/score-keeper/">How to keep score for any game</a></p>
 </section>
 
 <!-- ============ SCORING A CELL ============ -->
@@ -390,13 +410,13 @@
 </div>
 
 <script src="/account.js?v=29" defer></script>
-<script src="rules.js?v=15"></script>
+<script src="rules.js?v=18"></script>
 <script src="/awake.js?v=1"></script>
 <script src="/store.js?v=3"></script>
 <script src="/share.js?v=12"></script>
 <script src="/cloud.js?v=3"></script>
 <script src="/roster.js?v=1"></script>
-<script src="app.js?v=61"></script>
+<script src="app.js?v=65"></script>
 <script src="/pwa.js?v=1" defer></script>
 </body>
 </html>

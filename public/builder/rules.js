@@ -49,7 +49,113 @@ function defaultRules() {
     // Counters kept beside the score and changed at any time with − and +,
     // not on a turn: a gear bonus, poison. See below.
     counters: [],
+    // How a hand is scored: '' for points entered as they are, or one of
+    // ROUND_RULES, a game's own scoring: what happened is entered and the
+    // rule scores it. Only the games made for one have one (Spades, Skyjo…).
+    rule: '',
   };
+}
+
+/* ---------------- round rules ----------------
+
+   Some games aren't scored by adding up points but by what happened in the
+   hand: a bid made or missed, who went out. With a rule, each side's turn
+   enters that (its `in`), and the rule works out the score. Scores are
+   worked out again from every round's `in` whenever anything changes — an
+   entry, a change to one, an undo, a score from another phone — because a
+   rule can look across a round (who went out collects the others' racks)
+   or back over the game (Spades' bags). Everything else in the game (the
+   sheet, sharing, undo, the profile) sees only the scores, as for any game.
+
+   A rule needs turns and counts up. Teams play as one side, so a team's bid
+   is the partners' together. */
+const ROUND_RULES = [
+  { id: 'spades', label: 'Bids and tricks: Spades', short: 'scored by bids and tricks, with bags',
+    hint: 'Enter the bid and the tricks taken. Made: 10 a trick bid, and 1 for each extra (a bag); every 10 bags cost 100. Short: lose 10 a trick bid. A nil is 100 made, or 100 lost.' },
+  { id: 'ohhell', label: 'Bids and tricks: Oh Hell', short: 'only an exact bid scores',
+    hint: 'Enter the bid and the tricks taken. Exactly the bid scores 10 and 1 a trick; anything else scores nothing.' },
+  { id: 'skyjo', label: 'Cards left, ender doubled: Skyjo', short: 'cards left, the ender doubled unless lowest',
+    hint: 'Enter what the cards left add up to, and who turned over their last card. If that player doesn\'t have the lowest, their round is doubled.' },
+  { id: 'rummikub', label: 'Winner takes the racks: Rummikub', short: 'the one who goes out takes the racks',
+    hint: 'Enter what each rack has left (a joker is 30) and who went out. Each player loses their rack, and the one who went out wins them all.' },
+];
+
+const ruleOf = (c) => ROUND_RULES.find((r) => r.id && r.id === (c && c.rule)) || null;
+
+// what a turn's entry starts at, before anything is changed
+function ruleBlank(rule) {
+  if (rule === 'spades') return { bid: 0, took: 0, nil: '' };
+  if (rule === 'ohhell') return { bid: 0, took: 0 };
+  if (rule === 'skyjo') return { cards: 0, ended: false };
+  if (rule === 'rummikub') return { rack: 0, out: false };
+  return {};
+}
+
+/* Every entry's score and its breakdown, from the entries' `in`. log is the
+   game's entries in order, each { p, in }; an entry's round is how many its
+   side has had, it included, as on the sheet. A round is complete once
+   every side has had it (sides is how many there are). Returns [{ d, parts }]. */
+function ruleScores(c, log, sides) {
+  const rule = c.rule, seen = [];
+  const round = log.map((e) => (seen[e.p] = (seen[e.p] || 0) + 1));
+  const out = log.map((e) => ({ d: e.d || 0, parts: e.parts || [] }));
+  const inOf = (e) => ({ ...ruleBlank(rule), ...(e.in || {}) });
+
+  if (rule === 'spades' || rule === 'ohhell') {
+    const bags = {};
+    log.forEach((e, i) => {
+      if (!e.in) return;
+      const { bid, took, nil } = inOf(e);
+      const parts = [];
+      if (rule === 'ohhell') {
+        const d = took === bid ? 10 + bid : 0;
+        parts.push({ said: true, label: took === bid ? `Bid ${bid}, made it` : `Bid ${bid}, took ${took}`, d });
+        out[i] = { d, parts };
+        return;
+      }
+      let d;
+      if (took >= bid) {
+        const was = bags[e.p] || 0, now = was + (took - bid);
+        bags[e.p] = now;
+        d = 10 * bid + (took - bid);
+        parts.push({ said: true, label: took > bid ? `Bid ${bid}, took ${took} (bags ${now})` : `Bid ${bid}, made it`, d });
+        const lost = Math.floor(now / 10) - Math.floor(was / 10);
+        if (lost > 0) { parts.push({ said: true, label: '10 bags', d: -100 * lost }); d -= 100 * lost; }
+      } else {
+        d = -10 * bid;
+        parts.push({ said: true, label: `Bid ${bid}, took ${took}: set`, d });
+      }
+      if (nil === 'made') { parts.push({ said: true, label: 'Nil made', d: 100 }); d += 100; }
+      if (nil === 'missed') { parts.push({ said: true, label: 'Nil missed', d: -100 }); d -= 100; }
+      out[i] = { d, parts };
+    });
+    return out;
+  }
+
+  if (rule === 'skyjo' || rule === 'rummikub') {
+    const byRound = {};
+    log.forEach((e, i) => { if (e.in) (byRound[round[i]] = byRound[round[i]] || []).push(i); });
+    for (const ids of Object.values(byRound)) {
+      const done = ids.length >= sides;
+      for (const i of ids) {
+        const me = inOf(log[i]);
+        if (rule === 'skyjo') {
+          const raw = me.cards;
+          // doubled only when it would cost them: a round at 0 or below stays
+          const beaten = ids.some((j) => j !== i && inOf(log[j]).cards <= raw);
+          if (me.ended && done && raw > 0 && beaten) out[i] = { d: raw * 2, parts: [{ said: true, label: 'Ended the round, not lowest: doubled', d: raw * 2 }] };
+          else out[i] = { d: raw, parts: me.ended ? [{ label: 'Ended the round', d: raw }] : [] };
+        } else if (me.out) {
+          const won = ids.filter((j) => j !== i && !inOf(log[j]).out).reduce((s, j) => s + inOf(log[j]).rack, 0);
+          out[i] = { d: won, parts: [{ said: true, label: done ? 'Went out, takes the racks' : 'Went out (racks still coming)', d: won }] };
+        } else {
+          out[i] = { d: -me.rack, parts: [] };
+        }
+      }
+    }
+    return out;
+  }
+  return out;
 }
 
 /* ---------------- counters ----------------
@@ -187,7 +293,55 @@ const TEMPLATES = [
       counters: [{ id: 'phase', name: 'Phases done', start: 0, end: 'win', at: 10 }],
       theme: 'living',
     } },
+  // Spades: two partnerships, each hand scored from the side's bid and the
+  // tricks it took (see ROUND_RULES), first to 500.
+  { id: 'spades', label: 'Spades',
+    rules: {
+      ...defaultRules(), name: 'Spades', win: 'target', target: 500, rule: 'spades',
+      typed: false, signs: false, turns: true, teams: true, teamCount: 2, players: 4,
+      theme: 'parlor',
+    } },
+  // Oh Hell: everyone bids each hand, and only an exact bid scores. Played
+  // up and down the river, one card to seven and back: thirteen hands.
+  { id: 'oh-hell', label: 'Oh Hell',
+    rules: {
+      ...defaultRules(), name: 'Oh Hell', win: 'none', useRounds: true, rounds: 13, rule: 'ohhell',
+      typed: false, signs: false, turns: true, players: 4,
+      theme: 'parlor',
+    } },
+  // Skyjo: the cards left count against you, the player who ended the round
+  // is doubled unless lowest, and when anyone reaches 100 the lowest wins.
+  { id: 'skyjo', label: 'Skyjo',
+    rules: {
+      ...defaultRules(), name: 'Skyjo', win: 'low', target: 100, rule: 'skyjo',
+      typed: false, signs: false, turns: true, players: 4,
+      theme: 'living',
+    } },
+  // Rummikub: the player who goes out takes everyone's rack, and the others
+  // lose theirs. Played for as many rounds as the table likes, then Finish.
+  { id: 'rummikub', label: 'Rummikub',
+    rules: {
+      ...defaultRules(), name: 'Rummikub', win: 'none', rule: 'rummikub',
+      typed: false, signs: false, turns: true, players: 4,
+      theme: 'living',
+    } },
 ];
+
+/* Each game's scoring guide, which links back to it: a template's own, and
+   the page for any game otherwise (Custom, My games). Linked from the setup
+   and from the game itself. */
+const GUIDES = {
+  farkle: '/farkle-score-sheet/', canasta: '/canasta-score-keeper/', uno: '/uno-score-keeper/',
+  euchre: '/euchre-score-keeper/', hearts: '/hearts-score-keeper/', 'rummy-500': '/rummy-500-score-keeper/',
+  'five-crowns': '/five-crowns-score-keeper/', 'phase-10': '/phase-10-score-keeper/',
+  spades: '/spades-score-keeper/', 'oh-hell': '/oh-hell-score-keeper/', skyjo: '/skyjo-score-keeper/',
+  rummikub: '/rummikub-score-sheet/',
+};
+function guideOf(src) {
+  const t = TEMPLATES.find((x) => x.id === src);
+  return t && GUIDES[t.id] ? { href: GUIDES[t.id], text: `How ${t.label} scoring works` }
+    : { href: '/score-keeper/', text: 'How to keep score for any game' };
+}
 
 /* Quick-score text → the keys it describes, plus whatever could not be read.
 
@@ -235,7 +389,9 @@ function describeRules(c) {
   if (c.win === 'zero') parts.push(`Start at ${num(c.start)}, out at 0`);
   else if (c.start !== 0) parts.push(`${c.mode === 'down' ? 'counts down from' : 'starts at'} ${num(c.start)}`);
   if (c.teams) parts.push(`${c.teamCount || 2} teams`);
-  const live = isLive(c), pad = !live || padOn(c);
+  const rule = ruleOf(c);
+  if (rule) parts.push(rule.short);
+  const live = isLive(c), pad = !rule && (!live || padOn(c));
   const keys = pad ? parseQuick(c.quick).keys : [];
   if (keys.length) parts.push(`keys ${keys.map(keyText).join(', ')}`);
   const counters = c.counters || [];

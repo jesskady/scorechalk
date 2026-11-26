@@ -669,3 +669,28 @@ button.cell:active{background:var(--line)}
   color:var(--on-primary,#fff);background:var(--green-d);border-radius:999px;padding:3px 8px}
 .pick-text{font-size:13px;line-height:1.4;color:var(--dim);padding:0 4px}
 .pick-note{text-align:center;font-size:13.5px;line-height:1.45;color:var(--dim);margin-top:14px;padding:0 8px}
+
+/* A game scored by a rule: what happened, entered as it happened (a bid and
+   the tricks taken, the cards left), and the rule's score shown above. */
+.rulepad{display:flex;flex-direction:column;gap:8px}
+.rp-row{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  background:var(--card);border:1px solid var(--line);border-radius:11px;padding:6px 6px 6px 14px}
+.rp-row > span{font-size:15px;font-weight:600}
+.stepper{display:flex;align-items:center;gap:6px}
+.stepper button{width:46px;height:42px;border-radius:9px;font-size:22px;font-weight:700;
+  background:var(--bg2);border:1px solid var(--line);color:var(--txt)}
+.stepper button:active{background:var(--green-d);border-color:var(--green)}
+.stepper output{min-width:42px;text-align:center;font-size:22px;font-weight:800;font-variant-numeric:tabular-nums}
+.rp-num{display:flex;align-items:center;gap:6px}
+.rp-num input{width:96px;height:42px;text-align:center;font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+.rp-num .sgn{width:42px;height:42px}
+.rp-segs{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:6px}
+.rp-segs .seg{padding:11px 4px;font-size:14px}
+.rp-note{margin:-2px 2px 0;font-size:12px;color:var(--dim)}
+/* a ready-made game's rules in a line, over its players, with the way to
+   change them */
+.quick-rules{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;margin:-4px 0 4px}
+.quick-rules.hidden{display:none}
+.quick-rules p{margin:0;font-size:13px;line-height:1.45;color:var(--dim);max-width:46ch}
+.linkish{background:none;border:0;padding:6px 8px;font:inherit;font-size:14px;font-weight:600;color:var(--txt);
+  text-decoration:underline;text-underline-offset:3px;cursor:pointer}

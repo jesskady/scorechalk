@@ -321,6 +321,94 @@ describe('Builder, live', () => {
     await ph.close();
   });
 
+  /* Games scored by a rule: what happened in the hand goes in, and the rule
+     scores it. A person taps steppers and switches, and types a number. */
+  const ruleCell = async (pg, p, r) => { await pg.click(`#sheet button.cell[data-p="${p}"][data-r="${r}"]`); await wait(300); };
+  const step = (pg, k, n) => pg.evaluate((k, n) => { for (let i = 0; i < Math.abs(n); i++) document.querySelector(`#rulePad .stepper[data-k="${k}"] [data-d="${Math.sign(n)}"]`).click(); }, k, n);
+  const seg = (pg, k, v) => pg.click(`#rulePad .rp-segs[data-k="${k}"] [data-v="${v}"]`);
+  const typeIn = async (pg, k, v) => { await pg.click(`#rulePad input[data-k="${k}"]`, { clickCount: 3 }); await pg.type(`#rulePad input[data-k="${k}"]`, String(v)); };
+  const enter = async (pg) => { await pg.click('#commitBtn'); await wait(800); };
+  const ruleGame = async (pg, id, names) => {
+    await open(pg, `/builder/#${id}`);
+    await pg.evaluate((n) => { cfg.names = n; cfg.players = n.length; saveCfg(); renderSetup(); }, names);
+    await startGame(pg);
+  };
+
+  test('Spades: bids and tricks scored, bags cost 100 at ten, and a nil', async () => {
+    const pg = await phone();
+    await ruleGame(pg, 'spades', ['Ann', 'Bob', 'Cy', 'Di']);
+    assert.deepEqual(await pg.evaluate(() => S.cfg.names), ['Ann & Cy', 'Bob & Di']);
+    for (let r = 1; r <= 5; r++) {
+      await ruleCell(pg, 0, r); await step(pg, 'bid', 4); await step(pg, 'took', 6);
+      if (r === 1) assert.equal(await pg.evaluate(() => pendAmt.textContent), '+42', 'the hand shows its score before it goes in');
+      await enter(pg);
+      await ruleCell(pg, 1, r); await step(pg, 'bid', 5); await step(pg, 'took', 3);
+      if (r === 1) await seg(pg, 'nil', 'made');
+      await enter(pg);
+    }
+    // four hands of 42, then the fifth's two bags make ten: 42 − 100
+    assert.deepEqual(await pg.evaluate(() => S.scores), [4 * 42 - 58, 50 - 4 * 50]);
+    assert.match(await pg.evaluate(() => partsText(S.log[8].parts)), /10 bags/);
+    assert.deepEqual(pg.errors, []);
+    await pg.close();
+  });
+
+  test('Skyjo: whoever ends the round is doubled unless lowest, and a change scores the round again', async () => {
+    const pg = await phone();
+    await ruleGame(pg, 'skyjo', ['Ann', 'Bob', 'Cy']);
+    await ruleCell(pg, 0, 1); await typeIn(pg, 'cards', 10); await seg(pg, 'ended', '1'); await enter(pg);
+    await ruleCell(pg, 1, 1);
+    assert.equal(await pg.$eval('#rulePad .rp-segs[data-k="ended"] [data-v="1"]', (b) => b.disabled), true, 'one player ends a round');
+    await typeIn(pg, 'cards', 8); await enter(pg);
+    await ruleCell(pg, 2, 1); await pg.click('#rulePad [data-neg]'); await typeIn(pg, 'cards', 3); await enter(pg);
+    assert.deepEqual(await pg.evaluate(() => S.scores), [20, 8, -3], 'Ann ended on 10, not lowest: 20');
+
+    // Bob's 8 was really 11, and Cy's −3 was 15: now Ann was lowest
+    await ruleCell(pg, 1, 1); await typeIn(pg, 'cards', 11); await enter(pg); await pg.click('#confirmYes'); await wait(500);
+    await ruleCell(pg, 2, 1); await pg.click('#rulePad [data-neg]'); await typeIn(pg, 'cards', 15); await enter(pg); await pg.click('#confirmYes'); await wait(500);
+    assert.deepEqual(await pg.evaluate(() => S.scores), [10, 11, 15]);
+    await pg.click('#undoBtn'); await wait(300);
+    assert.deepEqual(await pg.evaluate(() => S.scores), [20, 11, -3], 'Undo puts Cy back, and Ann is doubled again');
+    assert.deepEqual(pg.errors, []);
+    await pg.close();
+  });
+
+  test('Rummikub: the one who went out takes the racks; Oh Hell: only an exact bid scores', async () => {
+    const pg = await phone();
+    await ruleGame(pg, 'rummikub', ['Ann', 'Bob', 'Cy']);
+    await ruleCell(pg, 0, 1); await typeIn(pg, 'rack', 12); await enter(pg);
+    await ruleCell(pg, 1, 1); await seg(pg, 'out', '1'); await enter(pg);
+    await ruleCell(pg, 2, 1);
+    assert.match(await pg.evaluate(() => rpNote.textContent), /Bob went out/);
+    await typeIn(pg, 'rack', 30); await enter(pg);
+    assert.deepEqual(await pg.evaluate(() => S.scores), [-12, 42, -30]);
+    await pg.close();
+
+    const oh = await phone();
+    await ruleGame(oh, 'oh-hell', ['Ann', 'Bob']);
+    assert.match(await oh.evaluate(() => roundBadge.textContent), /of 13/);
+    await ruleCell(oh, 0, 1); await step(oh, 'bid', 2); await step(oh, 'took', 2); await enter(oh);
+    await ruleCell(oh, 1, 1); await step(oh, 'bid', 1); await enter(oh);
+    assert.deepEqual(await oh.evaluate(() => S.scores), [12, 0]);
+    assert.deepEqual(oh.errors, []);
+    await oh.close();
+  });
+
+  test('a game with scoring of its own says so in place of the buttons, and keeps to turns', async () => {
+    const pg = await phone();
+    await open(pg, '/builder/#spades');
+    await pg.click('#editRules'); await wait(100);
+    await pg.evaluate(() => showStep('scoring'));
+    assert.equal(await pg.$eval('#keysCard', (e) => e.classList.contains('hidden')), true, 'no quick-score buttons to set');
+    assert.match(await pg.evaluate(() => ruleHint.textContent), /bag/);
+    await pg.evaluate(() => showStep('game'));
+    assert.equal(await pg.$eval('#turnsRow .way[data-turns="0"]', (b) => b.disabled), true);
+    // and Custom has no such scoring to choose
+    await open(pg, '/builder/');
+    assert.equal(await pg.$('#ruleRow'), null);
+    await pg.close();
+  });
+
   test('the setup offers the buttons only for a live game', async () => {
     const pg = await phone();
     await open(pg, '/builder/');
@@ -344,7 +432,7 @@ describe('the Builder setup, in steps', () => {
     start: !startBtn.classList.contains('hidden'),
   }));
 
-  test('Custom walks Game, Players, Scoring; a template can start from the players', async () => {
+  test('Custom walks Game, Players, Scoring; a template opens on its players, with a way to its rules', async () => {
     const pg = await phone();
     await open(pg, '/builder/');
     assert.deepEqual(await shown(pg), { pane: 'game', next: 'Next: Players', start: false });
@@ -353,11 +441,18 @@ describe('the Builder setup, in steps', () => {
     await pg.click('#nextBtn'); await wait(100);
     assert.deepEqual(await shown(pg), { pane: 'scoring', next: null, start: true });
 
+    // a template opens on its players, its rules in a line, ready to start
     await open(pg, '/builder/#farkle');
+    assert.deepEqual(await shown(pg), { pane: 'players', next: null, start: true });
+    assert.equal(await pg.$eval('#stages', (e) => e.classList.contains('hidden')), true, 'no steps to walk');
+    assert.match(await pg.evaluate(() => quickText.textContent), /First to 10,000/);
+    assert.equal(await pg.evaluate(() => setupGuide.getAttribute('href')), '/farkle-score-sheet/', 'its own scoring guide');
+    // and its rules can still be changed: the link opens the steps
+    await pg.click('#editRules'); await wait(100);
     assert.deepEqual(await shown(pg), { pane: 'game', next: 'Next: Players', start: false });
+    assert.equal(await pg.$eval('#quickRules', (e) => e.classList.contains('hidden')), true);
     await pg.click('#nextBtn'); await wait(100);
     assert.deepEqual(await shown(pg), { pane: 'players', next: null, start: true });
-    assert.match(await pg.evaluate(() => rulesText.textContent), /First to 10,000/);
     assert.deepEqual(pg.errors, []);
     await pg.close();
   });
