@@ -164,6 +164,15 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
 }
 .roster.sorting li:not(.dragging){transition:transform .15s}
 
+/* ---------- Edit game (/editgame.js) ----------
+   A sheet over the game, on the game's own .overlay and .win-card: the
+   players' list in it is the .roster above. Ten players scroll inside it,
+   so Save stays on the screen. */
+.edit-game{z-index:20}
+.edit-game .win-card h2{color:var(--txt);font-size:22px}
+.edit-game .edit-hint{font-size:14px;line-height:1.4}
+.edit-game .roster{text-align:left;max-height:calc(100vh - 280px);max-height:calc(100dvh - 280px);overflow-y:auto}
+
 /* ---------- a setup screen: a little room to breathe ---------- */
 /* Setup screens (#setup, and Magic's #formats) are menus, not play, so
    they can take a little more height than the game screens, which have to
