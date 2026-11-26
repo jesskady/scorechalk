@@ -19,6 +19,9 @@ changing those areas.
   IndexNow (Bing and others) which pages changed.
 - **After changing a page, run `npm run sitemap`** and commit the sitemap. The
   list of pages is `scripts/pages.mjs`; a new public page goes there too.
+- **After changing how a game or the home page looks, run `npm run store-shots`**
+  and commit what it writes: the manifest's screenshots (Chrome's install
+  dialog, app stores, PWA directories) and the shortcut icons.
 - **Commit straight to `main`** is the norm here. Push and deploy only when the
   owner asks.
 
