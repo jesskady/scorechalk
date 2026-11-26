@@ -28,7 +28,12 @@ changing those areas.
   and commit what it writes: the manifest's screenshots (Chrome's install
   dialog, app stores, PWA directories) and the shortcut icons.
 - **Commit straight to `main`** is the norm here. Push and deploy only when the
-  owner asks.
+  owner asks, and "deploy" means both: after `npm run deploy` (and its
+  sitemap commit), push `main` to GitHub too, without asking. The scheduled
+  agents read GitHub, so a deploy left unpushed has them checking old code
+  against the new live site.
+- **Run the full suite only before a deploy**, not after every small local
+  change; check those in the browser on `npm run dev` instead.
 
 ## How the site should behave
 
