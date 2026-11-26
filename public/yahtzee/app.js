@@ -149,28 +149,46 @@ function renderYou() {
   SCShare.youAre($('youRow'), names, setupMe, (i) => { setupMe = i; SCShare.rememberMe(i); renderYou(); });
 }
 
+const saveNames = () => { try { localStorage.setItem(NAMES_KEY, JSON.stringify(setupNames)); } catch (e) {} };
+
 function renderSetup() {
   $('pCount').textContent = setupN;
   $('pMinus').disabled = setupN <= 1;
   $('pPlus').disabled = setupN >= MAX_PLAYERS;
-  const box = $('names');
-  box.classList.toggle('one', setupN === 1);
-  box.innerHTML = '';
+  const list = $('names');
+  list.innerHTML = '';
   for (let i = 0; i < setupN; i++) {
+    const li = document.createElement('li');
+    const num = document.createElement('i');
+    num.textContent = `${i + 1}.`;
     const inp = document.createElement('input');
     inp.type = 'text'; inp.maxLength = 14; inp.autocomplete = 'off';
+    inp.className = 'roster-name';
     inp.placeholder = `Player ${i + 1}`;
     inp.value = setupNames[i] || '';
-    inp.addEventListener('input', () => {
-      setupNames[i] = inp.value;
-      try { localStorage.setItem(NAMES_KEY, JSON.stringify(setupNames)); } catch (e) {}
-      renderYou();
-    });
-    box.appendChild(inp);
+    inp.setAttribute('aria-label', `Player ${i + 1}'s name`);
+    inp.addEventListener('input', () => { setupNames[i] = inp.value; saveNames(); renderYou(); });
+    // a grip, to drag the player up or down the list (see /roster.js)
+    li.append(num, inp, SCRoster.grip(`Move ${(setupNames[i] || '').trim() || `Player ${i + 1}`}`));
+    list.appendChild(li);
   }
   renderYou();
   $('resumeBtn').classList.toggle('hidden', !load());
 }
+
+/* The order of the list is the order of play. You are goes with the name
+   it was on; the names kept past tonight's count stay where they are. */
+SCRoster.sortable($('names'), (from, to) => {
+  while (setupNames.length < setupN) setupNames.push('');
+  setupNames.splice(to, 0, setupNames.splice(from, 1)[0]);
+  if (setupMe !== null) {
+    const order = setupNames.map((_, i) => i);
+    order.splice(to, 0, order.splice(from, 1)[0]);
+    setupMe = order.indexOf(setupMe);
+    SCShare.rememberMe(setupMe);
+  }
+  saveNames(); renderSetup();
+});
 
 $('pMinus').onclick = () => { if (setupN > 1) { setupN--; renderSetup(); } };
 $('pPlus').onclick = () => { if (setupN < MAX_PLAYERS) { setupN++; renderSetup(); } };
@@ -228,8 +246,12 @@ function buildSheet() {
   // The rows: the player tiles, then the boxes sharing the height that is
   // left (never under 26px), the totals only as tall as their text.
   sheet.style.gridTemplateRows = ['auto', ...ROWS.map((r) => (r.total ? 'auto' : 'minmax(26px, 1fr)'))].join(' ');
+  // The corner, beside the names: Edit, for the players' order and names,
+  // changed in a sheet of their own (see editGame), as the top bar has no
+  // room left. Someone only watching has no use for it.
+  const edit = SCShare.watching ? '' : '<button class="edit-btn" id="editBtn">Edit</button>';
+  let html = `<div class="corner">${edit}</div>`;
   // a player's tile is just their name: the grand total is at the bottom
-  let html = '<div class="corner"></div>';
   S.names.forEach((name, p) => {
     html += `<button class="ptile" data-p="${p}"><span class="pname">${esc(name)}</span></button>`;
   });
@@ -247,6 +269,7 @@ function buildSheet() {
 }
 
 $('sheet').addEventListener('click', (e) => {
+  if (e.target.closest('#editBtn')) { editGame(); return; }
   const tile = e.target.closest('.ptile');
   // a phone that joined by seat keeps its own column picked out
   if (tile) { if (SCShare.seat() === null) { S.sel = Number(tile.dataset.p); save(); render(); } return; }
@@ -471,6 +494,44 @@ $('entryClose').onclick = closeEntry;
 $('entryOverlay').addEventListener('click', (e) => { if (e.target === $('entryOverlay')) closeEntry(); });
 $('entryEmpty').onclick = () => { setBox(entry.p, entry.id, null); done('Box emptied'); };
 
+/* ---------------- editing the game ----------------
+
+   Players can be put in another order, and renamed, once the game has
+   started (see /editgame.js). Everything the game keeps per player is kept
+   by their place, so all of it moves together: their boxes, their extra
+   Yahtzees, Undo's list, whose turn it is, the column picked out and who
+   You are. The turn stays with whoever had it, and passes on in the new
+   order; a game shared with other phones stays as it is, as they know the
+   players by their place too. */
+
+async function editGame() {
+  const locked = SCStore.get(S.id)?.share
+    ? 'This game is shared with other phones, which know the players by their place, so the players can’t be moved or renamed now.'
+    : null;
+  const got = await SCEditGame.open({ names: S.names, locked });
+  if (!got) return;
+  const moved = got.order.some((from, i) => from !== i);
+  const renamed = got.names.some((name, i) => name !== S.names[got.order[i]]);
+  if (!moved && !renamed) return;
+  reorder(got.order);
+  S.names = got.names;
+  save(); buildSheet(); render();
+  flash(moved ? `${S.names[S.cur]}'s turn` : 'Names changed');
+}
+
+// order[i] is the place the player now i-th had before.
+function reorder(order) {
+  const at = [];
+  order.forEach((from, i) => { at[from] = i; });
+  const where = (p) => (Number.isInteger(p) ? at[p] : p);
+  S.cells = order.map((from) => S.cells[from]);
+  S.ybonus = order.map((from) => S.ybonus[from]);
+  S.log = S.log.map((e) => ({ ...e, p: where(e.p), cur: where(e.cur), sel: where(e.sel) }));
+  S.cur = where(S.cur);
+  S.sel = where(S.sel);
+  S.me = where(S.me);
+}
+
 /* ---------------- undo, new game ---------------- */
 
 $('undoBtn').onclick = () => {
@@ -573,7 +634,8 @@ function toPayload() {
     game_type: 'yahtzee',
     config: { players: S.names.length },
     started_at: S.startedAt,
-    me_idx: 0,
+    // who You are, picked at the setup; No one leaves it to the first player
+    me_idx: Number.isInteger(S.me) ? S.me : 0,
     ended_at: S.over ? Date.now() : null,
     winner_idx: S.over && winners.length === 1 ? winners[0] : null,
     players: S.names.map((name, idx) => ({ idx, name })),

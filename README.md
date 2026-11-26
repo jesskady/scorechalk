@@ -84,7 +84,8 @@ public/
   shared.css      palette, reset and shared controls, used by every page
   themes.css      the rooms a game is played in: Parlor, Living Room, Workshop
   account.js      account bubble, injected into every page
-  roster.js       dragging a players' list into order: Tournaments, Builder
+  roster.js       dragging a players' list into order: Tournaments, Builder, Yahtzee
+  editgame.js     Edit game: a started game's players moved and renamed, in a sheet
   account/
     index.html    your profile: darts statistics, game history, My games
     profile.js
@@ -206,6 +207,7 @@ each other every few seconds, and the tests wait as a person would.
 | `sharing.mjs` | joining by seat, scoring only your own, scoring at once, the same cell from two phones, counters and live scores between phones, watching, Yahtzee |
 | `darts.mjs` | turns round the table by seat, darts mid-turn kept, a win reaching every phone |
 | `cribbage.mjs` | pegging by seat and at once, counting your own hand |
+| `yahtzee.mjs` | the players put in order at the setup, and moved and renamed mid-game with Edit: their scores, the turn, Undo and You going with them |
 | `server.mjs` | who may write, link cards, error reports, the daily job, the policy pages |
 | `offline.mjs` | every game opening with no signal, a game in progress by its link |
 | `tournament.mjs` | the draw, a match played in darts and its result read back, an undo, results set by hand, the home page |

@@ -41,9 +41,7 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 .step{width:44px;height:40px;border-radius:10px;font-size:22px;font-weight:700;background:var(--bg2);border:1px solid var(--line)}
 .step:active{border-color:var(--green)}
 .step:disabled{opacity:.35}
-.names{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.names input{padding:10px;font-size:15px}
-.names.one{grid-template-columns:1fr}
+#names{margin-top:4px}
 
 /* ---------- The sheet ----------
    A grid like the paper one: box names down the left, a column per player.
@@ -76,7 +74,10 @@ body.playing .acct{display:none}
 .corner{background:var(--card);border-left:none}
 /* the box names stay put while the player columns scroll under them */
 .lab,.corner{position:sticky;left:0;z-index:1;box-shadow:1px 0 0 var(--line)}
-.corner{z-index:3}
+.corner{z-index:3;display:flex;align-items:center;justify-content:center}
+/* Edit, in the corner: a quiet button like the top bar's */
+.edit-btn{font-size:12.5px;font-weight:600;color:var(--dim);border:1px solid var(--line);border-radius:9px;padding:4px 10px}
+.edit-btn:active{background:var(--bg2);color:var(--txt)}
 
 .ptile{
   background:var(--bg2);padding:8px 3px 6px;display:flex;flex-direction:column;align-items:center;justify-content:center;

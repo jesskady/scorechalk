@@ -24,6 +24,7 @@ await import('./builder.mjs');
 await import('./sharing.mjs');
 await import('./darts.mjs');
 await import('./cribbage.mjs');
+await import('./yahtzee.mjs');
 await import('./server.mjs');
 await import('./offline.mjs');
 await import('./tournament.mjs');
