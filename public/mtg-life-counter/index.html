@@ -31,6 +31,11 @@
 <link rel="stylesheet" href="/shared.css?v=37">
 <link rel="stylesheet" href="/guide.css?v=1">
 <script type="application/ld+json">[{"@context":"https://schema.org","@type":"WebApplication","name":"Score Chalk — MTG life counter","url":"https://scorechalk.com/mtg-life-counter/","applicationCategory":"GameApplication","operatingSystem":"Any (web browser)","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"A free Magic: The Gathering life counter for two to six players, with poison and commander damage. How life, poison and commander damage work, and how to track a whole pod on one phone."},{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How much life do you start with in Commander?","acceptedAnswer":{"@type":"Answer","text":"40 life. Most other formats start at 20."}},{"@type":"Question","name":"How much commander damage kills you?","acceptedAnswer":{"@type":"Answer","text":"21 combat damage from a single commander over the course of the game."}},{"@type":"Question","name":"How many poison counters does it take to lose?","acceptedAnswer":{"@type":"Answer","text":"Ten."}},{"@type":"Question","name":"How many players does it support?","acceptedAnswer":{"@type":"Answer","text":"Two to six, arranged around the screen."}}]}]</script>
+<!-- Start is the one thing this page is for, so fetch the game page it opens
+     once the button is near the screen, and the tap lands at once. Prefetch,
+     not prerender: the game pages read saved games from storage on load.
+     Browsers without speculation rules ignore this. -->
+<script type="speculationrules">{"prefetch":[{"where":{"href_matches":["/builder/*","/darts/","/cribbage/","/yahtzee/","/magic/"]},"eagerness":"moderate"}]}</script>
 </head>
 <body class="guide">
 <!-- A scoring guide: written for people searching how to score Magic,

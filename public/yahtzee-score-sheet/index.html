@@ -31,6 +31,11 @@
 <link rel="stylesheet" href="/shared.css?v=37">
 <link rel="stylesheet" href="/guide.css?v=1">
 <script type="application/ld+json">[{"@context":"https://schema.org","@type":"WebApplication","name":"Score Chalk — Yahtzee score sheet","url":"https://scorechalk.com/yahtzee-score-sheet/","applicationCategory":"GameApplication","operatingSystem":"Any (web browser)","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"A free online Yahtzee score sheet that adds up as you go, upper bonus and Yahtzee bonuses included. How Yahtzee scoring works, box by box, and how to fill in one sheet from every phone."},{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How do you get the Yahtzee upper bonus?","acceptedAnswer":{"@type":"Answer","text":"Score 63 or more across Aces to Sixes — three of each number makes exactly 63 — and you get a 35-point bonus."}},{"@type":"Question","name":"What happens if you roll a second Yahtzee?","acceptedAnswer":{"@type":"Answer","text":"If your Yahtzee box already has 50, each extra Yahtzee earns a 100-point bonus, and you also score it in another box."}},{"@type":"Question","name":"What is the highest possible Yahtzee score?","acceptedAnswer":{"@type":"Answer","text":"1,575 — with every box at its best and twelve Yahtzee bonuses — though real games rarely pass 400."}},{"@type":"Question","name":"How many players can it handle?","acceptedAnswer":{"@type":"Answer","text":"From one to ten, each with their own column."}}]}]</script>
+<!-- Start is the one thing this page is for, so fetch the game page it opens
+     once the button is near the screen, and the tap lands at once. Prefetch,
+     not prerender: the game pages read saved games from storage on load.
+     Browsers without speculation rules ignore this. -->
+<script type="speculationrules">{"prefetch":[{"where":{"href_matches":["/builder/*","/darts/","/cribbage/","/yahtzee/","/magic/"]},"eagerness":"moderate"}]}</script>
 </head>
 <body class="guide">
 <!-- A scoring guide: written for people searching how to score Yahtzee,
