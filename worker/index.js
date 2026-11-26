@@ -101,7 +101,7 @@ function finish(request, url, res) {
 
   if (out.status === 200 && request.method === 'GET' && !p.startsWith('/api/') && !p.startsWith('/auth/')) {
     if (url.searchParams.has('v')) h.set('cache-control', 'public, max-age=31536000, immutable');
-    else if (p.startsWith('/icons/') || p.startsWith('/og/') || p === '/favicon.svg') {
+    else if (p.startsWith('/icons/') || p.startsWith('/og/') || p.startsWith('/screenshots/') || p === '/favicon.svg') {
       h.set('cache-control', 'public, max-age=2592000');
     }
   }

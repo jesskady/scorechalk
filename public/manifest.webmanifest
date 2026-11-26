@@ -8,16 +8,27 @@
   "display": "standalone",
   "background_color": "#1c2723",
   "theme_color": "#1c2723",
+  "categories": ["games", "utilities"],
   "icons": [
     { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
     { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
+  "screenshots": [
+    { "src": "/screenshots/home-narrow.png", "sizes": "780x1688", "type": "image/png", "form_factor": "narrow", "label": "Every game, by room: darts and card games in the Parlor, Yahtzee, cribbage and Magic in the Living Room" },
+    { "src": "/screenshots/darts-narrow.png", "sizes": "780x1688", "type": "image/png", "form_factor": "narrow", "label": "Darts, 501 double out, with the checkout worked out for you" },
+    { "src": "/screenshots/cribbage-narrow.png", "sizes": "780x1688", "type": "image/png", "form_factor": "narrow", "label": "Cribbage on a pegboard, scored with a tap" },
+    { "src": "/screenshots/yahtzee-narrow.png", "sizes": "780x1688", "type": "image/png", "form_factor": "narrow", "label": "The Yahtzee score sheet for three players, totals and bonus kept for you" },
+    { "src": "/screenshots/magic-narrow.png", "sizes": "780x1688", "type": "image/png", "form_factor": "narrow", "label": "A four-player Magic: The Gathering commander game: life, poison and commander damage" },
+    { "src": "/screenshots/home-wide.png", "sizes": "1920x1200", "type": "image/png", "form_factor": "wide", "label": "Every game, by room: darts and card games in the Parlor, Yahtzee, cribbage and Magic in the Living Room" },
+    { "src": "/screenshots/darts-wide.png", "sizes": "1920x1200", "type": "image/png", "form_factor": "wide", "label": "Darts, 501 double out, with the checkout worked out for you" },
+    { "src": "/screenshots/yahtzee-wide.png", "sizes": "1920x1200", "type": "image/png", "form_factor": "wide", "label": "The Yahtzee score sheet for three players, totals and bonus kept for you" }
+  ],
   "shortcuts": [
-    { "name": "Darts", "url": "/darts/", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
-    { "name": "Cribbage", "url": "/cribbage/", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
-    { "name": "Yahtzee", "url": "/yahtzee/", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
-    { "name": "Magic", "url": "/magic/", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
-    { "name": "Builder", "url": "/builder/", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
+    { "name": "Darts", "url": "/darts/", "icons": [{ "src": "/icons/shortcuts/darts.png", "sizes": "192x192", "type": "image/png" }] },
+    { "name": "Cribbage", "url": "/cribbage/", "icons": [{ "src": "/icons/shortcuts/cribbage.png", "sizes": "192x192", "type": "image/png" }] },
+    { "name": "Yahtzee", "url": "/yahtzee/", "icons": [{ "src": "/icons/shortcuts/yahtzee.png", "sizes": "192x192", "type": "image/png" }] },
+    { "name": "Magic", "url": "/magic/", "icons": [{ "src": "/icons/shortcuts/magic.png", "sizes": "192x192", "type": "image/png" }] },
+    { "name": "Builder", "url": "/builder/", "icons": [{ "src": "/icons/shortcuts/builder.png", "sizes": "192x192", "type": "image/png" }] }
   ]
 }

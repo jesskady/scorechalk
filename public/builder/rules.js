@@ -148,6 +148,45 @@ const TEMPLATES = [
       typed: false, signs: false, turns: false, pad: true, teams: true, teamCount: 2, players: 4,
       theme: 'parlor',
     } },
+  // Hearts: points are bad. After each hand everyone takes 1 a heart and 13
+  // for the Queen of spades; a player who takes them all shoots the moon and
+  // everyone else takes 26. When anyone reaches 100, the lowest score wins.
+  { id: 'hearts', label: 'Hearts',
+    rules: {
+      ...defaultRules(), name: 'Hearts', win: 'low', target: 100,
+      quick: 'Queen of spades 13, Shot the moon 26',
+      typed: true, signs: false, turns: true, players: 4,
+      theme: 'parlor',
+    } },
+  // Rummy 500: each hand, melds count for you and cards left in hand
+  // against, so a hand's score can go below nothing. First to 500.
+  { id: 'rummy-500', label: 'Rummy 500',
+    rules: {
+      ...defaultRules(), name: 'Rummy 500', win: 'target', target: 500,
+      quick: 'Ace 15, Ten or face card 10',
+      typed: true, signs: true, turns: true, players: 3,
+      theme: 'parlor',
+    } },
+  // Five Crowns: eleven rounds, threes to kings, and each round the cards
+  // left in hand count against you, wild cards 20 and Jokers 50. After the
+  // eleventh, the lowest total wins.
+  { id: 'five-crowns', label: 'Five Crowns',
+    rules: {
+      ...defaultRules(), name: 'Five Crowns', win: 'low', useRounds: true, rounds: 11,
+      quick: 'Wild card 20, Joker 50',
+      typed: true, signs: false, turns: true, players: 4,
+      theme: 'living',
+    } },
+  // Phase 10: the cards left in hand count against you, and a counter keeps
+  // each player's phase. The first to complete all ten wins.
+  { id: 'phase-10', label: 'Phase 10',
+    rules: {
+      ...defaultRules(), name: 'Phase 10', win: 'none',
+      quick: 'Card 1–9 5, Card 10–12 10, Skip 15, Wild 25',
+      typed: true, signs: false, turns: true, players: 4,
+      counters: [{ id: 'phase', name: 'Phases done', start: 0, end: 'win', at: 10 }],
+      theme: 'living',
+    } },
 ];
 
 /* Quick-score text → the keys it describes, plus whatever could not be read.
@@ -188,7 +227,9 @@ const keyText = (k) => (k.label ? `${k.label} ${num(k.v)}` : num(k.v));
 function describeRules(c) {
   const parts = [`${c.players || 2} player${(c.players || 2) === 1 ? '' : 's'}`];
   const r = roundsOn(c);
-  if (c.win === 'none') parts.push(r ? `${c.rounds} rounds, highest wins` : 'Just keep score');
+  // a counter that wins the game is the finish line: it's said with the counters
+  const counterWins = (c.counters || []).some((k) => k.end === 'win');
+  if (c.win === 'none' && (r || !counterWins)) parts.push(r ? `${c.rounds} rounds, highest wins` : 'Just keep score');
   if (c.win === 'target') parts.push(`First to ${num(c.target)}`);
   if (c.win === 'low') parts.push(r ? `${c.rounds} rounds, lowest wins` : `Ends at ${num(c.target)}, lowest wins`);
   if (c.win === 'zero') parts.push(`Start at ${num(c.start)}, out at 0`);
