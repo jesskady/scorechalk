@@ -137,11 +137,13 @@ export async function saveGame(request, env) {
     ).bind(body.id, ...body.players.flatMap((p, i) => [p.idx, counts[i]]))
   );
 
+  // each place's name, and which is you, as the game has them now: a game
+  // can be edited, its players moved and renamed (see /editgame.js)
   for (const p of body.players) {
     stmts.push(
       env.DB.prepare(
         `INSERT INTO game_players (game_id, idx, name, user_id) VALUES (?, ?, ?, ?)
-         ON CONFLICT(game_id, idx) DO UPDATE SET name = excluded.name`
+         ON CONFLICT(game_id, idx) DO UPDATE SET name = excluded.name, user_id = excluded.user_id`
       ).bind(body.id, p.idx, p.name, p.idx === (body.me_idx ?? 0) ? uid : null)
     );
   }
