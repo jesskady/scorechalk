@@ -549,6 +549,9 @@ function buildBoard() {
     leaveGame();
   });
 
+  // back to the board, the game kept over: its history, and changes to it
+  $('keepBtn').addEventListener('click', () => $('winOverlay').classList.add('hidden'));
+
   $('rematchBtn').addEventListener('click', () => {
     if (tid()) { leaveGame(); return; }    // Back to tournament: see showWin
     SCStore.remove(S.id);      // finished, and on the profile when signed in
@@ -827,22 +830,25 @@ function thrown(t) {
 
 /* A checkout is offered, not declared, as in the Builder's live games:
    the bar says who checked out, Undo takes it back if it wasn't, and End
-   game ends the game, with the result. */
+   game ends the game, with the result. Ended and back at the board, the bar
+   stays, its button the result again, as in the Builder. */
 function renderWinBar(G) {
   const w = G.winner;
-  const on = w !== null && !S.over && !fixing;
+  const on = w !== null && !fixing;
   $('winBar').classList.toggle('hidden', !on);
   if (!on) return;
   $('winBarText').innerHTML = '';
-  $('winBarText').append(`${S.names[w]} checked out!`);
+  $('winBarText').append(S.over ? `${S.names[w]} wins!` : `${S.names[w]} checked out!`);
   const small = document.createElement('small');
-  small.textContent = 'Undo if that wasn’t the finish.';
+  small.textContent = S.over ? 'The game is over. Undo takes it back, or change a turn in History.' : 'Undo if that wasn’t the finish.';
   $('winBarText').append(small);
+  $('winBarBtn').textContent = S.over ? 'See results' : 'End game';
 }
 
 function endGame() {
   const G = play();
   if (G.winner === null) return;
+  if (S.over) { showWin(); return; }    // See results
   S.over = true;
   S.winner = G.winner;
   save();
@@ -891,8 +897,8 @@ const labels = (darts) => (darts || []).map((d) => d.label).join(' ') || 'no dar
 
 /* The game's history for Edit's History (see /editgame.js): every turn,
    its darts and the score it left, and any change made to one since, in
-   its place. A turn can be tapped to change it (see fixTurn) until the game
-   is over. */
+   its place. A turn can be tapped to change it (see fixTurn), the game
+   over or not. */
 function historyRows() {
   const G = play(), rows = [];
   const changes = (n) => S.edits.filter((x) => x.after === n).map((x) => ({
@@ -903,7 +909,7 @@ function historyRows() {
   rows.push(...changes(0));
   S.log.forEach((e, i) => {
     const t = G.turns[i];
-    const edit = !S.over && !SCShare.watching && SCShare.canScore(e.p) ? () => fixTurn(i) : null;
+    const edit = !SCShare.watching && SCShare.canScore(e.p) ? () => fixTurn(i) : null;
     rows.push({
       who: S.names[e.p],
       what: (e.darts || []).map((d) => d.label).join(' '),
@@ -926,7 +932,8 @@ let fixing = null;    // { i, keep: { darts, mult } } while a turn is changed
 
 function fixTurn(i) {
   const e = S.log[i];
-  if (!e || S.over) return;
+  if (!e) return;
+  $('winOverlay').classList.add('hidden');
   if (fixing) cancelFix();
   fixing = { i, keep: { darts: S.darts, mult: S.mult } };
   S.darts = (e.darts || []).map((d) => ({ ...d }));
@@ -953,11 +960,26 @@ function saveFix(bust) {
   const n = play(S, i + 1).turns[i].n;
   endFix();
   if (JSON.stringify(from) === JSON.stringify(to)) { render(); return; }
+  const had = play().winner;
   S.edits.push({ i, p: e.p, n, from, to, after: S.log.length, ts: Date.now() });
   S.log[i] = { p: e.p, darts: to.darts, ...(to.bust ? { bust: true } : {}), ts: e.ts };
-  render(); save();
   const G = play();
-  say(G.winner !== null && !S.over ? `${S.names[G.winner]} checked out!` : `${S.names[e.p]}'s turn ${n} changed`);
+  // the checkout gone, the turn that stood on it is done: play passes on
+  if (had !== null && G.winner === null) passTurn();
+  settleEnd(G);
+  render(); save();
+  if (S.over) { showWin(); return; }
+  say(G.winner !== null ? `${S.names[G.winner]} checked out!` : `${S.names[e.p]}'s turn ${n} changed`);
+}
+
+/* A game ended with End game, a turn changed since: still over while
+   someone has checked out, its winner whoever did first now, as Yahtzee's
+   and the Builder's results follow a change; open again when no one has,
+   and play goes on. */
+function settleEnd(G) {
+  if (!S.over) return;
+  if (G.winner === null) { S.over = false; S.winner = null; return; }
+  S.winner = G.winner;
 }
 
 /* The turn passes to the next player who has thrown the fewest turns, so a
@@ -1184,7 +1206,7 @@ function render() {
   renderCheckout(t.after, opened);
   renderWinBar(G);
   renderFixBar(t);
-  $('checkout').classList.toggle('hidden-by-bar', !!fixing || (G.winner !== null && !S.over));
+  $('checkout').classList.toggle('hidden-by-bar', !!fixing || G.winner !== null);
 
   // submit button
   const btn = $('submitBtn');

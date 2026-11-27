@@ -72,7 +72,7 @@ Because every turn is entered dart by dart, both rules are checked against the a
 - Running turn count and three-dart average for each player.
 - **Bust** voids the turn: it scores nothing, whatever darts have been entered, and play passes. The app already busts a turn automatically when the arithmetic says so — this is for the cases it can't see, like a bounce-out, a mis-entry, or a throw out of turn. The turn still counts toward the player's turn count and average, exactly as an automatic bust does. No confirmation, since **Undo turn** reverses it cleanly.
 - **Undo turn** rolls back the last completed turn (or clears a turn in progress, or takes back a change made to a turn). **Undo turn** and **New game** both ask for confirmation first, naming exactly what's about to be lost.
-- A turn already thrown can be changed from **Edit → History**: the pad takes that turn's darts, and the bar over it says whose turn is being changed and where it now goes. Saved, the rest of the game follows — a later turn may now bust, or the change may be the checkout.
+- A turn already thrown can be changed from **Edit → History**: the pad takes that turn's darts, and the bar over it says whose turn is being changed and where it now goes. Saved, the rest of the game follows — a later turn may now bust, or the change may be the checkout. It works after **End game** too (**Back to the board** on the result): the result follows the change, and a game no one has checked out of any more opens again.
 - Tap the other player's card to switch whose turn it is if you mis-tapped (two-player games).
 - The game is saved to `localStorage`, so closing the tab won't lose it — you'll be offered **Resume** next time.
 
@@ -234,7 +234,7 @@ each other every few seconds, and the tests wait as a person would.
 | `links.mjs` | games by id and link; several of a kind at once; the old keys moving in |
 | `builder.mjs` | the setup's steps, rounds under Take turns; the sheet, scoring in its bubble, changing a score and undoing it, flip, the board's rows; counters: taps, Undo, Out at and Wins at, setup; live scoring, with and without buttons |
 | `sharing.mjs` | joining by seat, scoring only your own, scoring at once, the same cell from two phones, counters and live scores between phones, watching, Yahtzee |
-| `darts.mjs` | turns round the table by seat, darts mid-turn kept, a checkout reaching every phone; a game in the first shape opening as it was; a turn changed from History, a later turn busting or checking out; a checkout offered, undone and ended |
+| `darts.mjs` | turns round the table by seat, darts mid-turn kept, a checkout reaching every phone; a game in the first shape opening as it was; a turn changed from History, a later turn busting or checking out, and after End game, the game opening again; a checkout offered, undone and ended |
 | `cribbage.mjs` | pegging by seat and at once, counting your own hand |
 | `yahtzee.mjs` | the players put in order at the setup, and moved and renamed mid-game with Edit: their scores, the turn, Undo and You going with them |
 | `editing.mjs` | the order set at the setup in Darts, Cribbage and Magic; Edit in those, the Builder (teams too) and Bridge: what moves with a player, and where the order stays put; a new order part-way through a round: the warning on Save, and no one playing twice in a round; History in Edit, newest first, in a locked game too; a score changed from History in Yahtzee, the Builder and Bridge, and Undo taking the change back |

@@ -136,6 +136,20 @@ describe('Darts, worked out from its turns', () => {
     assert.deepEqual(await pg.evaluate(() => [play().winner, S.over, !winBar.classList.contains('hidden')]), [0, false, true]);
     await pg.click('#winBarBtn'); await wait(300);
     assert.deepEqual(await pg.evaluate(() => [S.over, S.winner, toPayload().winner_idx, !winOverlay.classList.contains('hidden')]), [true, 0, 0, true]);
+
+    // in post: back to the board, the bar now the result's; the checkout
+    // changed to a 19 is no checkout, so the game opens again and play goes
+    // on (each has thrown two: a new round, from the top)
+    await pg.click('#keepBtn'); await wait(200);
+    assert.deepEqual(await pg.evaluate(() => [winBarText.textContent, winBarBtn.textContent]),
+      ['Ann wins!The game is over. Undo takes it back, or change a turn in History.', 'See results']);
+    await changeTurn(pg, '20 → 0', ['S19']);
+    assert.deepEqual(await scores(pg), [1, 99]);
+    assert.deepEqual(await pg.evaluate(() => [S.over, S.winner, toPayload().ended_at, winOverlay.classList.contains('hidden'), S.names[S.cur]]),
+      [false, null, null, true, 'Ann']);
+    // and changed back, the checkout is offered again
+    await changeTurn(pg, '20 → 1', ['S20']);
+    assert.deepEqual(await pg.evaluate(() => [play().winner, S.over, !winBar.classList.contains('hidden')]), [0, false, true]);
     assert.deepEqual(pg.errors, []);
     await pg.close();
   });
@@ -155,6 +169,10 @@ describe('Darts, worked out from its turns', () => {
     await pg.click('#submitBtn'); await wait(300);
     await pg.click('#winBarBtn'); await wait(300);
     assert.equal(await pg.$eval('#winName', (h) => h.textContent), 'Ann wins!');
+    // the finish was a D19 really: open again, and Bob is up
+    await pg.click('#keepBtn'); await wait(200);
+    await changeTurn(pg, 'D20', ['D19']);
+    assert.deepEqual(await pg.evaluate(() => [S.over, play().players[0].score, S.names[S.cur]]), [false, 2, 'Bob']);
     assert.deepEqual(pg.errors, []);
     await pg.close();
   });
