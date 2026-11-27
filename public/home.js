@@ -35,8 +35,13 @@
     darts: { room: 'parlor', name: 'Darts',
       line: (g) => (g.over ? null : list(g.players ? g.players.map((p) => `${p.name} ${p.score}`)
         : g.names.map((n, i) => `${n} ${g.sum ? g.sum[i].score : g.start}`))) },
+    // each player's score and the hand, as the game last saved them (sum); a
+    // game kept in cribbage's first shape has them on itself
     cribbage: { room: 'living', name: 'Cribbage',
-      line: (g) => (g.over ? null : list([...g.names.map((n, i) => `${n} ${g.scores[i]}`), `hand ${g.hand}`])) },
+      line: (g) => {
+        const at = g.sum || { scores: g.scores || g.names.map(() => 0), hand: g.hand || 1 };
+        return g.over ? null : list([...g.names.map((n, i) => `${n} ${at.scores[i]}`), `hand ${at.hand}`]);
+      } },
     yahtzee: { room: 'living', name: 'Yahtzee',
       line: (g) => (g.over ? null : `${many(g.names.length)} · ${g.names[g.cur]}'s turn`) },
     // the two partnerships' totals, kept with the game as it is saved

@@ -39,7 +39,7 @@ describe('Setting the order before the game', () => {
     assert.equal(await on('youRow'), 'Bob');
     assert.equal(await on('dealRow'), 'Cy');
     await startGame(pg);
-    assert.deepEqual(await pg.evaluate(() => [S.names, S.names[S.dealer], S.names[S.me]]), [['Bob', 'Cy', 'Ann'], 'Cy', 'Bob']);
+    assert.deepEqual(await pg.evaluate(() => [S.names, S.names[play().dealer], S.names[S.me]]), [['Bob', 'Cy', 'Ann'], 'Cy', 'Bob']);
     assert.deepEqual(pg.errors, []);
     await pg.close();
   });
@@ -105,7 +105,7 @@ describe('Edit game', () => {
     await drag(pg, LIST, 0, 2);
     await editPress(pg, 'Save');
     const look = () => pg.evaluate(() => ({
-      names: S.names, scores: S.scores, dealer: S.names[S.dealer], me: toPayload().me_idx,
+      names: S.names, scores: play().scores, dealer: S.names[play().dealer], me: toPayload().me_idx,
     }));
     assert.deepEqual(await look(), { names: ['Bob', 'Cy', 'Ann'], scores: [3, 4, 2], dealer: 'Ann', me: 1 });
     assert.equal(await pg.evaluate(() => document.getElementById('peg2').getAttribute('fill')), red, "Ann's peg is still red");

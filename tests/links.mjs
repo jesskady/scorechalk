@@ -32,7 +32,7 @@ describe('game links', () => {
     await open(pg, '/cribbage/');
     await startGame(pg);
     const first = await pg.evaluate(() => S.id);
-    await pg.evaluate(() => { S.scores[0] = 6; S.log.push({ p: 0, kind: 'play', pts: 6, after: 6, hand: 1, label: 'x' }); save(); });
+    await pg.evaluate(() => { score(0, 6, 'play', 'x'); save(); });
     assert.ok((await pg.evaluate(() => location.search)).includes(first), 'the address carries the game');
 
     await pg.reload({ waitUntil: 'domcontentloaded' }); await wait(900);

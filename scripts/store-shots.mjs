@@ -50,10 +50,17 @@ const GAMES = {
     await open(pg, '/cribbage/');
     await pg.evaluate(() => { setupNames = ['Ann', 'Bob', '']; setupN = 2; beginGame(); });
     await wait(600);
-    // four hands in: pegs part way round, the back peg behind each
+    // four hands in, counted as they would be (the count begun, then the
+    // hand left of the dealer, the dealer's, the crib): pegs part way round,
+    // the back peg behind each, Ann dealing the fifth
     await pg.evaluate(() => {
-      for (const [p, pts] of [[1, 8], [0, 12], [0, 4], [1, 10], [0, 9], [1, 6], [1, 14], [0, 16], [0, 2], [1, 3]]) score(p, pts, 'hand', '');
-      S.hand = 5; S.heels = false;
+      const hands = [[8, 12, 4], [9, 10, 6], [14, 16, 2], [0, 3, 0]];   // the other hand, the dealer's, the crib
+      hands.forEach(([other, own, crib], k) => {
+        const d = k % 2;
+        S.log.push({ kind: 'count' });
+        score(1 - d, other, 'hand', 'Hand'); score(d, own, 'hand', 'Hand'); score(d, crib, 'crib', 'Crib');
+      });
+      score(0, 1, 'play', 'Go');        // the fifth hand's play under way
       playMode = 'simple'; save(); render();
     });
   },

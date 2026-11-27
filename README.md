@@ -4,7 +4,7 @@ Mobile-first scorekeeping for the games I play. The home page is a chooser; each
 
 **Darts** is the first one: countdown scoring (501, 301, or any starting score you like), head to head or solo for practice.
 
-**Cribbage** is for two or three players, first to 121, on a pegboard drawn at the top of the screen with a back peg showing each last move. A hand has two phases. In the **play**, every tap scores at once under the player who scored it: Go, 31, fifteens, pairs, runs, and Heels for the dealer. In the **count**, each hand is scored on its own in counting order (players left of the dealer, then the dealer's hand, then the crib), and submitted before the next. A hand is entered one of two ways, switched on the hand card and remembered on the device: **Cards** (the default), where you tap the five ranks and the app scores the hand itself, asking about suits only when a flush or knobs is actually possible; or **Buttons**, where you tap what the hand holds (fifteens, pairs, runs, and shortcuts for double, triple and double-double runs) or type the total. The game ends the instant anyone reaches 121, even mid-play or mid-count, so whoever is still to count never does. Impossible hand totals (19, 25, 26, 27, over 29) are refused. Skunks are called on the win screen, and the loser deals first in a rematch.
+**Cribbage** is for two or three players, first to 121, on a pegboard drawn at the top of the screen with a back peg showing each last move. A hand has two phases. In the **play**, every tap scores at once under the player who scored it: Go, 31, fifteens, pairs, runs, and Heels for the dealer. In the **count**, each hand is scored on its own in counting order (players left of the dealer, then the dealer's hand, then the crib), and submitted before the next. A hand is entered one of two ways, switched on the hand card and remembered on the device: **Cards** (the default), where you tap the five ranks and the app scores the hand itself, asking about suits only when a flush or knobs is actually possible; or **Buttons**, where you tap what the hand holds (fifteens, pairs, runs, and shortcuts for double, triple and double-double runs) or type the total. Reaching 121 ends the game, even mid-play or mid-count, so whoever is still to count never does; it is offered first, as every game's win is: a bar says who got there, **End game** ends it, and Undo takes it back if it was a mis-tap. Any score can be put right from **Edit → History**: a peg by tapping what it should have been, under whoever scored it, or removed; a hand or crib on its card, as it was counted. The board follows, and so does who reached 121 first. Impossible hand totals (19, 25, 26, 27, over 29) are refused. Skunks are called on the win screen, and the loser deals first in a rematch.
 
 **Yahtzee** is the pen-and-paper scoresheet for one to ten players: players across the top (past four, the player columns scroll sideways under the box names), boxes down the side, totals and the 35 upper bonus worked out as you go. Tapping a player highlights their column — green where they have scored, yellow where they still can — and the box names to match. Tapping a box offers only what it can take: the five possible scores for Aces to Sixes, a typed dice total for the of-a-kinds and Chance, the fixed value for the rest, or a scratch. Filling a box passes the turn; the game ends when the sheet is full.
 
@@ -182,9 +182,10 @@ works the same way in each:
 
 - **What was done is the record.** The turns or scores as they were entered
   (`log`), with who did each (`p`), are what is kept; totals, who is in,
-  busts and winners are worked out from them — Darts' `play()`, Bridge's
-  `score()`, the Builder's rule scoring, Yahtzee's totals. Cribbage is the
-  exception: its Undo restores whole copies of the game.
+  busts and winners are worked out from them — Darts' and Cribbage's
+  `play()`, Bridge's `score()`, the Builder's rule scoring, Yahtzee's
+  totals. A step that isn't a score goes in the log too: Cribbage's
+  `{ kind: 'count' }`, the play done and the count begun.
 - **Undo takes the last thing off**, and a **change** to a past score is kept
   in `edits` (`{ i, p, from, to, after }`, `after` placing it among the
   turns) for the history to show and Undo to take back.
@@ -197,8 +198,8 @@ works the same way in each:
   `fromCells` rebuilds the game from them; a cell that changed is an edit.
 - **Edit game** (`public/editgame.js`) moves players with `SCEditGame.moves`,
   and the turn passes with `SCEditGame.nextTurn`.
-- A game kept in an **older shape** (so far, Darts' first) is brought up to
-  date when it is opened, by the game's own `upgrade()`, so games on a
+- A game kept in an **older shape** (so far, Darts' and Cribbage's first) is
+  brought up to date when it is opened, by the game's own `upgrade()`, so games on a
   device, on the profile, in a shared link or a tournament keep working.
 
 ## Running locally
@@ -235,7 +236,7 @@ each other every few seconds, and the tests wait as a person would.
 | `builder.mjs` | the setup's steps, rounds under Take turns; the sheet, scoring in its bubble, changing a score and undoing it, flip, the board's rows; counters: taps, Undo, Out at and Wins at, setup; live scoring, with and without buttons |
 | `sharing.mjs` | joining by seat, scoring only your own, scoring at once, the same cell from two phones, counters and live scores between phones, watching, Yahtzee |
 | `darts.mjs` | turns round the table by seat, darts mid-turn kept, a checkout reaching every phone; a game in the first shape opening as it was; a turn changed from History, a later turn busting or checking out, and after End game, the game opening again; a checkout offered, undone and ended |
-| `cribbage.mjs` | pegging by seat and at once, counting your own hand |
+| `cribbage.mjs` | pegging by seat and at once, counting your own hand; a shared game is its scores, nothing else; a game in the first shape opening as it was; a peg moved, removed, a count changed from History, and Undo; 121 offered, undone, ended, and changed after |
 | `yahtzee.mjs` | the players put in order at the setup, and moved and renamed mid-game with Edit: their scores, the turn, Undo and You going with them |
 | `editing.mjs` | the order set at the setup in Darts, Cribbage and Magic; Edit in those, the Builder (teams too) and Bridge: what moves with a player, and where the order stays put; a new order part-way through a round: the warning on Save, and no one playing twice in a round; History in Edit, newest first, in a locked game too; a score changed from History in Yahtzee, the Builder and Bridge, and Undo taking the change back |
 | `server.mjs` | who may write, link cards, error reports, the daily job, the policy pages |
