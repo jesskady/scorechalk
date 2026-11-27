@@ -372,6 +372,18 @@ list of pages for both is `scripts/pages.mjs`.
 A new migration goes to the live database *before* the deploy that needs it
 (see Migrations above).
 
+**From a phone, or anywhere without a terminal:** the **Deploy** workflow
+(`.github/workflows/deploy.yml`) does the same on GitHub's servers. Start it
+from the Actions tab (Deploy, then Run workflow) or ask Claude to. It runs
+the whole test suite, stops there if anything fails, then `npm run deploy`,
+and commits `public/sitemap.xml` back to `main` if its dates moved. It deploys
+`main` only, and needs the repository secret `CLOUDFLARE_API_TOKEN` (Settings,
+Secrets and variables, Actions): a Cloudflare API token from the Edit
+Cloudflare Workers template, on the `scorechalk.com` zone. A Claude Code
+cloud session can't run `npm run deploy` itself: its network replaces the
+token wrangler's asset upload uses, so the upload is refused; it starts this
+workflow instead.
+
 Unknown paths 404, with `public/404.html` as the page (`not_found_handling:
 "404-page"`). There is no client-side routing to rescue, so a wrong path is
 genuinely not found.
