@@ -28,9 +28,14 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredericka+the+Great&display=swap">
-<link rel="stylesheet" href="/shared.css?v=37">
+<link rel="stylesheet" href="/shared.css?v=41">
 <link rel="stylesheet" href="/guide.css?v=1">
 <script type="application/ld+json">[{"@context":"https://schema.org","@type":"WebApplication","name":"Score Chalk — Farkle score sheet","url":"https://scorechalk.com/farkle-score-sheet/","applicationCategory":"GameApplication","operatingSystem":"Any (web browser)","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"A free online Farkle score sheet, played to 10,000. How Farkle scoring works — ones, fives, three of a kind, straights — and how to keep score from every phone at the table."},{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How many points do you need to win Farkle?","acceptedAnswer":{"@type":"Answer","text":"10,000 is the usual target."}},{"@type":"Question","name":"What is a farkle?","acceptedAnswer":{"@type":"Answer","text":"A roll with no scoring dice at all. The player loses every point from that turn, and play passes on."}},{"@type":"Question","name":"How much are three pairs worth in Farkle?","acceptedAnswer":{"@type":"Answer","text":"Commonly 1,500, though some tables score it as 750 — it's one of Farkle's many house rules."}},{"@type":"Question","name":"Can I use our own scoring rules?","acceptedAnswer":{"@type":"Answer","text":"Yes: the Farkle scorekeeper is built in the Builder, so its buttons and target can be changed and saved."}}]}]</script>
+<!-- Start is the one thing this page is for, so fetch the game page it opens
+     once the button is near the screen, and the tap lands at once. Prefetch,
+     not prerender: the game pages read saved games from storage on load.
+     Browsers without speculation rules ignore this. -->
+<script type="speculationrules">{"prefetch":[{"where":{"href_matches":["/builder/*","/darts/","/cribbage/","/yahtzee/","/magic/"]},"eagerness":"moderate"}]}</script>
 </head>
 <body class="guide">
 <!-- A scoring guide: written for people searching how to score Farkle,
@@ -59,7 +64,7 @@
   <details><summary>Can I use our own scoring rules?</summary><p>Yes: the Farkle scorekeeper is built in the Builder, so its buttons and target can be changed and saved.</p></details>
 
   <p class="again"><a class="start" href="/builder/#farkle">Start a Farkle game</a></p>
-  <p class="others">Other scorekeepers: <a href="/hearts-score-keeper/">Hearts score keeper</a> <a href="/phase-10-score-keeper/">Phase 10 score keeper</a> <a href="/five-crowns-score-keeper/">Five Crowns score keeper</a> <a href="/rummy-500-score-keeper/">Rummy 500 score keeper</a> <a href="/cribbage-score-keeper/">Cribbage score keeper</a> <a href="/yahtzee-score-sheet/">Yahtzee score sheet</a> <a href="/darts-scorer/">Darts scorer</a> <a href="/mtg-life-counter/">MTG life counter</a> <a href="/canasta-score-keeper/">Canasta score keeper</a> <a href="/uno-score-keeper/">UNO score keeper</a> <a href="/euchre-score-keeper/">Euchre score keeper</a> <a href="/score-keeper/">Any game</a></p>
+  <p class="others">Other scorekeepers: <a href="/spades-score-keeper/">Spades score keeper</a> <a href="/oh-hell-score-keeper/">Oh Hell score keeper</a> <a href="/skyjo-score-keeper/">Skyjo score keeper</a> <a href="/rummikub-score-sheet/">Rummikub score sheet</a> <a href="/hearts-score-keeper/">Hearts score keeper</a> <a href="/phase-10-score-keeper/">Phase 10 score keeper</a> <a href="/five-crowns-score-keeper/">Five Crowns score keeper</a> <a href="/rummy-500-score-keeper/">Rummy 500 score keeper</a> <a href="/uno-score-keeper/">UNO score keeper</a> <a href="/euchre-score-keeper/">Euchre score keeper</a> <a href="/canasta-score-keeper/">Canasta score keeper</a> <a href="/cribbage-score-keeper/">Cribbage score keeper</a> <a href="/yahtzee-score-sheet/">Yahtzee score sheet</a> <a href="/darts-scorer/">Darts scorer</a> <a href="/mtg-life-counter/">MTG life counter</a> <a href="/score-keeper/">Any game</a></p>
 </main>
 <script src="/pwa.js?v=1" defer></script>
 </body>

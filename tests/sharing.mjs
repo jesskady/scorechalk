@@ -53,6 +53,24 @@ describe('sharing the Builder by seat', () => {
     for (const pg of [jess, heather, watcher]) { assert.deepEqual(pg.errors, []); await pg.close(); }
   });
 
+  test('a game scored by a rule: each phone enters its own, and every phone scores the round', async () => {
+    const jess = await phone(), heather = await phone();
+    await open(jess, '/builder/#rummikub');
+    await jess.evaluate(() => { cfg.names = ['Jess', 'Heather']; cfg.players = 2; saveCfg(); renderSetup(); });
+    await startGame(jess);
+    const sh = await share(jess);
+    await join(heather, 'builder', sh.join, 'Heather');
+    // Jess is left holding 12; Heather goes out on her own phone
+    await jess.click('#sheet button.cell[data-p="0"][data-r="1"]'); await wait(300);
+    await jess.type('#rulePad input[data-k="rack"]', '12'); await jess.click('#commitBtn'); await wait(300);
+    await heather.click('#sheet button.cell[data-p="1"][data-r="1"]'); await wait(300);
+    await heather.click('#rulePad .rp-segs[data-k="out"] [data-v="1"]'); await heather.click('#commitBtn'); await wait(300);
+    await settle();
+    for (const pg of [jess, heather]) assert.equal(await scores(pg), '-12/12');
+    assert.deepEqual(await jess.evaluate(() => S.edits.length), 0, 'the round coming in is no change to anyone\'s score');
+    await jess.close(); await heather.close();
+  });
+
   test('the author limits themselves from the game screen', async () => {
     const jess = await phone();
     await builderGame(jess, ['Jess', 'Heather']);

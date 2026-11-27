@@ -81,6 +81,9 @@ function toTourney(a, id) {
   a.classList.remove('mark');
   a.removeAttribute('aria-label');
   a.innerHTML = '&lsaquo; Tournament';
+  // a match's way back is its tournament alone: no step to the list of games
+  const crumb = a.parentElement.querySelector('.crumb');
+  if (crumb) crumb.hidden = true;
 }
 
 // The tournament this game is a match of, when that tournament is on this
@@ -177,6 +180,25 @@ function buildSetup() {
   nameInputs.forEach(input => input.addEventListener('input', labelMeBtns));
   labelMeBtns();
 
+  /* The order of the list is the order of throwing: a grip on each name
+     drags it up or down (see /roster.js). The names change places, and
+     You are goes with the name it was on. A tournament's match keeps its
+     players where the tournament put them: it reads the result by place. */
+  nameInputs.forEach((input, i) => {
+    input.closest('li').append(SCRoster.grip(`Move player ${i + 1}`));
+  });
+  SCRoster.sortable($('names'), (from, to) => {
+    if (match) return;
+    const vals = nameInputs.map(input => input.value);
+    vals.splice(to, 0, vals.splice(from, 1)[0]);
+    nameInputs.forEach((input, i) => { input.value = vals[i]; });
+    const order = nameInputs.map((_, i) => i);
+    order.splice(to, 0, order.splice(from, 1)[0]);
+    meIdx = order.indexOf(meIdx);
+    meBtns.forEach((b, i) => b.classList.toggle('is-on', i === meIdx));
+    labelMeBtns();
+  });
+
   if (window.SCSync) {
     window.SCSync.me().then(who => {
       signedIn = !!(who && who.user);
@@ -192,7 +214,8 @@ function buildSetup() {
       playerCount = parseInt(btn.dataset.players, 10);
       [2, 3, 4].forEach(n => $('field' + n).classList.toggle('hidden', n > playerCount));
       meBtns.forEach((b, i) => b.classList.toggle('hidden', i >= playerCount));
-      $('label1').textContent = playerCount === 1 ? 'Name' : 'Player 1';
+      $('label1').textContent = playerCount === 1 ? '' : '1.';
+      $('names').classList.toggle('solo', playerCount === 1);
       $('name1').placeholder = playerCount === 1 ? 'You' : 'Player 1';
       // solo, or the chosen player is no longer in the game: fall back to player one
       if (meIdx >= playerCount) {
@@ -239,6 +262,7 @@ function buildSetup() {
   const match = fromTourney();
   if (match) {
     match.names.forEach((n, i) => { nameInputs[i].value = n; });
+    $('names').classList.add('fixed');
     labelMeBtns();
     $('startScore').value = match.start;
     $('startScore').dispatchEvent(new Event('input'));
@@ -352,6 +376,7 @@ function buildBoard() {
   $('submitBtn').addEventListener('click', submitTurn);
   $('bustBtn').addEventListener('click', bustTurn);
   $('undoTurn').addEventListener('click', undoTurn);
+  $('editBtn').addEventListener('click', editGame);
 
   $('confirmYes').addEventListener('click', () => closeConfirm(true));
   $('confirmNo').addEventListener('click', () => closeConfirm(false));
@@ -746,8 +771,48 @@ async function autoSave() {
 }
 
 // play goes round the players in order
+/* Edit game (see /editgame.js): the players put in another order, or
+   renamed. Everything kept by a player's place moves with them: their
+   score, the turns in the log, whose turn it is (and the darts already
+   thrown in it), who won, and which one is you. The order of play follows
+   the new list from the next turn. Not for a shared game, whose other
+   phones know the players by their place, nor a tournament's match, whose
+   result the tournament reads by place. */
+async function editGame() {
+  const locked = SCStore.get(S.id)?.share
+    ? 'This game is shared with other phones, which know the players by their place, so the players can’t be moved or renamed now.'
+    : tid() ? 'This is a tournament match: the tournament keeps its players, so they can’t be moved or renamed here.' : null;
+  const names = S.players.map((p) => p.name);
+  // who a new order would pass over for the rest of this round (see passTurn)
+  const warn = (order, named) => {
+    if (S.over) return null;
+    const { list, place } = SCEditGame.moves(order);
+    return SCEditGame.skipWarning({ names: named, counts: list(S.players.map((p) => p.turns)), cur: place(S.cur) });
+  };
+  const got = await SCEditGame.open({ names, locked, hint: 'Whoever’s turn it is keeps it.', warn });
+  if (!got) return;
+  const moved = got.order.some((from, i) => from !== i);
+  if (!moved && got.names.every((n, i) => n === names[i])) return;
+  const { list, place } = SCEditGame.moves(got.order);
+  S.players = list(S.players);
+  S.players.forEach((p, i) => { p.name = got.names[i]; });
+  S.log.forEach((t) => { t.player = place(t.player); });
+  S.cur = place(S.cur);
+  if (S.winner != null) S.winner = place(S.winner);
+  S.meIdx = place(typeof S.meIdx === 'number' ? S.meIdx : 0);
+  render(); save();
+  autoSave();
+  say(moved ? `${S.players[S.cur].name} to throw` : 'Names changed');
+}
+
+/* The turn passes to the next player who has thrown the fewest turns, so a
+   round always finishes before anyone throws again, even after Edit has
+   changed the order part-way through it, or a card was tapped to throw out
+   of turn (see nextTurn in /editgame.js). Whoever it passes over is said. */
 function passTurn() {
-  S.cur = (S.cur + 1) % S.players.length;
+  const { next, skipped } = SCEditGame.nextTurn(S.cur, S.players.map((p) => p.turns));
+  S.cur = next;
+  if (skipped.length) say(SCEditGame.skipNote(S.players.map((p) => p.name), skipped, next));
 }
 
 // A phone that joined by seat throws for its own player, on that player's

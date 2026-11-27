@@ -28,9 +28,14 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredericka+the+Great&display=swap">
-<link rel="stylesheet" href="/shared.css?v=37">
+<link rel="stylesheet" href="/shared.css?v=41">
 <link rel="stylesheet" href="/guide.css?v=1">
 <script type="application/ld+json">[{"@context":"https://schema.org","@type":"WebApplication","name":"Score Chalk — Hearts score keeper","url":"https://scorechalk.com/hearts-score-keeper/","applicationCategory":"GameApplication","operatingSystem":"Any (web browser)","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"A free Hearts score keeper: a point for every heart, 13 for the Queen of spades, 26 to everyone else when someone shoots the moon. Play to 100, lowest score wins, and keep score from every phone."},{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How do you score Hearts?","acceptedAnswer":{"@type":"Answer","text":"After each hand, every player takes 1 point for each heart in the tricks they won and 13 for the Queen of spades. Points are bad: the lowest score wins."}},{"@type":"Question","name":"What score does Hearts go to?","acceptedAnswer":{"@type":"Answer","text":"The game ends when any player reaches 100 points, and the player with the lowest score wins. Some tables play to 50."}},{"@type":"Question","name":"What happens when you shoot the moon?","acceptedAnswer":{"@type":"Answer","text":"A player who takes all thirteen hearts and the Queen of spades scores 0 for the hand, and every other player takes 26."}},{"@type":"Question","name":"Can I change the scoring to our house rules?","acceptedAnswer":{"@type":"Answer","text":"Yes: the Hearts score keeper is built in the Builder, so its limit and buttons can be changed and saved."}}]}]</script>
+<!-- Start is the one thing this page is for, so fetch the game page it opens
+     once the button is near the screen, and the tap lands at once. Prefetch,
+     not prerender: the game pages read saved games from storage on load.
+     Browsers without speculation rules ignore this. -->
+<script type="speculationrules">{"prefetch":[{"where":{"href_matches":["/builder/*","/darts/","/cribbage/","/yahtzee/","/magic/"]},"eagerness":"moderate"}]}</script>
 </head>
 <body class="guide">
 <!-- A scoring guide: written for people searching how to score Hearts,
@@ -68,7 +73,7 @@
   <details><summary>Can I change the scoring to our house rules?</summary><p>Yes: the Hearts score keeper is built in the Builder, so its limit and buttons can be changed and saved.</p></details>
 
   <p class="again"><a class="start" href="/builder/#hearts">Start a Hearts game</a></p>
-  <p class="others">Other scorekeepers: <a href="/phase-10-score-keeper/">Phase 10 score keeper</a> <a href="/five-crowns-score-keeper/">Five Crowns score keeper</a> <a href="/rummy-500-score-keeper/">Rummy 500 score keeper</a> <a href="/uno-score-keeper/">UNO score keeper</a> <a href="/euchre-score-keeper/">Euchre score keeper</a> <a href="/canasta-score-keeper/">Canasta score keeper</a> <a href="/cribbage-score-keeper/">Cribbage score keeper</a> <a href="/yahtzee-score-sheet/">Yahtzee score sheet</a> <a href="/farkle-score-sheet/">Farkle score sheet</a> <a href="/darts-scorer/">Darts scorer</a> <a href="/mtg-life-counter/">MTG life counter</a> <a href="/score-keeper/">Any game</a></p>
+  <p class="others">Other scorekeepers: <a href="/spades-score-keeper/">Spades score keeper</a> <a href="/oh-hell-score-keeper/">Oh Hell score keeper</a> <a href="/skyjo-score-keeper/">Skyjo score keeper</a> <a href="/rummikub-score-sheet/">Rummikub score sheet</a> <a href="/phase-10-score-keeper/">Phase 10 score keeper</a> <a href="/five-crowns-score-keeper/">Five Crowns score keeper</a> <a href="/rummy-500-score-keeper/">Rummy 500 score keeper</a> <a href="/uno-score-keeper/">UNO score keeper</a> <a href="/euchre-score-keeper/">Euchre score keeper</a> <a href="/canasta-score-keeper/">Canasta score keeper</a> <a href="/cribbage-score-keeper/">Cribbage score keeper</a> <a href="/yahtzee-score-sheet/">Yahtzee score sheet</a> <a href="/farkle-score-sheet/">Farkle score sheet</a> <a href="/darts-scorer/">Darts scorer</a> <a href="/mtg-life-counter/">MTG life counter</a> <a href="/score-keeper/">Any game</a></p>
 </main>
 <script src="/pwa.js?v=1" defer></script>
 </body>

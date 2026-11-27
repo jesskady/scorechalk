@@ -164,6 +164,19 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
 }
 .roster.sorting li:not(.dragging){transition:transform .15s}
 
+/* ---------- Edit game (/editgame.js) ----------
+   A sheet over the game, on the game's own .overlay and .win-card: the
+   players' list in it is the .roster above. Ten players scroll inside it,
+   so Save stays on the screen. */
+.edit-game{z-index:20}
+.edit-game .win-card h2{color:var(--txt);font-size:22px}
+.edit-game .edit-hint{font-size:14px;line-height:1.4}
+.edit-game .roster{text-align:left;max-height:calc(100vh - 280px);max-height:calc(100dvh - 280px);overflow-y:auto}
+/* the warning before a new order is saved, in the list's place */
+.edit-game .edit-warn{display:flex;flex-direction:column;gap:12px}
+.edit-game .edit-warn p{font-size:15px;line-height:1.45;color:var(--txt)}
+.edit-game [hidden]{display:none !important}
+
 /* ---------- a setup screen: a little room to breathe ---------- */
 /* Setup screens (#setup, and Magic's #formats) are menus, not play, so
    they can take a little more height than the game screens, which have to
@@ -208,3 +221,12 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
 .backlink.mark .arrow{font-size:0;width:10px;height:10px;margin:0 2px 0 6px;border-left:2.5px solid var(--dim,#a7b0a9);border-bottom:2.5px solid var(--dim,#a7b0a9);border-radius:1px;transform:rotate(45deg)}
 .backlink.mark img{display:block;width:30px;height:30px;border-radius:7px;box-shadow:0 2px 6px #0003}
 .backlink.mark:active img{transform:scale(.95)}
+
+/* On a game's first screen, under the badge: the way back to the list of
+   every game (/games/), shown only to whoever has just come from there
+   (see the script beside it on each game's page). The badge is still the
+   way home; this is the step in between. Its ‹ lines up with the badge's. */
+.crumbs{display:flex;flex-direction:column;align-items:flex-start;align-self:flex-start;justify-self:start}
+.crumbs .crumb{color:var(--dim,#a7b0a9);font-size:13px;font-weight:600;line-height:1;text-decoration:none;padding:8px 6px 4px 4px}
+.crumbs .crumb:hover{color:var(--txt,#ecebe3)}
+.crumbs .crumb[hidden]{display:none}

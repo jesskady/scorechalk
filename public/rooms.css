@@ -304,3 +304,19 @@ a.chalk-card:active{transform:translateY(-1px)}
 @media (min-width:1500px){
   .shelf,.living .shelf{gap:30px 28px}
 }
+
+/* "See all games": under each room's four, so a phone reaches it without
+   scrolling past the other room. In the room's own hand. */
+/* each room a column with the link at its foot, so the two links line up
+   side by side on a wide screen whatever the cards' heights */
+.room{display:flex;flex-direction:column}
+.room .shelf{margin-bottom:22px}
+.see-all{
+  display:inline-flex;align-items:center;gap:8px;margin-top:auto;align-self:flex-start;text-decoration:none;
+  padding:6px 0;border-bottom:1.5px solid currentColor;
+}
+.see-all span{transition:transform .2s ease}
+.see-all:hover span{transform:translateX(4px)}
+.parlor .see-all{font:700 13px/1 var(--f-deco);letter-spacing:.14em;text-transform:uppercase;color:var(--brass)}
+.living .see-all{font:700 20px/1 var(--f-hand);color:var(--margin)}
+@media (min-width:900px){.room .shelf{margin-bottom:30px}}

@@ -34,17 +34,23 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredericka+the+Great&family=Josefin+Sans:wght@400;600;700&family=Bree+Serif&family=Kalam:wght@400;700&display=swap">
-<link rel="stylesheet" href="../shared.css?v=37">
+<link rel="stylesheet" href="../shared.css?v=41">
 <!-- the room this game is played in (data-room on the body), with any
      adjustments of this game's own at the top of style.css -->
 <link rel="stylesheet" href="../themes.css?v=7">
-<link rel="stylesheet" href="style.css?v=22">
+<link rel="stylesheet" href="style.css?v=24">
 </head>
 <body data-room="living" data-game="cribbage">
 
 <!-- ============ SETUP ============ -->
 <section id="setup" class="screen">
-  <a class="backlink mark" href="/" aria-label="All games"><span class="arrow" aria-hidden="true">&lsaquo;</span><img src="/favicon.svg?v=2" alt="" width="30" height="30"></a>
+  <!-- home (the badge), and under it the way back to the list of every
+       game, only for whoever has just come from there -->
+  <nav class="crumbs" aria-label="Breadcrumb">
+    <a class="backlink mark" href="/" aria-label="Home"><span class="arrow" aria-hidden="true">&lsaquo;</span><img src="/favicon.svg?v=2" alt="" width="30" height="30"></a>
+    <a class="crumb" href="/games/" hidden>&lsaquo; All games</a>
+  </nav>
+  <script>try { const r = new URL(document.referrer); if (r.origin === location.origin && r.pathname === '/games/') document.querySelector('.crumb').hidden = false; } catch (e) {}</script>
 
   <header class="brand">
     <h1 class="room-title">Cribbage</h1>
@@ -57,7 +63,9 @@
       <button class="seg is-on" data-n="2">2 players</button>
       <button class="seg" data-n="3">3 players</button>
     </div>
-    <div id="names" class="names"></div>
+    <!-- the order round the table: each name has a grip to drag it by
+         (see /roster.js; .roster is in /shared.css) -->
+    <ol id="names" class="roster"></ol>
   </div>
 
   <div class="card">
@@ -174,15 +182,19 @@
 
   <div class="actions">
     <button id="mainBtn" class="primary big"></button>
-    <div class="mini-row three">
+    <div class="mini-row four">
       <button id="undoBtn" class="ghost">Undo</button>
       <button id="shareBtn" class="ghost">Share</button>
+      <!-- the players' order and names, in a sheet of their own: see /editgame.js -->
+      <button id="editBtn" class="ghost">Edit</button>
       <button id="quitBtn" class="ghost">New game</button>
     </div>
   </div>
 
   <p id="msg" class="msg"></p>
   <div class="history" id="history"></div>
+  <!-- the rules, for a question mid-game; the game is kept, and Back returns -->
+  <p class="guide-link"><a href="/cribbage-score-keeper/">How cribbage scoring works</a></p>
 </section>
 
 <!-- ============ CONFIRM ============ -->
@@ -215,7 +227,9 @@
 <script src="/store.js?v=3"></script>
 <script src="/share.js?v=12"></script>
 <script src="/cloud.js?v=3"></script>
-<script src="app.js?v=28"></script>
+<script src="/roster.js?v=2"></script>
+<script src="/editgame.js?v=2"></script>
+<script src="app.js?v=30"></script>
 <script src="/pwa.js?v=1" defer></script>
 </body>
 </html>

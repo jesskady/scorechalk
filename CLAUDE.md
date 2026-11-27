@@ -20,6 +20,10 @@ changing those areas.
   others) which pages changed. Commit before deploying (the dates come from
   commits), and commit `public/sitemap.xml` if the deploy says it changed.
   The list of pages is `scripts/pages.mjs`; a new public page goes there too.
+  From a cloud session (no `wrangler login`, and its network breaks the
+  asset upload), deploy by starting the **Deploy** GitHub Actions workflow
+  on `main` instead: it runs the tests, `npm run deploy`, and commits the
+  sitemap itself. Push `main` first.
 - **A commit that only changes what every page shares** (the header, the
   badge, a `?v=` bump) ends its message with the line `Sitemap: chrome`, so
   it doesn't move every page's date in the sitemap or ping every page to
@@ -28,7 +32,12 @@ changing those areas.
   and commit what it writes: the manifest's screenshots (Chrome's install
   dialog, app stores, PWA directories) and the shortcut icons.
 - **Commit straight to `main`** is the norm here. Push and deploy only when the
-  owner asks.
+  owner asks, and "deploy" means both: after `npm run deploy` (and its
+  sitemap commit), push `main` to GitHub too, without asking. The scheduled
+  agents read GitHub, so a deploy left unpushed has them checking old code
+  against the new live site.
+- **Run the full suite only before a deploy**, not after every small local
+  change; check those in the browser on `npm run dev` instead.
 
 ## How the site should behave
 

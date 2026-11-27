@@ -271,7 +271,7 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 
 /* the row grows to four only when Save is present, so a signed-out player
    keeps three comfortable buttons */
-.mini-row.has-save{grid-template-columns:repeat(4,1fr)}
+.mini-row.has-save{grid-template-columns:repeat(5,1fr)}
 .mini-row.has-save .ghost{font-size:13px;padding:9px 2px}
 
 /* unfinished games offered from the profile, under the local resume */
@@ -338,3 +338,7 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 .tourney-link b{flex:1;font-weight:600}
 .tourney-link i{font-style:normal;color:var(--gold);font-size:20px;line-height:1}
 .tourney-link:active{background:var(--bg2)}
+
+/* the players' list at the setup: no grips for one player, nor for a
+   tournament's match, whose players stay where the tournament put them */
+#names.solo .roster-grip,#names.fixed .roster-grip{display:none}

@@ -36,6 +36,9 @@
       line: (g) => (g.over ? null : list([...g.names.map((n, i) => `${n} ${g.scores[i]}`), `hand ${g.hand}`])) },
     yahtzee: { room: 'living', name: 'Yahtzee',
       line: (g) => (g.over ? null : `${many(g.names.length)} · ${g.names[g.cur]}'s turn`) },
+    // the two partnerships' totals, kept with the game as it is saved
+    bridge: { room: 'living', name: 'Bridge',
+      line: (g) => (g.over ? null : `${g.names[0]} & ${g.names[2]} ${(g.sum || [0, 0])[0]} · ${g.names[1]} & ${g.names[3]} ${(g.sum || [0, 0])[1]}`) },
     magic: { room: 'living', name: 'Magic',
       line: (g) => (g.won ? null : `${g.format === 'commander' ? 'Commander' : 'Constructed'} · ${list(g.names.map((n, i) => `${n} ${g.life[i]}`))}`) },
     // a builder game takes its own room, as chosen on its setup screen

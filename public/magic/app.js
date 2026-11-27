@@ -15,6 +15,9 @@ const TYPE = 'magic';
 const NAMES_KEY = 'magic-names-v1';
 const POISON_OUT = 10, CMDR_OUT = 21;
 const COLORS = ['#d9534f', '#3b82f6', '#2e9e63', '#e0b341', '#a066d3', '#e07b39'];
+// A player's colour is theirs: it goes with them when Edit gives them
+// another place at the table (S.colors, by place; a game never edited has none).
+const colorOf = (p) => COLORS[S && S.colors ? S.colors[p] : p];
 
 const FORMATS = {
   constructed: { label: 'Constructed', life: 20, players: 2, min: 1, max: 4,
@@ -169,24 +172,34 @@ function renderSetup() {
   $('pMinus').disabled = setupN <= F.min;
   $('pPlus').disabled = setupN >= F.max;
   const box = $('names');
-  box.classList.toggle('one', setupN === 1);
   box.innerHTML = '';
   for (let i = 0; i < setupN; i++) {
-    const row = document.createElement('label');
-    row.className = 'name-row';
+    const row = document.createElement('li');
     row.innerHTML = `<span class="dot" style="background:${COLORS[i]}"></span>`;
     const inp = document.createElement('input');
     inp.type = 'text'; inp.maxLength = 12; inp.autocomplete = 'off';
+    inp.className = 'roster-name';
+    inp.setAttribute('aria-label', `Player ${i + 1}'s name`);
     inp.placeholder = `Player ${i + 1}`;
     inp.value = setupNames[i] || '';
     inp.addEventListener('input', () => {
       setupNames[i] = inp.value;
       try { localStorage.setItem(NAMES_KEY, JSON.stringify(setupNames)); } catch (e) {}
     });
-    row.appendChild(inp);
+    // a grip, to drag the player up or down the list (see /roster.js)
+    row.append(inp, SCRoster.grip(`Move ${(setupNames[i] || '').trim() || `Player ${i + 1}`}`));
     box.appendChild(row);
   }
 }
+
+/* The order of the list is the order of the panels round the table, the
+   colours given out by place, as the game gives them. */
+SCRoster.sortable($('names'), (from, to) => {
+  while (setupNames.length < setupN) setupNames.push('');
+  setupNames.splice(to, 0, setupNames.splice(from, 1)[0]);
+  try { localStorage.setItem(NAMES_KEY, JSON.stringify(setupNames)); } catch (e) {}
+  renderSetup();
+});
 
 $('pMinus').onclick = () => { if (setupN > FORMATS[fmt].min) { setupN--; renderSetup(); } };
 $('pPlus').onclick = () => { if (setupN < FORMATS[fmt].max) { setupN++; renderSetup(); } };
@@ -226,7 +239,7 @@ function buildTable() {
   S.names.forEach((name, p) => {
     const panel = document.createElement('div');
     panel.className = 'panel' + (p < top ? ' flip' : '');
-    panel.style.setProperty('--pc', COLORS[p]);
+    panel.style.setProperty('--pc', colorOf(p));
     panel.innerHTML = `
       <div class="inner">
         <span class="pname">${esc(name)}</span>
@@ -384,7 +397,7 @@ function drawCounter(panel) {
   // Commander damage first, poison last: poison is the rarer of the two.
   if (S.format === 'commander') {
     html += `<div class="chead"><span>Commander damage</span><small>out at ${CMDR_OUT} from any one</small></div>`;
-    S.names.forEach((nm, q) => { if (q !== p) html += row(`From ${nm}`, COLORS[q], S.cmdr[p][q], CMDR_OUT, 'cmdr', q); });
+    S.names.forEach((nm, q) => { if (q !== p) html += row(`From ${nm}`, colorOf(q), S.cmdr[p][q], CMDR_OUT, 'cmdr', q); });
   }
   html += `<div class="chead${S.format === 'commander' ? ' sec' : ''}"><span>Poison</span><small>out at ${POISON_OUT}</small></div>`;
   // the heading already says poison; the row needs no label of its own
@@ -421,6 +434,30 @@ $('restartBtn').onclick = async () => {
   if (S.log.length && !(await askConfirm('Start over at full life with the same players?', 'Restart'))) return;
   restart();
 };
+
+/* Edit game (see /editgame.js): the players given other places around the
+   table, or renamed, without starting over. Everything kept by place moves
+   with them: life, poison, commander damage both ways (taken, and dealt by
+   their commander), Undo's list and their colour. A shared game takes the
+   change with it, as the other phones are sent the whole game. */
+$('editBtn').onclick = async () => {
+  $('menuOverlay').classList.add('hidden');
+  const got = await SCEditGame.open({ names: S.names, hint: 'Each panel moves to its new place on the screen.' });
+  if (!got) return;
+  const moved = got.order.some((from, i) => from !== i);
+  if (!moved && got.names.every((n, i) => n === S.names[i])) return;
+  const { list, place } = SCEditGame.moves(got.order);
+  if (!S.colors) S.colors = S.names.map((_, i) => i);
+  S.names = got.names;
+  S.colors = list(S.colors);
+  S.life = list(S.life);
+  S.poison = list(S.poison);
+  S.cmdr = list(S.cmdr).map(list);
+  S.log.forEach((e) => { e.p = place(e.p); e.q = place(e.q); });
+  for (const k of Object.keys(deltas)) delete deltas[k];
+  save();
+  buildTable(); render();
+};
 $('setupLink').onclick = (e) => { e.preventDefault(); $('menuOverlay').classList.add('hidden'); location.hash = S.format; };
 
 // Starting over at full life is a new game: the old one goes, from the
@@ -428,7 +465,9 @@ $('setupLink').onclick = (e) => { e.preventDefault(); $('menuOverlay').classList
 function restart() {
   if (!S.won) SCCloud.drop(S.id);
   SCStore.remove(S.id);
+  const colors = S.colors;     // the same players keep their colours
   S = newGame(S.format, S.names, S.start);
+  if (colors) S.colors = colors;
   for (const k of Object.keys(deltas)) delete deltas[k];
   save();
   SCStore.show(S.id, '#play');

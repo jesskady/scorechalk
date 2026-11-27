@@ -1,0 +1,86 @@
+# Deploying Score Chalk from GitHub, so it can be done from a phone: Run
+# workflow on the Actions tab, or ask Claude to start it. The same steps as
+# deploying by hand (README.md, Deploying): the whole test suite first, then
+# npm run deploy (the sitemap's dates, wrangler deploy, the IndexNow ping),
+# then the sitemap committed back to main if its dates moved.
+#
+# Needs one repository secret, CLOUDFLARE_API_TOKEN: a Cloudflare API token
+# that can edit Workers, on the scorechalk.com zone.
+
+name: Deploy
+
+on:
+  workflow_dispatch:
+
+# one deploy at a time: a second waits for the first rather than racing it
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: write   # to push the sitemap's new dates back to main
+
+jobs:
+  deploy:
+    # only main goes live, whichever branch the run was started on
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # the sitemap's dates and IndexNow's list come from the history
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Ubuntu's runners keep Chrome from making its sandbox (they restrict
+      # unprivileged user namespaces); this lets the tests' browser start.
+      - name: Let Chrome start
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
+      # A failing test stops the deploy here, before anything goes live.
+      - name: Tests
+        run: npm test
+        env:
+          BROWSER_PATH: /usr/bin/google-chrome
+
+      # scripts/indexnow.mjs keeps the commit it last pinged for in
+      # .wrangler/indexnow-last, which isn't in git. A runner starts empty,
+      # so it is carried between deploys in the Actions cache; without it
+      # every deploy would send every page.
+      - name: Restore what IndexNow was last told
+        uses: actions/cache/restore@v4
+        with:
+          path: .wrangler/indexnow-last
+          key: indexnow-${{ github.run_id }}
+          restore-keys: indexnow-
+
+      - name: Deploy
+        run: npm run deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+      - name: Keep what IndexNow was told
+        uses: actions/cache/save@v4
+        with:
+          path: .wrangler/indexnow-last
+          key: indexnow-${{ github.run_id }}
+
+      # The deploy rewrote public/sitemap.xml from the commits' dates; the
+      # copy in git should match what is now live.
+      - name: Commit the sitemap's dates to main
+        run: |
+          if git diff --quiet -- public/sitemap.xml; then
+            echo "sitemap.xml unchanged"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898299+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Sitemap: dates for the pages just deployed" -- public/sitemap.xml
+          git pull --rebase origin main
+          git push origin HEAD:main

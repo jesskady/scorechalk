@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1c2723">
+<title>All Games — Free Score Keepers for Card, Dice &amp; Pub Games | Score Chalk</title>
+<!-- visits, and errors on these pages: see /report.js -->
+<script src="/report.js?v=1"></script>
+<!-- Score Chalk as an app: installable, and working offline (see /pwa.js) -->
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="Score Chalk">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="Every free score keeper on Score Chalk in one list: darts, cribbage, Yahtzee, Magic, Canasta, Euchre, UNO, Farkle, Hearts, Spades, Oh Hell, Rummy 500, Rummikub, Five Crowns, Phase 10 and Skyjo, or build one for any other game.">
+<link rel="canonical" href="https://scorechalk.com/games/">
+<meta property="og:site_name" content="Score Chalk">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://scorechalk.com/games/">
+<meta property="og:title" content="All games — Score Chalk">
+<meta property="og:description" content="Every free score keeper on Score Chalk in one list, or build one for any other game.">
+<meta property="og:image" content="https://scorechalk.com/og/home.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml">
+<link rel="icon" href="/icons/icon-192.png" sizes="192x192">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredericka+the+Great&family=Josefin+Sans:wght@400;600;700&family=Bree+Serif&family=Kalam:wght@400;700&family=Karla:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="/shared.css?v=41">
+<!-- the home page's rooms (their colours, type and drawings), and this page's list -->
+<link rel="stylesheet" href="/rooms.css?v=14">
+<link rel="stylesheet" href="/games.css?v=1">
+<script type="speculationrules">{"prefetch":[{"where":{"href_matches":["/builder/*","/darts/","/cribbage/","/yahtzee/","/magic/"]},"eagerness":"moderate"}]}</script>
+</head>
+<body class="home-rooms games-page">
+
+<!-- the same roughened strokes as the home page's drawings -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="chalk"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="3"/><feDisplacementMap in="SourceGraphic" scale="2.6"/></filter>
+  <filter id="pen"><feTurbulence type="fractalNoise" baseFrequency=".05" numOctaves="1" seed="8"/><feDisplacementMap in="SourceGraphic" scale="1.6"/></filter>
+</svg>
+
+<header class="board">
+  <div class="board-in">
+    <a class="backlink mark" href="/" aria-label="Home"><span class="arrow" aria-hidden="true">&lsaquo;</span><img src="/favicon.svg?v=2" alt="" width="30" height="30"></a>
+    <div class="games-head">
+      <span class="kicker">Score Chalk</span>
+      <h1>All games</h1>
+    </div>
+    <!-- works without script too: it's a plain list underneath (see games.js) -->
+    <form class="find" role="search" action="/games/" onsubmit="return false">
+      <label for="q" class="vh">Find a game</label>
+      <input id="q" name="q" type="search" placeholder="Find a game — darts, dice, teams…" autocomplete="off" spellcheck="false" enterkeyhint="search">
+    </form>
+    <p class="count" id="count" aria-live="polite"></p>
+  </div>
+</header>
+
+<!-- ============ The list ============
+     Every game, A to Z, the Builder last. A new game is a row here as well
+     as its card on the home page (the home page shows four a room). The
+     tile is drawn in the game's room; data-also is what else it should be
+     found by. -->
+<main class="games">
+  <ul class="game-list" id="list">
+    <li data-also="contract rubber bridge bid tricks above below line vulnerable slam partners">
+      <a class="game-row" href="/bridge/">
+        <span class="tile tile-living"><svg viewBox="0 0 70 70" aria-hidden="true">
+          <path class="pen-line" d="M35 10v50M12 22h46"/>
+          <path class="pen-line" d="M12 40h46" stroke-width="3.2"/>
+          <g class="pen-fill"><circle cx="20" cy="31" r="1.6"/><circle cx="26" cy="31" r="1.6"/><circle cx="45" cy="47" r="1.6"/><circle cx="51" cy="47" r="1.6"/></g>
+          <path class="pen-red" d="M18 15c2-3 5-3 5 0 0-3 3-3 5 0-1 3-5 5-5 5s-4-2-5-5z"/>
+          <path class="pen-red" d="M47 52l3-6 3 6m-5-2h4"/>
+        </svg></span>
+        <span class="what"><b>Bridge</b><small>Rubber bridge for two partnerships: the contract, doubles and tricks, scored above and below the line.</small></span>
+        <span class="room-tag living-tag">Cards · Partners</span>
+      </a>
+    </li>
+    <li data-also="sweep book">
+      <a class="game-row" href="/builder/#canasta">
+        <span class="tile tile-parlor"><svg viewBox="0 0 70 70" aria-hidden="true">
+          <rect class="chalk-line" x="12" y="14" width="26" height="38" rx="3" transform="rotate(-14 25 33)"/>
+          <rect class="chalk-line" x="24" y="12" width="26" height="38" rx="3"/>
+          <rect class="chalk-line" x="34" y="15" width="26" height="38" rx="3" transform="rotate(13 47 34)"/>
+          <path class="chalk-brass" d="M37 24l3 6 6 1-4.5 4 1 6-5.5-3-5.5 3 1-6-4.5-4 6-1z"/>
+        </svg></span>
+        <span class="what"><b>Canasta</b><small>Two teams of two, first to 5,000. Buttons for canastas, red threes and going out.</small></span>
+        <span class="room-tag parlor-tag">Cards · Teams</span>
+      </a>
+    </li>
+    <li data-also="peg pegboard 121 skunk">
+      <a class="game-row" href="/cribbage/">
+        <span class="tile tile-living"><svg viewBox="0 0 70 70" aria-hidden="true">
+          <path class="pen-line" d="M10 22h50a8 8 0 0 1 0 16H10z"/>
+          <g class="pen-fill"><circle cx="18" cy="26" r="1.6"/><circle cx="24" cy="26" r="1.6"/><circle cx="30" cy="26" r="1.6"/><circle cx="36" cy="26" r="1.6"/><circle cx="42" cy="26" r="1.6"/><circle cx="48" cy="26" r="1.6"/>
+          <circle cx="18" cy="33" r="1.6"/><circle cx="24" cy="33" r="1.6"/><circle cx="30" cy="33" r="1.6"/><circle cx="36" cy="33" r="1.6"/><circle cx="42" cy="33" r="1.6"/><circle cx="48" cy="33" r="1.6"/></g>
+          <path class="pen-red" d="M30 26v-12M42 33v-12"/><circle class="pen-redfill" cx="30" cy="12" r="3"/><circle class="pen-redfill" cx="42" cy="19" r="3"/>
+          <path class="pen-line" d="M12 50h46" stroke-dasharray="3 5"/>
+        </svg></span>
+        <span class="what"><b>Cribbage</b><small>Two or three to 121, on a pegboard, with the hands counted for you.</small></span>
+        <span class="room-tag living-tag">Cards</span>
+      </a>
+    </li>
+    <li data-also="501 301 cricket checkout pub bar tournament">
+      <a class="game-row" href="/darts/">
+        <span class="tile tile-parlor"><svg viewBox="0 0 70 70" aria-hidden="true">
+          <circle class="chalk-line" cx="35" cy="35" r="27"/><circle class="chalk-line" cx="35" cy="35" r="18"/>
+          <circle class="chalk-line" cx="35" cy="35" r="9"/><circle class="chalk-fill" cx="35" cy="35" r="3"/>
+          <path class="chalk-line" d="M35 8v54M8 35h54M16 16l38 38M54 16 16 54"/>
+          <path class="chalk-brass" d="M52 10 39 30m13-20 3 6m-3-6-6 1"/>
+        </svg></span>
+        <span class="what"><b>Darts</b><small>501, 301 or your own number. One to four players, with checkout help, and round-robin tournaments.</small></span>
+        <span class="room-tag parlor-tag">Pub</span>
+      </a>
+    </li>
+    <li data-also="euchre trump loner march">
+      <a class="game-row" href="/builder/#euchre">
+        <span class="tile tile-parlor"><svg viewBox="0 0 70 70" aria-hidden="true">
+          <rect class="chalk-line" x="14" y="12" width="26" height="38" rx="3" transform="rotate(-10 27 31)"/>
+          <rect class="chalk-line" x="30" y="14" width="26" height="38" rx="3" transform="rotate(8 43 33)"/>
+          <path class="chalk-brass" d="M43 23l6 9-6 9-6-9z"/>
+          <g class="chalk-fill"><circle cx="17" cy="61" r="2.4"/><circle cx="26" cy="61" r="2.4"/><circle cx="35" cy="61" r="2.4"/><circle cx="44" cy="61" r="2.4"/><circle cx="53" cy="61" r="2.4"/></g>
+        </svg></span>
+        <span class="what"><b>Euchre</b><small>Two teams of two, first to 10. One tap for a point, a march or a loner.</small></span>
+        <span class="room-tag parlor-tag">Cards · Teams</span>
+      </a>
+    </li>
+    <li data-also="dice 10000 10,000 hot">
+      <a class="game-row" href="/builder/#farkle">
+        <span class="tile tile-living"><svg viewBox="0 0 70 70" aria-hidden="true">
+          <rect class="pen-line" x="12" y="18" width="24" height="24" rx="5"/>
+          <rect class="pen-line" x="34" y="28" width="24" height="24" rx="5" transform="rotate(18 46 40)"/>
+          <circle class="pen-fill" cx="24" cy="30" r="2.6"/>
+          <circle class="pen-fill" cx="40" cy="36" r="2.2"/><circle class="pen-fill" cx="47" cy="40" r="2.2"/><circle class="pen-fill" cx="53" cy="44" r="2.2"/>
+          <path class="pen-red" d="M14 58c8-4 22 4 34-2s8-3 12-1"/>
+        </svg></span>
+        <span class="what"><b>Farkle</b><small>First to 10,000. One tap for a farkle.</small></span>
+        <span class="room-tag living-tag">Dice</span>
+      </a>
+    </li>
+    <li data-also="5 crowns rummy rounds wild joker">
+      <a class="game-row" href="/builder/#five-crowns">
+        <span class="tile tile-living"><svg viewBox="0 0 70 70" aria-hidden="true">
+          <path class="pen-line" d="M12 50V24l6 12 5.5-17 5.5 17 6-19 6 19 5.5-17 5.5 17 6-12v26z"/>
+          <g class="pen-redfill"><circle cx="12" cy="22" r="2.6"/><circle cx="23.5" cy="17" r="2.6"/><circle cx="35" cy="15" r="2.6"/><circle cx="46.5" cy="17" r="2.6"/><circle cx="58" cy="22" r="2.6"/></g>
+          <path class="pen-line" d="M12 58h46" stroke-dasharray="3 5"/>
+        </svg></span>
+        <span class="what"><b>Five Crowns</b><small>Eleven rounds, threes to kings. Wilds and Jokers count against you, and the lowest total wins.</small></span>
+        <span class="room-tag living-tag">Cards</span>
+      </a>
+    </li>
+    <li data-also="queen spades shoot moon tricks">
+      <a class="game-row" href="/builder/#hearts">
+        <span class="tile tile-parlor"><svg viewBox="0 0 70 70" aria-hidden="true">
+          <rect class="chalk-line" x="14" y="13" width="26" height="38" rx="3" transform="rotate(-12 27 32)"/>
+          <rect class="chalk-line" x="28" y="14" width="26" height="38" rx="3" transform="rotate(9 41 33)"/>
+          <path class="chalk-brass" d="M41 44c-9-6-12-11-12-15a5.5 5.5 0 0 1 12-2 5.5 5.5 0 0 1 12 2c0 4-3 9-12 15z"/>
+        </svg></span>
+        <span class="what"><b>Hearts</b><small>Points are bad: when anyone reaches 100, the lowest score wins. One tap for the Queen of spades or shooting the moon.</small></span>
+        <span class="room-tag parlor-tag">Cards</span>
+      </a>
+    </li>
+    <li data-also="mtg life counter commander edh poison planeswalker">
+      <a class="game-row" href="/magic/">
+        <span class="tile tile-living"><svg viewBox="0 0 70 70" aria-hidden="true">
+          <rect class="pen-line" x="16" y="10" width="34" height="48" rx="4" transform="rotate(-6 33 34)"/>
+          <rect class="pen-line" x="22" y="12" width="34" height="48" rx="4"/>
+          <circle class="pen-line" cx="39" cy="32" r="9"/>
+          <path class="pen-red" d="M39 23v18M30 32h18"/>
+          <path class="pen-line" d="M28 50h22"/>
+        </svg></span>
+        <span class="what"><b>Magic</b><small>A life counter for 20 or 40: life, poison and commander damage.</small></span>
+        <span class="room-tag living-tag">Tabletop</span>
+      </a>
+    </li>
+    <li data-also="oh heck up and down the river blackout bids tricks exact">
+      <a class="game-row" href="/builder/#oh-hell">
+        <span class="tile tile-parlor"><svg viewBox="0 0 70 70" aria-hidden="true">
+          <rect class="chalk-line" x="8" y="30" width="16" height="24" rx="2.5"/>
+          <rect class="chalk-line" x="27" y="22" width="16" height="32" rx="2.5"/>
+          <rect class="chalk-line" x="46" y="30" width="16" height="24" rx="2.5"/>
+          <path class="chalk-brass" d="M10 22 35 9l25 13m-25-13v6"/>
+        </svg></span>
+        <span class="what"><b>Oh Hell</b><small>Everyone bids, and only an exact bid scores: 10 and 1 a trick. Thirteen hands, up and down the river.</small></span>
+        <span class="room-tag parlor-tag">Cards</span>
+      </a>
+    </li>
+    <li data-also="phase ten cards">
+      <a class="game-row" href="/builder/#phase-10">
+        <span class="tile tile-living"><svg viewBox="0 0 70 70" aria-hidden="true">
+          <g class="pen-line"><rect x="9" y="20" width="9" height="9" rx="1.5"/><rect x="20" y="20" width="9" height="9" rx="1.5"/><rect x="31" y="20" width="9" height="9" rx="1.5"/><rect x="42" y="20" width="9" height="9" rx="1.5"/><rect x="53" y="20" width="9" height="9" rx="1.5"/>
+          <rect x="9" y="34" width="9" height="9" rx="1.5"/><rect x="20" y="34" width="9" height="9" rx="1.5"/><rect x="31" y="34" width="9" height="9" rx="1.5"/><rect x="42" y="34" width="9" height="9" rx="1.5"/><rect x="53" y="34" width="9" height="9" rx="1.5"/></g>
+          <path class="pen-red" d="M10 24l3 3 5-7M21 24l3 3 5-7M32 24l3 3 5-7M43 24l3 3 5-7M54 24l3 3 5-7M10 38l3 3 5-7M21 38l3 3 5-7"/>
+          <path class="pen-line" d="M10 54h50" stroke-dasharray="3 5"/>
+        </svg></span>
+        <span class="what"><b>Phase 10</b><small>Cards left in hand count against you, and a counter keeps each player's phase. First through all ten wins.</small></span>
+        <span class="room-tag living-tag">Cards</span>
+      </a>
+    </li>
+    <li data-also="rummikub rummy tiles rack joker">
+      <a class="game-row" href="/builder/#rummikub">
+        <span class="tile tile-living"><svg viewBox="0 0 70 70" aria-hidden="true">
+          <path class="pen-line" d="M8 48h54l-4 9H12z"/>
+          <rect class="pen-line" x="11" y="26" width="11" height="20" rx="2"/>
+          <rect class="pen-line" x="24" y="26" width="11" height="20" rx="2"/>
+          <rect class="pen-line" x="37" y="26" width="11" height="20" rx="2"/>
+          <rect class="pen-line" x="50" y="26" width="11" height="20" rx="2"/>
+          <path class="pen-red" d="M53 35c2 3 4 3 5 0"/><circle class="pen-redfill" cx="54" cy="32" r="1"/><circle class="pen-redfill" cx="57" cy="32" r="1"/>
+          <g class="pen-fill"><circle cx="16.5" cy="34" r="1.8"/><circle cx="29.5" cy="34" r="1.8"/><circle cx="42.5" cy="34" r="1.8"/></g>
+        </svg></span>
+        <span class="what"><b>Rummikub</b><small>Whoever goes out takes everyone's rack, a joker 30, and the others lose theirs.</small></span>
+        <span class="room-tag living-tag">Tiles</span>
+      </a>
+    </li>
+    <li data-also="rummy 500 melds 500 rum">
+      <a class="game-row" href="/builder/#rummy-500">
+        <span class="tile tile-parlor"><svg viewBox="0 0 70 70" aria-hidden="true">
+          <rect class="chalk-line" x="8" y="16" width="22" height="32" rx="3"/>
+          <rect class="chalk-line" x="24" y="16" width="22" height="32" rx="3"/>
+          <rect class="chalk-line" x="40" y="16" width="22" height="32" rx="3"/>
+          <path class="chalk-brass" d="M10 57c14-5 36-5 50 0M14 22v6M30 22v6M46 22v6"/>
+        </svg></span>
+        <span class="what"><b>Rummy 500</b><small>First to 500. Melds count for you and cards left in hand against, so a hand can go below nothing.</small></span>
+        <span class="room-tag parlor-tag">Cards</span>
+      </a>
+    </li>
+    <li data-also="sky jo skyjo cards grid doubled 100">
+      <a class="game-row" href="/builder/#skyjo">
+        <span class="tile tile-living"><svg viewBox="0 0 70 70" aria-hidden="true">
+          <g class="pen-line"><rect x="9" y="12" width="11" height="14" rx="2"/><rect x="23" y="12" width="11" height="14" rx="2"/><rect x="37" y="12" width="11" height="14" rx="2"/><rect x="51" y="12" width="11" height="14" rx="2"/>
+          <rect x="9" y="29" width="11" height="14" rx="2"/><rect x="23" y="29" width="11" height="14" rx="2"/><rect x="37" y="29" width="11" height="14" rx="2"/><rect x="51" y="29" width="11" height="14" rx="2"/>
+          <rect x="9" y="46" width="11" height="14" rx="2"/><rect x="23" y="46" width="11" height="14" rx="2"/><rect x="37" y="46" width="11" height="14" rx="2"/><rect x="51" y="46" width="11" height="14" rx="2"/></g>
+          <path class="pen-red" d="M42.5 8v56"/>
+          <g class="pen-fill"><circle cx="14.5" cy="19" r="2"/><circle cx="28.5" cy="53" r="2"/><circle cx="56.5" cy="36" r="2"/></g>
+        </svg></span>
+        <span class="what"><b>Skyjo</b><small>The cards left count against you, and whoever ends the round is doubled unless they're lowest. Lowest wins at 100.</small></span>
+        <span class="room-tag living-tag">Cards</span>
+      </a>
+    </li>
+    <li data-also="spades bids tricks bags nil partners">
+      <a class="game-row" href="/builder/#spades">
+        <span class="tile tile-parlor"><svg viewBox="0 0 70 70" aria-hidden="true">
+          <rect class="chalk-line" x="12" y="14" width="26" height="38" rx="3" transform="rotate(-12 25 33)"/>
+          <rect class="chalk-line" x="28" y="14" width="26" height="38" rx="3" transform="rotate(9 41 33)"/>
+          <path class="chalk-brass" d="M41 21c-6 7-11 10-11 15a4.5 4.5 0 0 0 9 1.5l-2 6.5h8l-2-6.5a4.5 4.5 0 0 0 9-1.5c0-5-5-8-11-15z"/>
+        </svg></span>
+        <span class="what"><b>Spades</b><small>Two teams of two, first to 500. Enter the bid and tricks taken, and the bags and nils are scored for you.</small></span>
+        <span class="room-tag parlor-tag">Cards · Teams</span>
+      </a>
+    </li>
+    <li data-also="uno cards 500 draw wild">
+      <a class="game-row" href="/builder/#uno">
+        <span class="tile tile-parlor"><svg viewBox="0 0 70 70" aria-hidden="true">
+          <rect class="chalk-line" x="10" y="16" width="24" height="36" rx="3" transform="rotate(-16 22 34)"/>
+          <rect class="chalk-line" x="23" y="12" width="24" height="36" rx="3"/>
+          <rect class="chalk-line" x="36" y="16" width="24" height="36" rx="3" transform="rotate(16 48 34)"/>
+          <path class="chalk-brass" d="M29 26a7 7 0 0 1 12 0m0 0-1-5m1 5-5 0M41 34a7 7 0 0 1-12 0m0 0 1 5m-1-5 5 0"/>
+        </svg></span>
+        <span class="what"><b>UNO</b><small>First to 500. Tap who went out, then the cards left in everyone's hands.</small></span>
+        <span class="room-tag parlor-tag">Cards</span>
+      </a>
+    </li>
+    <li data-also="dice scoresheet yacht">
+      <a class="game-row" href="/yahtzee/">
+        <span class="tile tile-living"><svg viewBox="0 0 70 70" aria-hidden="true">
+          <rect class="pen-line" x="10" y="20" width="30" height="30" rx="6" transform="rotate(-10 25 35)"/>
+          <rect class="pen-line" x="32" y="14" width="28" height="28" rx="6" transform="rotate(12 46 28)"/>
+          <circle class="pen-fill" cx="18" cy="29" r="2.6"/><circle class="pen-fill" cx="25" cy="35" r="2.6"/><circle class="pen-fill" cx="32" cy="41" r="2.6"/>
+          <circle class="pen-redfill" cx="41" cy="22" r="2.6"/><circle class="pen-redfill" cx="52" cy="34" r="2.6"/>
+        </svg></span>
+        <span class="what"><b>Yahtzee</b><small>The paper scoresheet, filled in for you, for up to ten players.</small></span>
+        <span class="room-tag living-tag">Dice</span>
+      </a>
+    </li>
+    <!-- always last, and always shown: whatever was searched for, it can be built -->
+    <li class="any" data-also="builder custom build other own">
+      <a class="game-row" href="/builder/">
+        <span class="tile tile-workshop"><svg viewBox="0 0 70 70" aria-hidden="true">
+          <rect class="ws-line" x="14" y="14" width="42" height="42" rx="2"/>
+          <path class="ws-line" d="M14 28h42M14 42h42M28 14v42M42 14v42"/>
+          <path class="ws-accent" d="M35 24v22M24 35h22"/>
+        </svg></span>
+        <span class="what"><b>Any other game</b><small>Not here yet? Build its scorekeeper: how it ends, which way it scores, teams or not, and your own scoring buttons.</small></span>
+        <span class="room-tag workshop-tag">Builder</span>
+      </a>
+    </li>
+  </ul>
+  <p class="none" id="none" hidden>No game by that name yet. The last one on the list can keep score for it.</p>
+</main>
+
+<footer class="games-foot">
+  <p class="legal-links"><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="mailto:hello@scorechalk.com">hello@scorechalk.com</a></p>
+</footer>
+
+<script src="/games.js?v=1" defer></script>
+<script src="/pwa.js?v=1" defer></script>
+</body>
+</html>

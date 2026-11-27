@@ -19,7 +19,7 @@
 
 const VERSION = 'sc-v2';
 const FONTS = 'sc-fonts';
-const PAGES = ['/', '/darts/', '/cribbage/', '/yahtzee/', '/magic/', '/builder/', '/tournament/', '/privacy/', '/terms/'];
+const PAGES = ['/', '/games/', '/darts/', '/cribbage/', '/yahtzee/', '/bridge/', '/magic/', '/builder/', '/tournament/', '/privacy/', '/terms/'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {

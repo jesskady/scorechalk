@@ -119,6 +119,36 @@ export async function startGame(page) {
   if (yes && await yes.isVisible()) { await yes.click(); await wait(500); }
 }
 
+/* Drag a row of a players' list (/roster.js) by its grip onto another
+   row, as a finger would: down, across in steps, up. */
+export async function drag(page, list, from, to) {
+  const at = (i) => page.evaluate((list, i) => {
+    const r = document.querySelectorAll(`${list} li`)[i].querySelector('.roster-grip').getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  }, list, i);
+  const a = await at(from), b = await at(to);
+  await page.mouse.move(a.x, a.y);
+  await page.mouse.down();
+  // past the middle of the row it lands on
+  await page.mouse.move(a.x, b.y + (to > from ? 8 : -8), { steps: 8 });
+  await page.mouse.up();
+  await wait(300);
+}
+
+/* Edit game (/editgame.js), once it is open: the names as listed, a name
+   changed, and Save, Cancel or OK. */
+export const editNames = (page) => page.evaluate(() => [...document.querySelectorAll('.edit-game li input')].map((i) => i.value));
+export const editRename = (page, i, name) => page.evaluate((i, name) => {
+  const inp = document.querySelectorAll('.edit-game li input')[i];
+  inp.value = name;
+  inp.dispatchEvent(new Event('input'));
+}, i, name);
+export async function editPress(page, text) {
+  // the one on screen: the list's Save is hidden while a warning asks again
+  await page.evaluate((t) => [...document.querySelectorAll('.edit-game button')].find((b) => b.textContent === t && b.offsetParent).click(), text);
+  await wait(400);
+}
+
 // Press a button in the share sheet, or the seat picker, by its words.
 export const press = (page, text) => page.evaluate((t) => {
   const b = [...document.querySelectorAll('.sc-share-ui button')].find((x) => x.textContent === t);

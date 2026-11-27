@@ -36,17 +36,23 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredericka+the+Great&family=Josefin+Sans:wght@400;600;700&family=Bree+Serif&family=Kalam:wght@400;700&display=swap">
-<link rel="stylesheet" href="../shared.css?v=37">
+<link rel="stylesheet" href="../shared.css?v=41">
 <!-- the room this game is played in: the Parlor (see /themes.css) -->
 <link rel="stylesheet" href="../themes.css?v=7">
-<link rel="stylesheet" href="style.css?v=33">
+<link rel="stylesheet" href="style.css?v=35">
 </head>
 <body data-room="parlor" data-game="darts">
 
 <!-- ============ SETUP ============ -->
 <section id="setup" class="screen">
   <!-- a tournament's match leads back to the tournament instead (see prefill) -->
-  <a class="backlink mark" id="setupBack" href="/" aria-label="All games"><span class="arrow" aria-hidden="true">&lsaquo;</span><img src="/favicon.svg?v=2" alt="" width="30" height="30"></a>
+  <!-- home (the badge), and under it the way back to the list of every
+       game, only for whoever has just come from there -->
+  <nav class="crumbs" aria-label="Breadcrumb">
+    <a class="backlink mark" id="setupBack" href="/" aria-label="Home"><span class="arrow" aria-hidden="true">&lsaquo;</span><img src="/favicon.svg?v=2" alt="" width="30" height="30"></a>
+    <a class="crumb" href="/games/" hidden>&lsaquo; All games</a>
+  </nav>
+  <script>try { const r = new URL(document.referrer); if (r.origin === location.origin && r.pathname === '/games/') document.querySelector('.crumb').hidden = false; } catch (e) {}</script>
 
   <header class="brand">
     <h1 class="room-title">Darts</h1>
@@ -71,22 +77,14 @@
   </div>
 
   <div class="card">
-    <label class="field">
-      <span id="label1">Player 1</span>
-      <input id="name1" type="text" placeholder="Player 1" autocomplete="off" maxlength="14">
-    </label>
-    <label class="field" id="field2">
-      <span>Player 2</span>
-      <input id="name2" type="text" placeholder="Player 2" autocomplete="off" maxlength="14">
-    </label>
-    <label class="field hidden" id="field3">
-      <span>Player 3</span>
-      <input id="name3" type="text" placeholder="Player 3" autocomplete="off" maxlength="14">
-    </label>
-    <label class="field hidden" id="field4">
-      <span>Player 4</span>
-      <input id="name4" type="text" placeholder="Player 4" autocomplete="off" maxlength="14">
-    </label>
+    <!-- the order of the list is the order of throwing: each name gets a
+         grip to drag it by (see /roster.js; .roster is in /shared.css) -->
+    <ol class="roster" id="names">
+      <li><i id="label1">1.</i><input id="name1" class="roster-name" type="text" placeholder="Player 1" autocomplete="off" maxlength="14" aria-label="Player 1's name"></li>
+      <li id="field2"><i>2.</i><input id="name2" class="roster-name" type="text" placeholder="Player 2" autocomplete="off" maxlength="14" aria-label="Player 2's name"></li>
+      <li class="hidden" id="field3"><i>3.</i><input id="name3" class="roster-name" type="text" placeholder="Player 3" autocomplete="off" maxlength="14" aria-label="Player 3's name"></li>
+      <li class="hidden" id="field4"><i>4.</i><input id="name4" class="roster-name" type="text" placeholder="Player 4" autocomplete="off" maxlength="14" aria-label="Player 4's name"></li>
+    </ol>
 
     <!-- Which player the account holder is. Statistics depend on it, so it is
          asked rather than guessed, and taken for you when the game is shared.
@@ -220,11 +218,15 @@
       <button id="undoTurn" class="ghost">Undo turn</button>
       <button id="bustBtn" class="ghost bust-btn">Bust</button>
       <button id="shareBtn" class="ghost">Share</button>
+      <!-- the players' order and names, in a sheet of their own: see /editgame.js -->
+      <button id="editBtn" class="ghost">Edit</button>
       <button id="quitBtn" class="ghost">New game</button>
     </div>
   </div>
 
   <p id="msg" class="msg"></p>
+  <!-- the rules, for a question mid-game; the game is kept, and Back returns -->
+  <p class="guide-link"><a href="/darts-scorer/">How darts scoring and checkouts work</a></p>
 </section>
 
 <!-- ============ CONFIRM ============ -->
@@ -254,7 +256,9 @@
 <script src="/share.js?v=12"></script>
 <script src="/cloud.js?v=3"></script>
 <script src="sync.js?v=31"></script>
-<script src="app.js?v=43"></script>
+<script src="/roster.js?v=2"></script>
+<script src="/editgame.js?v=2"></script>
+<script src="app.js?v=47"></script>
 <script src="/pwa.js?v=1" defer></script>
 </body>
 </html>

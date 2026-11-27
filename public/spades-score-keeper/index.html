@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1c2723">
+<title>Spades Score Keeper — Free Online Spades Scoring with Bids, Bags &amp; Nil</title>
+<!-- visits, and errors on these pages: see /report.js -->
+<script src="/report.js?v=1"></script>
+<!-- Score Chalk as an app: installable, and working offline (see /pwa.js) -->
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="Score Chalk">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="A free Spades score keeper: enter each side's bid and the tricks it took, and it scores the hand, counting bags and taking off 100 at ten, with nil made or missed. First to 500, kept from every phone.">
+<link rel="canonical" href="https://scorechalk.com/spades-score-keeper/">
+<meta property="og:site_name" content="Score Chalk">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://scorechalk.com/spades-score-keeper/">
+<meta property="og:title" content="Spades Score Keeper — Free Online Spades Scoring with Bids, Bags &amp; Nil">
+<meta property="og:description" content="A free Spades score keeper: enter each side's bid and the tricks it took, and it scores the hand, counting bags and taking off 100 at ten, with nil made or missed. First to 500, kept from every phone.">
+<meta property="og:image" content="https://scorechalk.com/og/builder.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml">
+<link rel="icon" href="/icons/icon-192.png" sizes="192x192">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredericka+the+Great&display=swap">
+<link rel="stylesheet" href="/shared.css?v=41">
+<link rel="stylesheet" href="/guide.css?v=1">
+<script type="application/ld+json">[{"@context":"https://schema.org","@type":"WebApplication","name":"Score Chalk — Spades score keeper","url":"https://scorechalk.com/spades-score-keeper/","applicationCategory":"GameApplication","operatingSystem":"Any (web browser)","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"A free Spades score keeper: enter each side's bid and the tricks it took, and it scores the hand, counting bags and taking off 100 at ten, with nil made or missed. First to 500, kept from every phone."},{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How do you score Spades?","acceptedAnswer":{"@type":"Answer","text":"Partners add their bids into one contract. Make it and score 10 points a trick bid, plus 1 for each trick over (a bag). Fall short and lose 10 points a trick bid. The first side to 500 wins."}},{"@type":"Question","name":"What are bags in Spades?","acceptedAnswer":{"@type":"Answer","text":"A bag is a trick taken over the bid, worth 1 point. Bags add up from hand to hand, and every 10 bags cost the side 100 points."}},{"@type":"Question","name":"How does nil work in Spades?","acceptedAnswer":{"@type":"Answer","text":"A player who bids nil promises to take no tricks. Their side scores 100 if they take none and loses 100 if they take any. The partner's own bid is scored separately."}},{"@type":"Question","name":"What score does Spades go to?","acceptedAnswer":{"@type":"Answer","text":"Most tables play to 500. Some play to 300 or 250 for a shorter game, and the target can be changed."}},{"@type":"Question","name":"Can I change the scoring to our house rules?","acceptedAnswer":{"@type":"Answer","text":"The target can be changed and saved in the Builder. The bid, bag and nil scoring is the standard one."}}]}]</script>
+<!-- Start is the one thing this page is for, so fetch the game page it opens
+     once the button is near the screen, and the tap lands at once. Prefetch,
+     not prerender: the game pages read saved games from storage on load.
+     Browsers without speculation rules ignore this. -->
+<script type="speculationrules">{"prefetch":[{"where":{"href_matches":["/builder/*","/darts/","/cribbage/","/yahtzee/","/magic/"]},"eagerness":"moderate"}]}</script>
+</head>
+<body class="guide">
+<!-- A scoring guide: written for people searching how to score Spades,
+     with the way straight into the game. -->
+<main>
+  <a class="backlink mark" href="/" aria-label="All games"><span class="arrow" aria-hidden="true">&lsaquo;</span><img src="/favicon.svg?v=2" alt="" width="30" height="30"></a>
+  <section class="hero">
+    <span class="kicker">Score Chalk</span>
+    <h1>Spades score keeper</h1>
+    <p class="lede">After each hand, enter each side's bid and the tricks it took. Score Chalk scores the contract, counts the bags and takes 100 off at ten, and scores any nil, first to 500.</p>
+    <a class="start" href="/builder/#spades">Start a Spades game</a>
+    <span class="free">Free · no account · works on any phone</span>
+  </section>
+
+<h2>How Spades scoring works</h2>
+<p>Spades is played by two partnerships. Before each hand every player bids the tricks they expect to take, and partners add their bids together into one contract. A side that takes <b>at least its bid scores 10 points a trick bid</b>, plus 1 point for each trick over. A side that takes fewer is <b>set, and loses 10 points a trick bid</b>. The first side to reach <b>500</b> wins.</p>
+
+<h3>Scoring a hand</h3>
+<table><thead><tr><th>Result</th><th>Points</th></tr></thead><tbody><tr><td>Bid made</td><td>10 × bid, +1 a trick over</td></tr><tr><td>Set (fewer than bid)</td><td>−10 × bid</td></tr><tr><td>Every 10 bags</td><td>−100</td></tr><tr><td>Nil made</td><td>+100</td></tr><tr><td>Nil missed</td><td>−100</td></tr></tbody></table>
+
+<h3>Bags</h3>
+<p>Each trick taken over the bid is a <b>bag</b>, worth 1 point. Bags carry over from hand to hand, and every time a side's bags reach <b>10, it loses 100 points</b>. Overbidding costs a hand; underbidding costs bags.</p>
+
+<h3>Nil</h3>
+<p>A player can bid <b>nil</b>: no tricks at all. If they take none, their side scores <b>100</b>; if they take even one, the side <b>loses 100</b>. Their partner's bid is scored as usual.</p>
+
+<h3>An example hand</h3>
+<p>Your side bids 4 and takes 6: 40 for the bid and 2 bags, so 42. The other side bid 5 and took only 3, so they're set and lose 50, but one of them bid nil and took nothing: 100 for that, and +50 for the hand.</p>
+<p class="note">Tables differ: some play to 300, count a nil player's tricks toward the partner's bid, or allow a blind nil. The target can be changed in the Builder; enter the tricks the side took together.</p>
+
+  <h2>Keeping score with Score Chalk</h2>
+  <div class="features"><div class="feature"><b>Enter a hand in seconds</b>For each side, Bid and Took, and Nil made or missed if someone went nil. The hand's score shows before it goes in.</div><div class="feature"><b>Bags counted for you</b>Each side's bags carry from hand to hand, and 100 comes off when they reach ten, on the hand it happened.</div><div class="feature"><b>A score sheet, as on paper</b>A row a hand and a column a player, with running totals. A hand that went in wrong can be changed later, and everything after it is worked out again.</div><div class="feature"><b>Undo</b>Entered a hand for the wrong player? Undo takes it back.</div><div class="feature"><b>Keep score together</b>Share the game and everyone joins from their own phone, picking which player they are. Everyone sees the whole table live, and someone can watch from anywhere with a read-only link.</div><div class="feature"><b>Free, nothing to install</b>Opens in any phone or computer browser. No account, no ads. Add it to your home screen and it works offline too.</div></div>
+
+  <h2>Questions</h2>
+  <details><summary>How do you score Spades?</summary><p>Partners add their bids into one contract. Make it and score 10 points a trick bid, plus 1 for each trick over (a bag). Fall short and lose 10 points a trick bid. The first side to 500 wins.</p></details>
+  <details><summary>What are bags in Spades?</summary><p>A bag is a trick taken over the bid, worth 1 point. Bags add up from hand to hand, and every 10 bags cost the side 100 points.</p></details>
+  <details><summary>How does nil work in Spades?</summary><p>A player who bids nil promises to take no tricks. Their side scores 100 if they take none and loses 100 if they take any. The partner's own bid is scored separately.</p></details>
+  <details><summary>What score does Spades go to?</summary><p>Most tables play to 500. Some play to 300 or 250 for a shorter game, and the target can be changed.</p></details>
+  <details><summary>Can I change the scoring to our house rules?</summary><p>The target can be changed and saved in the Builder. The bid, bag and nil scoring is the standard one.</p></details>
+
+  <p class="again"><a class="start" href="/builder/#spades">Start a Spades game</a></p>
+  <p class="others">Other scorekeepers: <a href="/oh-hell-score-keeper/">Oh Hell score keeper</a> <a href="/skyjo-score-keeper/">Skyjo score keeper</a> <a href="/rummikub-score-sheet/">Rummikub score sheet</a> <a href="/hearts-score-keeper/">Hearts score keeper</a> <a href="/phase-10-score-keeper/">Phase 10 score keeper</a> <a href="/five-crowns-score-keeper/">Five Crowns score keeper</a> <a href="/rummy-500-score-keeper/">Rummy 500 score keeper</a> <a href="/uno-score-keeper/">UNO score keeper</a> <a href="/euchre-score-keeper/">Euchre score keeper</a> <a href="/canasta-score-keeper/">Canasta score keeper</a> <a href="/cribbage-score-keeper/">Cribbage score keeper</a> <a href="/yahtzee-score-sheet/">Yahtzee score sheet</a> <a href="/farkle-score-sheet/">Farkle score sheet</a> <a href="/darts-scorer/">Darts scorer</a> <a href="/mtg-life-counter/">MTG life counter</a> <a href="/score-keeper/">Any game</a></p>
+</main>
+<script src="/pwa.js?v=1" defer></script>
+</body>
+</html>

@@ -28,9 +28,14 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredericka+the+Great&display=swap">
-<link rel="stylesheet" href="/shared.css?v=37">
+<link rel="stylesheet" href="/shared.css?v=41">
 <link rel="stylesheet" href="/guide.css?v=1">
 <script type="application/ld+json">[{"@context":"https://schema.org","@type":"WebApplication","name":"Score Chalk — A score keeper for any game","url":"https://scorechalk.com/score-keeper/","applicationCategory":"GameApplication","operatingSystem":"Any (web browser)","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"A free online score keeper for any card, dice or board game: choose how it ends, how it scores and whether it's played in teams, and keep score together on every phone at the table."},{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What games can I keep score for?","acceptedAnswer":{"@type":"Answer","text":"Any game scored with points: card games like Hearts, Spades, Euchre, Rummy or Phase 10; dice games; board games; trivia nights."}},{"@type":"Question","name":"Does everyone need the app?","acceptedAnswer":{"@type":"Answer","text":"No app to install — it runs in the browser. Share a link and others join from their own phones, or one phone keeps score for everyone."}},{"@type":"Question","name":"Is it free?","acceptedAnswer":{"@type":"Answer","text":"Yes, free with no ads and no account needed."}}]}]</script>
+<!-- Start is the one thing this page is for, so fetch the game page it opens
+     once the button is near the screen, and the tap lands at once. Prefetch,
+     not prerender: the game pages read saved games from storage on load.
+     Browsers without speculation rules ignore this. -->
+<script type="speculationrules">{"prefetch":[{"where":{"href_matches":["/builder/*","/darts/","/cribbage/","/yahtzee/","/magic/"]},"eagerness":"moderate"}]}</script>
 </head>
 <body class="guide">
 <!-- A scoring guide: written for people searching how to score any game,
@@ -65,7 +70,7 @@
   <details><summary>Is it free?</summary><p>Yes, free with no ads and no account needed.</p></details>
 
   <p class="again"><a class="start" href="/builder/">Build a score keeper</a></p>
-  <p class="others">Other scorekeepers: <a href="/hearts-score-keeper/">Hearts score keeper</a> <a href="/phase-10-score-keeper/">Phase 10 score keeper</a> <a href="/five-crowns-score-keeper/">Five Crowns score keeper</a> <a href="/rummy-500-score-keeper/">Rummy 500 score keeper</a> <a href="/cribbage-score-keeper/">Cribbage score keeper</a> <a href="/yahtzee-score-sheet/">Yahtzee score sheet</a> <a href="/darts-scorer/">Darts scorer</a> <a href="/mtg-life-counter/">MTG life counter</a> <a href="/canasta-score-keeper/">Canasta score keeper</a> <a href="/farkle-score-sheet/">Farkle score sheet</a> <a href="/uno-score-keeper/">UNO score keeper</a> <a href="/euchre-score-keeper/">Euchre score keeper</a></p>
+  <p class="others">Other scorekeepers: <a href="/spades-score-keeper/">Spades score keeper</a> <a href="/oh-hell-score-keeper/">Oh Hell score keeper</a> <a href="/skyjo-score-keeper/">Skyjo score keeper</a> <a href="/rummikub-score-sheet/">Rummikub score sheet</a> <a href="/hearts-score-keeper/">Hearts score keeper</a> <a href="/phase-10-score-keeper/">Phase 10 score keeper</a> <a href="/five-crowns-score-keeper/">Five Crowns score keeper</a> <a href="/rummy-500-score-keeper/">Rummy 500 score keeper</a> <a href="/uno-score-keeper/">UNO score keeper</a> <a href="/euchre-score-keeper/">Euchre score keeper</a> <a href="/canasta-score-keeper/">Canasta score keeper</a> <a href="/cribbage-score-keeper/">Cribbage score keeper</a> <a href="/yahtzee-score-sheet/">Yahtzee score sheet</a> <a href="/farkle-score-sheet/">Farkle score sheet</a> <a href="/darts-scorer/">Darts scorer</a> <a href="/mtg-life-counter/">MTG life counter</a></p>
 </main>
 <script src="/pwa.js?v=1" defer></script>
 </body>

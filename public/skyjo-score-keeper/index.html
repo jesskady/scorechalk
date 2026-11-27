@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1c2723">
+<title>Skyjo Score Keeper — Free Online Skyjo Scoring with the Doubling Rule</title>
+<!-- visits, and errors on these pages: see /report.js -->
+<script src="/report.js?v=1"></script>
+<!-- Score Chalk as an app: installable, and working offline (see /pwa.js) -->
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="Score Chalk">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="A free Skyjo score keeper: enter what each player's cards add up to and who ended the round, and it doubles the ender's score when theirs isn't the lowest. At 100 the game ends, and the lowest total wins.">
+<link rel="canonical" href="https://scorechalk.com/skyjo-score-keeper/">
+<meta property="og:site_name" content="Score Chalk">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://scorechalk.com/skyjo-score-keeper/">
+<meta property="og:title" content="Skyjo Score Keeper — Free Online Skyjo Scoring with the Doubling Rule">
+<meta property="og:description" content="A free Skyjo score keeper: enter what each player's cards add up to and who ended the round, and it doubles the ender's score when theirs isn't the lowest. At 100 the game ends, and the lowest total wins.">
+<meta property="og:image" content="https://scorechalk.com/og/builder.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml">
+<link rel="icon" href="/icons/icon-192.png" sizes="192x192">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredericka+the+Great&display=swap">
+<link rel="stylesheet" href="/shared.css?v=41">
+<link rel="stylesheet" href="/guide.css?v=1">
+<script type="application/ld+json">[{"@context":"https://schema.org","@type":"WebApplication","name":"Score Chalk — Skyjo score keeper","url":"https://scorechalk.com/skyjo-score-keeper/","applicationCategory":"GameApplication","operatingSystem":"Any (web browser)","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"A free Skyjo score keeper: enter what each player's cards add up to and who ended the round, and it doubles the ender's score when theirs isn't the lowest. At 100 the game ends, and the lowest total wins."},{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How do you score Skyjo?","acceptedAnswer":{"@type":"Answer","text":"At the end of each round every player adds up their cards, from −2 to 12, leaving out any column of three matching cards. Points are bad, and the lowest total wins."}},{"@type":"Question","name":"What happens if the player who ends the round doesn't have the lowest score?","acceptedAnswer":{"@type":"Answer","text":"Their score for the round is doubled, unless it is zero or less. If another player tied them, it is still doubled."}},{"@type":"Question","name":"When does Skyjo end?","acceptedAnswer":{"@type":"Answer","text":"At the end of the round in which any player reaches 100 points. The player with the lowest total wins."}},{"@type":"Question","name":"What are the Skyjo card values?","acceptedAnswer":{"@type":"Answer","text":"Cards run from −2 to 12: five −2s, ten −1s, fifteen 0s and ten of each from 1 to 12."}},{"@type":"Question","name":"Can I change the limit?","acceptedAnswer":{"@type":"Answer","text":"Yes: the Skyjo score keeper is built in the Builder, so the 100 limit can be changed and saved."}}]}]</script>
+<!-- Start is the one thing this page is for, so fetch the game page it opens
+     once the button is near the screen, and the tap lands at once. Prefetch,
+     not prerender: the game pages read saved games from storage on load.
+     Browsers without speculation rules ignore this. -->
+<script type="speculationrules">{"prefetch":[{"where":{"href_matches":["/builder/*","/darts/","/cribbage/","/yahtzee/","/magic/"]},"eagerness":"moderate"}]}</script>
+</head>
+<body class="guide">
+<!-- A scoring guide: written for people searching how to score Skyjo,
+     with the way straight into the game. -->
+<main>
+  <a class="backlink mark" href="/" aria-label="All games"><span class="arrow" aria-hidden="true">&lsaquo;</span><img src="/favicon.svg?v=2" alt="" width="30" height="30"></a>
+  <section class="hero">
+    <span class="kicker">Score Chalk</span>
+    <h1>Skyjo score keeper</h1>
+    <p class="lede">After each round, enter what each player's cards add up to, and who turned over their last card first. Score Chalk doubles that player's round when it isn't the lowest, and the lowest total wins once someone reaches 100.</p>
+    <a class="start" href="/builder/#skyjo">Start a Skyjo game</a>
+    <span class="free">Free · no account · works on any phone</span>
+  </section>
+
+<h2>How Skyjo scoring works</h2>
+<p>Every player has twelve cards in a grid, worth <b>−2 to 12</b>. When a player turns over their last card, everyone else has one more turn and the round ends. Each player then adds up their cards (a column of three matching cards is thrown out and counts nothing), and that is their score for the round. Points are bad: when a player reaches <b>100</b> at the end of a round, the game ends and the <b>lowest total wins</b>.</p>
+
+<h3>The player who ends the round</h3>
+<p>The player who ended the round has to have the <b>lowest score</b> for it. If anyone else scored the same or less, the ender's score for the round is <b>doubled</b>. A round of zero or less is never doubled.</p>
+
+<h3>Card values</h3>
+<table><thead><tr><th>Card</th><th>In the deck</th></tr></thead><tbody><tr><td>−2</td><td>5</td></tr><tr><td>−1</td><td>10</td></tr><tr><td>0</td><td>15</td></tr><tr><td>1 to 12</td><td>10 of each</td></tr></tbody></table>
+
+<h3>An example round</h3>
+<p>Alex ends the round with 10, but Jo has 8, so Alex isn't the lowest and their 10 becomes 20. Jo scores 8, Sam's cards add up to −3, and Kim's to 12.</p>
+<p class="note">Score Chalk settles the doubling once every player's round is in, so the ender's score changes when the last one goes in. The 100 limit can be changed in the Builder.</p>
+
+  <h2>Keeping score with Score Chalk</h2>
+  <div class="features"><div class="feature"><b>The doubling done for you</b>Mark who ended the round, and once everyone is in their score is doubled if anyone matched or beat it.</div><div class="feature"><b>Below zero too</b>A round can come in under zero: tap the minus and type what the cards add up to.</div><div class="feature"><b>A score sheet, as on paper</b>A row a hand and a column a player, with running totals. A hand that went in wrong can be changed later, and everything after it is worked out again.</div><div class="feature"><b>Undo</b>Entered a hand for the wrong player? Undo takes it back.</div><div class="feature"><b>Keep score together</b>Share the game and everyone joins from their own phone, picking which player they are. Everyone sees the whole table live, and someone can watch from anywhere with a read-only link.</div><div class="feature"><b>Free, nothing to install</b>Opens in any phone or computer browser. No account, no ads. Add it to your home screen and it works offline too.</div></div>
+
+  <h2>Questions</h2>
+  <details><summary>How do you score Skyjo?</summary><p>At the end of each round every player adds up their cards, from −2 to 12, leaving out any column of three matching cards. Points are bad, and the lowest total wins.</p></details>
+  <details><summary>What happens if the player who ends the round doesn't have the lowest score?</summary><p>Their score for the round is doubled, unless it is zero or less. If another player tied them, it is still doubled.</p></details>
+  <details><summary>When does Skyjo end?</summary><p>At the end of the round in which any player reaches 100 points. The player with the lowest total wins.</p></details>
+  <details><summary>What are the Skyjo card values?</summary><p>Cards run from −2 to 12: five −2s, ten −1s, fifteen 0s and ten of each from 1 to 12.</p></details>
+  <details><summary>Can I change the limit?</summary><p>Yes: the Skyjo score keeper is built in the Builder, so the 100 limit can be changed and saved.</p></details>
+
+  <p class="again"><a class="start" href="/builder/#skyjo">Start a Skyjo game</a></p>
+  <p class="others">Other scorekeepers: <a href="/spades-score-keeper/">Spades score keeper</a> <a href="/oh-hell-score-keeper/">Oh Hell score keeper</a> <a href="/rummikub-score-sheet/">Rummikub score sheet</a> <a href="/hearts-score-keeper/">Hearts score keeper</a> <a href="/phase-10-score-keeper/">Phase 10 score keeper</a> <a href="/five-crowns-score-keeper/">Five Crowns score keeper</a> <a href="/rummy-500-score-keeper/">Rummy 500 score keeper</a> <a href="/uno-score-keeper/">UNO score keeper</a> <a href="/euchre-score-keeper/">Euchre score keeper</a> <a href="/canasta-score-keeper/">Canasta score keeper</a> <a href="/cribbage-score-keeper/">Cribbage score keeper</a> <a href="/yahtzee-score-sheet/">Yahtzee score sheet</a> <a href="/farkle-score-sheet/">Farkle score sheet</a> <a href="/darts-scorer/">Darts scorer</a> <a href="/mtg-life-counter/">MTG life counter</a> <a href="/score-keeper/">Any game</a></p>
+</main>
+<script src="/pwa.js?v=1" defer></script>
+</body>
+</html>
