@@ -232,10 +232,10 @@ describe('Builder, live', () => {
     await pg.close();
   });
 
-  test('Qwirkle: tiles on 1, 5 and 10, a Qwirkle, the end bonus, and Finish', async () => {
+  test('Qwirkle: tiles on 1, 5 and 10, a Qwirkle, the end bonus, and Finish naming the winner', async () => {
     const pg = await phone();
     await open(pg, '/builder/#qwirkle');
-    assert.match(await pg.evaluate(() => rulesText.textContent), /Just keep score · keys 1, 5, 10, Qwirkle 12, Went out 6/);
+    assert.match(await pg.evaluate(() => rulesText.textContent), /Highest wins at Finish · keys 1, 5, 10, Qwirkle 12, Went out 6/);
     await pg.evaluate(() => { cfg.names = ['Ann', 'Bob']; saveCfg(); renderSetup(); });
     await startGame(pg);
     await pg.click('#viewRow [data-view="sheet"]'); await wait(300);    // on the sheet, whichever was picked
@@ -256,11 +256,11 @@ describe('Builder, live', () => {
     await turn(0, ['Went out']);                          // Ann ends the game
     assert.deepEqual(await pg.evaluate(() => S.scores), [19, 15]);
     assert.match(await pg.evaluate(() => S.log[1].parts.map((x) => x.label).join(' ')), /Qwirkle/, 'the sheet says it was a Qwirkle');
-    // no target: Finish ends it, the final scores highest first, and the
-    // highest kept as the winner for the profile
+    // no target: Finish ends it, and the highest wins, named
     await pg.click('#finishBtn'); await wait(300);
+    assert.equal(await pg.$eval('#confirmText', (p) => p.textContent), 'End the game here? The highest score wins.');
     await pg.click('#confirmYes'); await wait(300);
-    assert.equal(await pg.$eval('#winName', (h) => h.textContent), 'Final scores');
+    assert.equal(await pg.$eval('#winName', (h) => h.textContent), 'Ann wins!');
     assert.deepEqual(await pg.$$eval('#winTable li', (ls) => ls.map((l) => l.textContent)), ['Ann19', 'Bob15']);
     assert.equal(await pg.evaluate(() => S.winnerIdx), 0);
     assert.equal(await pg.$eval('#gameGuide', (a) => a.getAttribute('href')), '/qwirkle-score-sheet/');

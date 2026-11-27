@@ -1839,11 +1839,15 @@ $('undoBtn').onclick = () => {
 // A game that only keeps score never ends by itself, so Finish ends it: the
 // standings go up, and a signed-in game is saved to the profile like any
 // other. The highest score is credited as the winner, unless it is shared.
+// A game with no ending of its own: Finish shows the final scores, or,
+// for a game whose highest wins at the end (finishWins: Rummikub,
+// Qwirkle), names the winner.
 $('finishBtn').onclick = async () => {
   if (!S.log.length) { flash('Nothing scored yet'); return; }
-  if (!(await askConfirm('End the game here and show the final scores?', 'Finish'))) return;
+  const wins = !!S.cfg.finishWins;
+  if (!(await askConfirm(wins ? 'End the game here? The highest score wins.' : 'End the game here and show the final scores?', 'Finish'))) return;
   const top = best(Math.max);
-  showWin({ ...top, final: true });
+  showWin({ ...top, final: !wins });
 };
 
 /* ---------------- editing the game ----------------

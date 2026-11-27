@@ -44,6 +44,8 @@ const RULE_FIELDS = {
   players:   (v) => isInt(v) && v >= 1 && v <= 8,
   theme:     (v) => ['parlor', 'living', 'workshop'].includes(v),
   pad:       isBool,
+  // Finish names the highest the winner (Rummikub, Qwirkle): see rules.js
+  finishWins: isBool,
   // up to six, each { id, name, start, end, at }: see rules.js
   counters:  (v) => Array.isArray(v) && v.length <= 6 && v.every(isCounter)
     && new Set(v.map((k) => k.id)).size === v.length,
@@ -62,7 +64,8 @@ const isCounter = (k) => !!k && typeof k === 'object' && !Array.isArray(k)
 // before them sends rules without them, so they are filled in, not refused.
 const OPTIONAL = { teams: false, teamCount: 2, players: 2, theme: 'workshop', counters: [],
   // a live game's buttons: rules from before the choice had them
-  pad: true };
+  pad: true,
+  finishWins: false };
 
 function cleanRules(rules) {
   if (!rules || typeof rules !== 'object') return { bad: 'rules' };
