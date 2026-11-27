@@ -532,26 +532,43 @@ async function editGame() {
 
 /* The game's history for Edit's History (see /editgame.js), from Undo's
    list: every box filled, changed or emptied, and the extra Yahtzees, in
-   the order they came. A box filled is that player's next turn. */
+   the order they came. A box filled is that player's next turn. The latest
+   line for a box still filled can be tapped to change it (see fixBox). */
 function historyRows() {
   const turns = S.names.map(() => 0);
-  return S.log.map((e) => {
+  const latest = {};
+  S.log.forEach((e, i) => { latest[`${e.p}:${e.id}`] = i; });
+  const fixable = (e, i) => latest[`${e.p}:${e.id}`] === i && !SCShare.watching && SCShare.canScore(e.p)
+    && (e.id === 'ybonus' || filled(e.p, e.id));
+  return S.log.map((e, i) => {
     const who = S.names[e.p];
+    const edit = fixable(e, i) ? () => fixBox(e.p, e.id) : null;
     if (e.id === 'ybonus') {
       const d = (e.v - e.prev) * YAHTZEE_BONUS;
-      return { who, what: 'Yahtzee bonus', pts: d > 0 ? `+${d}` : `−${-d}`, neg: d < 0 };
+      return { who, what: 'Yahtzee bonus', pts: d > 0 ? `+${d}` : `−${-d}`, neg: d < 0, edit };
     }
     const label = box(e.id).label;
     if (e.prev == null) {
       turns[e.p] += 1;
-      return { who, what: label, when: `turn ${turns[e.p]}`, pts: e.v ? e.v : 'scratched' };
+      return { who, what: label, when: `turn ${turns[e.p]}`, pts: e.v ? e.v : 'scratched', edit };
     }
     if (e.v == null) {
       turns[e.p] -= 1;
       return { who, what: `${label} emptied`, pts: '—', neg: true };
     }
-    return { who, what: `${label} changed`, pts: `${e.prev || 'scratched'} → ${e.v || 'scratched'}` };
+    return { who, what: `${label} changed`, pts: `${e.prev || 'scratched'} → ${e.v || 'scratched'}`, edit };
   });
+}
+
+/* Changing a box from the history: its own bubble, by the box, saying what
+   is being changed. Like changing any box on the sheet, it leaves the turn
+   where it is; the bubble holds the game until a value is picked or it is
+   put away. A finished game can be put right this way too, and the result
+   follows. */
+function fixBox(p, id) {
+  showColumn(p);
+  openEntry(p, id);
+  $('entryWho').textContent = `Changing ${S.names[p]}'s ${id === 'ybonus' ? 'Yahtzee bonus' : box(id).label}`;
 }
 
 // Who a new order would pass over for the rest of this round (see

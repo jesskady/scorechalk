@@ -1660,8 +1660,27 @@ function historyRows() {
       const diff = x.to - x.from;
       return { who: c.names[x.p], what: `${c.turns ? `round ${x.r} ` : ''}changed`, when: `${turnText(x.from)} → ${turnText(x.to)}`, pts: signed(diff), neg: diff < 0 };
     }
-    return { who: c.names[e.p], what: partsText(e.parts), when: c.turns ? `round ${rounds[i]}` : '', pts: signed(e.d), neg: e.d < 0 };
+    const edit = !SCShare.watching && SCShare.canScore(e.p) ? () => fixTurn(i) : null;
+    return { who: c.names[e.p], what: partsText(e.parts), when: c.turns ? `round ${rounds[i]}` : '', pts: signed(e.d), neg: e.d < 0, edit };
   });
+}
+
+/* Changing a score from the history: the same bubble as tapping it on the
+   sheet (see openEdit), pointing at it there, or at its player on the
+   board. It asks before changing, keeps the change in the history, and
+   leaves the turn where it is. */
+function fixTurn(i) {
+  const e = S.log[i];
+  if (!e) return;
+  const r = roundsOfLog()[i];
+  const at = [
+    sheetOn() && `#sheet button.cell[data-p="${e.p}"][data-r="${r}"]`,
+    `#history [data-i="${i}"]`,
+    `#scoreboard .player:nth-child(${e.p + 1})`,
+    `#tiles .tile[data-p="${e.p}"]`,
+  ].find((sel) => { const x = sel && document.querySelector(sel); return x && x.offsetParent; });
+  if (at) document.querySelector(at).scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  openEdit(i, at || undefined);
 }
 
 // The leader: only once someone is actually ahead, and never in a solo game.

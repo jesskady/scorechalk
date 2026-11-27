@@ -381,3 +381,80 @@ describe('History in Edit', () => {
     await pg.close();
   });
 });
+
+/* Changing a score from History: the row opens the game's own way of
+   changing it; the turn stays where it was; the history keeps the change;
+   Undo takes it back. Yahtzee, the Builder and Bridge. */
+describe('Changing a score from History', () => {
+  const openHistory = async (pg) => { await pg.click('#editBtn'); await wait(300); await editPress(pg, 'History'); };
+  const tapRow = (pg, text) => pg.evaluate((t) => {
+    const li = [...document.querySelectorAll('.edit-history li.fix')].find((x) => x.textContent.includes(t));
+    if (!li) throw new Error('no row to change: ' + t);
+    li.click();
+  }, text);
+  const fixable = (pg) => pg.evaluate(() => [...document.querySelectorAll('.edit-history li')].map((li) => li.classList.contains('fix')));
+
+  test('Yahtzee: a box put right, the turn left alone', async () => {
+    const pg = await phone();
+    await open(pg, '/yahtzee/');
+    await pg.evaluate(() => { S = newGame(['Ann', 'Bob']); openGame(S); setBox(0, 'threes', 9); setBox(1, 'full', 25); save(); render(); });
+    await wait(300);
+    await openHistory(pg);
+    await tapRow(pg, 'Threes'); await wait(300);
+    assert.equal(await pg.$('.edit-game'), null, 'the sheet makes way');
+    assert.equal(await pg.$eval('#entryWho', (x) => x.textContent), "Changing Ann's Threes");
+    await pg.evaluate(() => [...document.querySelectorAll('#entryBody button')].find((b) => b.textContent === '12').click());
+    await wait(300);
+    assert.deepEqual(await pg.evaluate(() => [S.cells[0].threes, S.names[S.cur]]), [12, 'Ann'], "Ann's turn still, her Threes now 12");
+    // the history keeps both; only the latest line for the box can be changed
+    await openHistory(pg);
+    assert.deepEqual(await fixable(pg), [true, true, false]);
+    assert.match(await pg.evaluate(() => document.querySelector('.edit-history li').textContent), /Threes changed.*9 → 12/);
+    await editPress(pg, 'Back'); await editPress(pg, 'Cancel');
+    await pg.click('#undoBtn'); await wait(300);
+    assert.equal(await pg.evaluate(() => S.cells[0].threes), 9, 'Undo puts the 9 back');
+    assert.deepEqual(pg.errors, []);
+    await pg.close();
+  });
+
+  test('The Builder: the same bubble as the sheet, asked first', async () => {
+    const pg = await phone();
+    await open(pg, '/builder/');
+    await pg.evaluate(() => { Object.assign(cfg, { mode: 'up', start: 0, win: 'none', turns: true, useRounds: false, teams: false, names: ['Jess', 'Alex'] }); cfg.players = 2; saveCfg(); renderSetup(); });
+    await startGame(pg);
+    await pg.evaluate(() => { commit(5); commit(7); });   // Jess 5, Alex 7: Jess is up
+    await openHistory(pg);
+    await tapRow(pg, 'Jess'); await wait(300);
+    assert.match(await pg.$eval('#entryTitle', (x) => x.textContent), /change the score/);
+    await pg.evaluate(() => [...document.querySelectorAll('#quickpad .key')].find((k) => k.textContent === '+5').click());
+    await pg.click('#commitBtn'); await wait(300);
+    await pg.click('#confirmYes'); await wait(400);
+    assert.deepEqual(await pg.evaluate(() => [S.scores, S.cfg.names[S.cur]]), [[10, 7], 'Jess']);
+    assert.deepEqual(pg.errors, []);
+    await pg.close();
+  });
+
+  test('Bridge: a hand put right; the pad follows; Undo takes the change back', async () => {
+    const pg = await phone();
+    await open(pg, '/bridge/');
+    for (const [i, n] of ['Ann', 'Bob', 'Cy', 'Dee'].entries()) await pg.type(`#n${i}`, n);
+    await pg.click('#startBtn'); await wait(400);
+    await pg.evaluate(() => { S.hands.push({ decl: 0, level: 4, strain: 'S', dbl: 0, tricks: 11, honors: 0, honorsSide: 0 }); save(); render(); });
+    const totals = () => pg.evaluate(() => score(S.hands, S.ended).totals);
+    assert.deepEqual(await totals(), [150, 0]);
+    await openHistory(pg);
+    await tapRow(pg, '4♠ by Ann'); await wait(300);
+    assert.equal(await pg.$eval('#handTitle', (x) => x.textContent), 'Changing hand 1');
+    await pg.click('#tMinus'); await pg.click('#tMinus'); await wait(100);   // 9 tricks: down one
+    await pg.click('#enterBtn'); await wait(300);
+    assert.deepEqual(await totals(), [0, 50], 'down one, to They');
+    await openHistory(pg);
+    assert.match(await pg.evaluate(() => document.querySelector('.edit-history li').textContent), /Hand 1 changed.*was 4♠ by Ann, made, 1 over/);
+    await editPress(pg, 'Back'); await editPress(pg, 'Cancel');
+    await pg.click('#undoBtn'); await wait(300);
+    assert.deepEqual(await totals(), [150, 0], 'Undo takes the change back');
+    assert.equal(await pg.evaluate(() => S.hands.length), 1, 'and only the change');
+    assert.deepEqual(pg.errors, []);
+    await pg.close();
+  });
+});

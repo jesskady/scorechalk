@@ -19,11 +19,13 @@
                  is saved (see skipWarning), or null; said, Save asks again
                  and Go back returns to the list as it was left
          history history(): the game's history, oldest first, a row for
-                 each thing done: { who, dot, what, when, pts, neg } (who
-                 did it, their colour if they have one, what it was, when,
-                 the points, and neg for a loss). A History button shows it
-                 newest first, scrolling in the sheet, locked or not, since
-                 looking changes nothing.
+                 each thing done: { who, dot, what, when, pts, neg, edit }
+                 (who did it, their colour if they have one, what it was,
+                 when, the points, neg for a loss, and edit, a function that
+                 opens the game's own way of changing it, when it can be).
+                 A History button shows it newest first, scrolling in the
+                 sheet, locked or not, since looking changes nothing.
+                 Tapping a row with edit closes the sheet and calls it.
          order   for each place in the new order, the place that player
                  had before: [2, 0, 1] puts the third player first
          names   the players' names in the new order, any renamed
@@ -77,9 +79,10 @@ window.SCEditGame = (function () {
       const past = el('div', 'edit-history');
       past.hidden = true;
       const pastList = el('ol');
+      const pastTip = el('p', 'edit-hint', 'Tap one to change it. Play then carries on where it was.');
       const pastBack = el('button', 'ghost', 'Back');
       pastBack.type = 'button';
-      past.append(pastList, pastBack);
+      past.append(pastTip, pastList, pastBack);
       let behind = [];
       const showPast = () => {
         const items = (history() || []).slice().reverse();
@@ -92,8 +95,20 @@ window.SCEditGame = (function () {
           who.append(document.createTextNode(r.who || ''));
           if (r.what) who.append(el('em', null, r.what));
           li.append(who, el('small', null, r.when || ''), el('b', r.neg ? 'neg' : null, r.pts == null ? '' : String(r.pts)));
+          // one that can be changed: the sheet makes way for the game's own
+          // way of changing it, which holds the game until it is done
+          if (r.edit) {
+            li.className = 'fix';
+            li.tabIndex = 0;
+            li.setAttribute('role', 'button');
+            li.setAttribute('aria-label', `Change: ${li.textContent}`);
+            const go = () => { close(null); r.edit(); };
+            li.onclick = go;
+            li.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } };
+          }
           pastList.append(li);
         }
+        pastTip.hidden = !items.some((r) => r.edit);
         behind = [...card.children].filter((x) => x !== title && x !== past && !x.hidden);
         behind.forEach((x) => { x.hidden = true; });
         past.hidden = false;

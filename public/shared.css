@@ -195,6 +195,11 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
 .edit-game .edit-history small{color:var(--dim);font-size:12.5px;white-space:nowrap}
 .edit-game .edit-history b{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
 .edit-game .edit-history b.neg{color:var(--neg,var(--red))}
+/* a row that can be changed: tapped, it opens the game's own way to */
+.edit-game .edit-history li.fix{cursor:pointer;border-radius:8px}
+.edit-game .edit-history li.fix:active{background:var(--bg2)}
+@media (hover:hover){.edit-game .edit-history li.fix:hover{background:var(--bg2)}}
+.edit-game .edit-history li.fix b::after{content:'›';margin-left:8px;color:var(--dim);font-weight:400}
 
 /* ---------- a setup screen: a little room to breathe ---------- */
 /* Setup screens (#setup, and Magic's #formats) are menus, not play, so
