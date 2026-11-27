@@ -180,6 +180,25 @@ function buildSetup() {
   nameInputs.forEach(input => input.addEventListener('input', labelMeBtns));
   labelMeBtns();
 
+  /* The order of the list is the order of throwing: a grip on each name
+     drags it up or down (see /roster.js). The names change places, and
+     You are goes with the name it was on. A tournament's match keeps its
+     players where the tournament put them: it reads the result by place. */
+  nameInputs.forEach((input, i) => {
+    input.closest('li').append(SCRoster.grip(`Move player ${i + 1}`));
+  });
+  SCRoster.sortable($('names'), (from, to) => {
+    if (match) return;
+    const vals = nameInputs.map(input => input.value);
+    vals.splice(to, 0, vals.splice(from, 1)[0]);
+    nameInputs.forEach((input, i) => { input.value = vals[i]; });
+    const order = nameInputs.map((_, i) => i);
+    order.splice(to, 0, order.splice(from, 1)[0]);
+    meIdx = order.indexOf(meIdx);
+    meBtns.forEach((b, i) => b.classList.toggle('is-on', i === meIdx));
+    labelMeBtns();
+  });
+
   if (window.SCSync) {
     window.SCSync.me().then(who => {
       signedIn = !!(who && who.user);
@@ -195,7 +214,8 @@ function buildSetup() {
       playerCount = parseInt(btn.dataset.players, 10);
       [2, 3, 4].forEach(n => $('field' + n).classList.toggle('hidden', n > playerCount));
       meBtns.forEach((b, i) => b.classList.toggle('hidden', i >= playerCount));
-      $('label1').textContent = playerCount === 1 ? 'Name' : 'Player 1';
+      $('label1').textContent = playerCount === 1 ? '' : '1.';
+      $('names').classList.toggle('solo', playerCount === 1);
       $('name1').placeholder = playerCount === 1 ? 'You' : 'Player 1';
       // solo, or the chosen player is no longer in the game: fall back to player one
       if (meIdx >= playerCount) {
@@ -242,6 +262,7 @@ function buildSetup() {
   const match = fromTourney();
   if (match) {
     match.names.forEach((n, i) => { nameInputs[i].value = n; });
+    $('names').classList.add('fixed');
     labelMeBtns();
     $('startScore').value = match.start;
     $('startScore').dispatchEvent(new Event('input'));

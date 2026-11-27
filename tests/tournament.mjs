@@ -138,6 +138,8 @@ describe('tournaments', () => {
     assert.equal(await pg.$eval('#setupBack', (a) => a.textContent.trim()), '‹ Tournament');
     assert.equal(await pg.$eval('#tourneyLink', (a) => a.classList.contains('hidden')), true, 'no tournament link inside a match');
     assert.equal(await pg.$eval('#setup .crumb', (a) => a.hidden), true, 'no step to the list of games inside a match');
+    assert.equal(await pg.evaluate(() => [...document.querySelectorAll('#names .roster-grip')].filter((g) => g.offsetParent).length), 0,
+      "a match's players stay in the tournament's order: nothing to drag");
     await pg.click('#startBtn'); await wait(500);
     assert.equal(await pg.evaluate(() => S.tid), tid);
 

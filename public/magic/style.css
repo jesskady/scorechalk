@@ -56,11 +56,10 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 .stepper b{min-width:28px;text-align:center;font-size:20px}
 .step{width:44px;height:40px;border-radius:10px;font-size:22px;font-weight:700;background:var(--bg2);border:1px solid var(--line)}
 .step:disabled{opacity:.35}
-.names{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.names.one{grid-template-columns:1fr}
-.name-row{display:flex;align-items:center;gap:8px;min-width:0}
-.name-row input{padding:10px;font-size:15px}
 .dot{width:13px;height:13px;border-radius:50%;flex:none}
+/* a player's colour, at the start of their row in the setup's list: the
+   list's own spans stretch (see .roster in /shared.css), a dot doesn't */
+.roster li .dot{flex:none}
 .setup-note{text-align:center;font-size:12.5px;color:var(--dim);line-height:1.4}
 
 /* ---------- The table ---------- */

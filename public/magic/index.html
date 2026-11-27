@@ -38,7 +38,7 @@
 <!-- the room this game is played in (data-room on the body), with any
      adjustments of this game's own at the top of style.css -->
 <link rel="stylesheet" href="../themes.css?v=7">
-<link rel="stylesheet" href="style.css?v=17">
+<link rel="stylesheet" href="style.css?v=18">
 </head>
 <body data-room="living" data-game="magic">
 
@@ -90,7 +90,9 @@
         <button type="button" class="step" id="pPlus" aria-label="More players">+</button>
       </div>
     </div>
-    <div id="names" class="names"></div>
+    <!-- the order round the table: each name has a grip to drag it by
+         (see /roster.js; .roster is in /shared.css) -->
+    <ol id="names" class="roster"></ol>
   </div>
 
   <div class="card">
@@ -153,9 +155,9 @@
 <script src="/store.js?v=3"></script>
 <script src="/share.js?v=12"></script>
 <script src="/cloud.js?v=3"></script>
-<script src="/roster.js?v=1"></script>
+<script src="/roster.js?v=2"></script>
 <script src="/editgame.js?v=1"></script>
-<script src="app.js?v=13"></script>
+<script src="app.js?v=14"></script>
 <script src="/pwa.js?v=1" defer></script>
 </body>
 </html>

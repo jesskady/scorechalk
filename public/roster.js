@@ -10,7 +10,9 @@
    While a row is dragged it follows the finger, and the rows it passes slide
    out of its way, so where it will land is plain before it is let go. The
    list itself is only changed by onMove, once, on letting go. A grip also
-   moves its row with the arrow keys. */
+   moves its row with the arrow keys. Rows hidden (a setup showing fewer
+   players than it has rows, as Darts does) are passed over: hidden rows
+   come last, so a row's place among those shown is its place in the list. */
 
 window.SCRoster = (function () {
   function grip(label) {
@@ -23,11 +25,12 @@ window.SCRoster = (function () {
 
   function sortable(list, onMove) {
     let drag = null;   // { li, from, to, y0, mids, h, id }
+    const shown = () => [...list.children].filter((x) => !x.hidden && !x.classList.contains('hidden'));
 
     list.addEventListener('pointerdown', (e) => {
       const g = e.target.closest('.roster-grip');
       if (!g || drag) return;
-      const li = g.closest('li'), rows = [...list.children];
+      const li = g.closest('li'), rows = shown();
       const from = rows.indexOf(li);
       if (from < 0 || rows.length < 2) return;
       e.preventDefault();
@@ -76,7 +79,7 @@ window.SCRoster = (function () {
     list.addEventListener('keydown', (e) => {
       const g = e.target.closest('.roster-grip');
       if (!g || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
-      const rows = [...list.children], from = rows.indexOf(g.closest('li'));
+      const rows = shown(), from = rows.indexOf(g.closest('li'));
       const to = from + (e.key === 'ArrowUp' ? -1 : 1);
       if (to < 0 || to >= rows.length) return;
       e.preventDefault();

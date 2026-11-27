@@ -39,7 +39,7 @@
 <link rel="stylesheet" href="../shared.css?v=40">
 <!-- the room this game is played in: the Parlor (see /themes.css) -->
 <link rel="stylesheet" href="../themes.css?v=7">
-<link rel="stylesheet" href="style.css?v=34">
+<link rel="stylesheet" href="style.css?v=35">
 </head>
 <body data-room="parlor" data-game="darts">
 
@@ -77,22 +77,14 @@
   </div>
 
   <div class="card">
-    <label class="field">
-      <span id="label1">Player 1</span>
-      <input id="name1" type="text" placeholder="Player 1" autocomplete="off" maxlength="14">
-    </label>
-    <label class="field" id="field2">
-      <span>Player 2</span>
-      <input id="name2" type="text" placeholder="Player 2" autocomplete="off" maxlength="14">
-    </label>
-    <label class="field hidden" id="field3">
-      <span>Player 3</span>
-      <input id="name3" type="text" placeholder="Player 3" autocomplete="off" maxlength="14">
-    </label>
-    <label class="field hidden" id="field4">
-      <span>Player 4</span>
-      <input id="name4" type="text" placeholder="Player 4" autocomplete="off" maxlength="14">
-    </label>
+    <!-- the order of the list is the order of throwing: each name gets a
+         grip to drag it by (see /roster.js; .roster is in /shared.css) -->
+    <ol class="roster" id="names">
+      <li><i id="label1">1.</i><input id="name1" class="roster-name" type="text" placeholder="Player 1" autocomplete="off" maxlength="14" aria-label="Player 1's name"></li>
+      <li id="field2"><i>2.</i><input id="name2" class="roster-name" type="text" placeholder="Player 2" autocomplete="off" maxlength="14" aria-label="Player 2's name"></li>
+      <li class="hidden" id="field3"><i>3.</i><input id="name3" class="roster-name" type="text" placeholder="Player 3" autocomplete="off" maxlength="14" aria-label="Player 3's name"></li>
+      <li class="hidden" id="field4"><i>4.</i><input id="name4" class="roster-name" type="text" placeholder="Player 4" autocomplete="off" maxlength="14" aria-label="Player 4's name"></li>
+    </ol>
 
     <!-- Which player the account holder is. Statistics depend on it, so it is
          asked rather than guessed, and taken for you when the game is shared.
@@ -264,9 +256,9 @@
 <script src="/share.js?v=12"></script>
 <script src="/cloud.js?v=3"></script>
 <script src="sync.js?v=31"></script>
-<script src="/roster.js?v=1"></script>
+<script src="/roster.js?v=2"></script>
 <script src="/editgame.js?v=1"></script>
-<script src="app.js?v=45"></script>
+<script src="app.js?v=46"></script>
 <script src="/pwa.js?v=1" defer></script>
 </body>
 </html>

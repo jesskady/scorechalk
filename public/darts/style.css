@@ -338,3 +338,7 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 .tourney-link b{flex:1;font-weight:600}
 .tourney-link i{font-style:normal;color:var(--gold);font-size:20px;line-height:1}
 .tourney-link:active{background:var(--bg2)}
+
+/* the players' list at the setup: no grips for one player, nor for a
+   tournament's match, whose players stay where the tournament put them */
+#names.solo .roster-grip,#names.fixed .roster-grip{display:none}

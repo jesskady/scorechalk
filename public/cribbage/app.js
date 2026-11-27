@@ -237,14 +237,14 @@ function renderSetup() {
     b.classList.toggle('is-on', Number(b.dataset.n) === setupN));
 
   const box = $('names');
-  box.classList.toggle('three', setupN === 3);
   box.innerHTML = '';
   for (let i = 0; i < setupN; i++) {
-    const row = document.createElement('label');
-    row.className = 'name-row';
+    const row = document.createElement('li');
     row.innerHTML = `<span class="dot" style="background:${COLORS[i]}"></span>`;
     const inp = document.createElement('input');
     inp.type = 'text'; inp.maxLength = 14; inp.autocomplete = 'off';
+    inp.className = 'roster-name';
+    inp.setAttribute('aria-label', `Player ${i + 1}'s name`);
     inp.placeholder = `Player ${i + 1}`;
     inp.value = setupNames[i] || '';
     inp.addEventListener('input', () => {
@@ -253,13 +253,29 @@ function renderSetup() {
       renderDealRow();
       renderYou();
     });
-    row.appendChild(inp);
+    // a grip, to drag the player up or down the list (see /roster.js)
+    row.append(inp, SCRoster.grip(`Move ${nameOf(i)}`));
     box.appendChild(row);
   }
   renderDealRow();
   renderYou();
   $('resumeBtn').classList.toggle('hidden', !load());
 }
+
+/* The order of the list is the order round the table: the deal passes
+   down it. A player moved takes the deal and You are with them; the peg
+   colours stay with the places, as the game's are given out that way. */
+SCRoster.sortable($('names'), (from, to) => {
+  while (setupNames.length < setupN) setupNames.push('');
+  const move = (a) => a.splice(to, 0, a.splice(from, 1)[0]);
+  move(setupNames);
+  const order = setupNames.map((_, i) => i);
+  move(order);
+  setupDealer = order.indexOf(setupDealer);
+  if (setupMe !== null) { setupMe = order.indexOf(setupMe); SCShare.rememberMe(setupMe); }
+  try { localStorage.setItem(NAMES_KEY, JSON.stringify(setupNames)); } catch (e) {}
+  renderSetup();
+});
 
 function renderYou() {
   if (setupMe !== null && setupMe >= setupN) setupMe = 0;

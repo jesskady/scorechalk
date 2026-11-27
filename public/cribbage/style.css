@@ -51,9 +51,10 @@ input:focus{outline:none;border-color:var(--green)}
 input[type=number]{-moz-appearance:textfield}
 input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 
-.names{display:flex;flex-direction:column;gap:6px}
-.name-row{display:flex;align-items:center;gap:10px}
 .dot{width:14px;height:14px;border-radius:50%;flex:none}
+/* a player's colour, at the start of their row in the setup's list: the
+   list's own spans stretch (see .roster in /shared.css), a dot doesn't */
+.roster li .dot{flex:none}
 #dealRow .seg{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:12px 6px}
 
 /* ---------- Board ---------- */

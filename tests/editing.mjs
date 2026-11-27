@@ -1,7 +1,8 @@
-/* Edit game (/editgame.js) in each game but Yahtzee (see yahtzee.mjs):
-   players moved and renamed once a game has started, and what goes with
-   them — their scores, the turn or the deal, Undo, who You are, colours —
-   and where a game keeps its order fixed. */
+/* Putting players in order, in every game but Yahtzee (see yahtzee.mjs):
+   by dragging at the setup of Darts, Cribbage and Magic, and with Edit game
+   (/editgame.js) once a game has started, players moved and renamed. What
+   goes with a player — their scores, the turn or the deal, Undo, who You
+   are, colours — and where a game keeps its order fixed. */
 
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -9,6 +10,51 @@ import { phone, open, startGame, wait, drag, editNames, editRename, editPress } 
 
 const LIST = '.edit-game .roster';
 const grips = (pg) => pg.evaluate(() => document.querySelectorAll('.edit-game .roster-grip').length);
+
+/* The setups: a grip on each name, the list's order the order of play,
+   and what goes with a name dragged — You are, and Cribbage's first deal. */
+describe('Setting the order before the game', () => {
+  test('Darts: the names change places, You are with them', async () => {
+    const pg = await phone();
+    await open(pg, '/darts/');
+    await pg.click('#modeRow [data-players="3"]');
+    for (const [i, n] of ['Ann', 'Bob', 'Cy'].entries()) await pg.type(`#name${i + 1}`, n);
+    await pg.click('#meSel [data-me="2"]');            // you are Cy
+    await drag(pg, '#names', 2, 0);
+    assert.deepEqual(await pg.evaluate(() => [1, 2, 3].map((n) => $('name' + n).value)), ['Cy', 'Ann', 'Bob']);
+    assert.equal(await pg.$eval('#meSel .is-on', (b) => b.textContent), 'Cy');
+    await pg.click('#startBtn'); await wait(500);
+    assert.deepEqual(await pg.evaluate(() => [S.players.map((p) => p.name), S.meIdx]), [['Cy', 'Ann', 'Bob'], 0]);
+    assert.deepEqual(pg.errors, []);
+    await pg.close();
+  });
+
+  test('Cribbage: the first deal and You are go with the name dragged', async () => {
+    const pg = await phone();
+    await open(pg, '/cribbage/');
+    await pg.evaluate(() => { setupNames = ['Ann', 'Bob', 'Cy']; setupN = 3; setupMe = 1; setupDealer = 2; renderSetup(); });
+    await drag(pg, '#names', 0, 2);
+    const on = (row) => pg.$eval(`#${row} .is-on`, (b) => b.textContent);
+    assert.deepEqual(await pg.evaluate(() => [...document.querySelectorAll('#names input')].map((i) => i.value)), ['Bob', 'Cy', 'Ann']);
+    assert.equal(await on('youRow'), 'Bob');
+    assert.equal(await on('dealRow'), 'Cy');
+    await startGame(pg);
+    assert.deepEqual(await pg.evaluate(() => [S.names, S.names[S.dealer], S.names[S.me]]), [['Bob', 'Cy', 'Ann'], 'Cy', 'Bob']);
+    assert.deepEqual(pg.errors, []);
+    await pg.close();
+  });
+
+  test('Magic: the names change places round the table', async () => {
+    const pg = await phone();
+    await open(pg, '/magic/#commander');
+    await pg.evaluate(() => { setupNames = ['Ann', 'Bob', 'Cy', 'Dee']; renderSetup(); });
+    await drag(pg, '#names', 3, 1);
+    await pg.click('#startBtn'); await wait(500);
+    assert.deepEqual(await pg.evaluate(() => S.names), ['Ann', 'Dee', 'Bob', 'Cy']);
+    assert.deepEqual(pg.errors, []);
+    await pg.close();
+  });
+});
 
 describe('Edit game', () => {
   test('Darts: scores, the turn, Undo and You go with each player', async () => {

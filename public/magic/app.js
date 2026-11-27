@@ -172,24 +172,34 @@ function renderSetup() {
   $('pMinus').disabled = setupN <= F.min;
   $('pPlus').disabled = setupN >= F.max;
   const box = $('names');
-  box.classList.toggle('one', setupN === 1);
   box.innerHTML = '';
   for (let i = 0; i < setupN; i++) {
-    const row = document.createElement('label');
-    row.className = 'name-row';
+    const row = document.createElement('li');
     row.innerHTML = `<span class="dot" style="background:${COLORS[i]}"></span>`;
     const inp = document.createElement('input');
     inp.type = 'text'; inp.maxLength = 12; inp.autocomplete = 'off';
+    inp.className = 'roster-name';
+    inp.setAttribute('aria-label', `Player ${i + 1}'s name`);
     inp.placeholder = `Player ${i + 1}`;
     inp.value = setupNames[i] || '';
     inp.addEventListener('input', () => {
       setupNames[i] = inp.value;
       try { localStorage.setItem(NAMES_KEY, JSON.stringify(setupNames)); } catch (e) {}
     });
-    row.appendChild(inp);
+    // a grip, to drag the player up or down the list (see /roster.js)
+    row.append(inp, SCRoster.grip(`Move ${(setupNames[i] || '').trim() || `Player ${i + 1}`}`));
     box.appendChild(row);
   }
 }
+
+/* The order of the list is the order of the panels round the table, the
+   colours given out by place, as the game gives them. */
+SCRoster.sortable($('names'), (from, to) => {
+  while (setupNames.length < setupN) setupNames.push('');
+  setupNames.splice(to, 0, setupNames.splice(from, 1)[0]);
+  try { localStorage.setItem(NAMES_KEY, JSON.stringify(setupNames)); } catch (e) {}
+  renderSetup();
+});
 
 $('pMinus').onclick = () => { if (setupN > FORMATS[fmt].min) { setupN--; renderSetup(); } };
 $('pPlus').onclick = () => { if (setupN < FORMATS[fmt].max) { setupN++; renderSetup(); } };
