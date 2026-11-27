@@ -723,14 +723,18 @@ function setupPaths(target, n, mustOpenDouble) {
 /* Every legal path of exactly `darts` throws, cheapest first by the costs
    above. Routes that differ only in the order of their setup darts are one
    route, kept at its cheapest ordering — otherwise cycling would walk through
-   T20 T19 D12 and T19 T20 D12 as though they were different ideas. */
+   T20 T19 D12 and T19 T20 D12 as though they were different ideas — and
+   without double out, only in the order of any of their darts. */
 function searchFinish(target, darts, needDouble, mustOpenDouble) {
   const finishers = needDouble ? FINISH_DOUBLES : FINISH_ANY;
   const seen = new Map();   // signature -> { path, cost }
 
+  // Without double out, which dart finishes doesn't matter either, so a
+  // route is just its darts, in any order: T17 D25 and D25 T17 are one.
   const consider = (path, cost) => {
-    const sig = path.slice(0, -1).map(t => t.label).sort().join(',')
-      + '>' + path[path.length - 1].label;
+    const sig = needDouble
+      ? path.slice(0, -1).map(t => t.label).sort().join(',') + '>' + path[path.length - 1].label
+      : path.map(t => t.label).sort().join(',');
     const prev = seen.get(sig);
     if (!prev || cost < prev.cost) seen.set(sig, { path, cost });
   };

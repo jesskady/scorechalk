@@ -196,4 +196,17 @@ describe('Darts checkout suggestions', () => {
     assert.deepEqual(pg.errors, []);
     await pg.close();
   });
+
+  test('without double out, the same darts in another order are one route', async () => {
+    const pg = await phone();
+    await open(pg, '/darts/');
+    await pg.evaluate(() => openGame(newGame(['Ann', 'Bob'], 101, {})));
+    await wait(300);
+    const shown = () => pg.$$eval('#checkout .co-darts b', (bs) => bs.map((b) => b.textContent).sort().join(' '));
+    const seen = [await shown()];
+    while (await pg.$('#checkout .co-arrow.next')) { await pg.click('#checkout .co-arrow.next'); await wait(60); seen.push(await shown()); }
+    assert.equal(seen[0], 'D25 T17');
+    assert.equal(new Set(seen).size, seen.length, 'no route twice, whatever its order');
+    await pg.close();
+  });
 });
