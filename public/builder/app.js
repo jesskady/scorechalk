@@ -1449,7 +1449,10 @@ function buildPad() {
   }
   $('typedRow').classList.toggle('hidden', !S.cfg.typed);
   const rule = ruleOn();
-  for (const id of ['quickpad', 'signRow', 'clearBtn']) $(id).classList.toggle('hidden', rule);
+  for (const id of ['quickpad', 'clearBtn']) $(id).classList.toggle('hidden', rule);
+  // the + and − switch: not for a rule's pad, nor a game whose scores only
+  // go one way (Farkle, Qwirkle); built after the board, so it decides here
+  $('signRow').classList.toggle('hidden', rule || S.cfg.signs === false);
   if (rule) $('typedRow').classList.add('hidden');
   $('rulePad').classList.toggle('hidden', !rule);
   if (rule) buildRulePad();
