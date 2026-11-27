@@ -76,6 +76,7 @@ body.playing .acct{display:none}
 .pad-total b{font-size:26px;font-variant-numeric:tabular-nums}
 
 .mini-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.mini-row.four{grid-template-columns:repeat(4,1fr)}
 .msg{min-height:1.2em;text-align:center;font-size:13px;color:var(--gold)}
 
 /* every hand, newest first */

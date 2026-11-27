@@ -508,7 +508,7 @@ async function editGame() {
   const locked = SCStore.get(S.id)?.share
     ? 'This game is shared with other phones, which know the players by their place, so the players can’t be moved or renamed now.'
     : null;
-  const got = await SCEditGame.open({ names: S.names, locked });
+  const got = await SCEditGame.open({ names: S.names, locked, hint: 'Whoever’s turn it is keeps it.' });
   if (!got) return;
   const moved = got.order.some((from, i) => from !== i);
   const renamed = got.names.some((name, i) => name !== S.names[got.order[i]]);
@@ -521,11 +521,9 @@ async function editGame() {
 
 // order[i] is the place the player now i-th had before.
 function reorder(order) {
-  const at = [];
-  order.forEach((from, i) => { at[from] = i; });
-  const where = (p) => (Number.isInteger(p) ? at[p] : p);
-  S.cells = order.map((from) => S.cells[from]);
-  S.ybonus = order.map((from) => S.ybonus[from]);
+  const { list, place: where } = SCEditGame.moves(order);
+  S.cells = list(S.cells);
+  S.ybonus = list(S.ybonus);
   S.log = S.log.map((e) => ({ ...e, p: where(e.p), cur: where(e.cur), sel: where(e.sel) }));
   S.cur = where(S.cur);
   S.sel = where(S.sel);

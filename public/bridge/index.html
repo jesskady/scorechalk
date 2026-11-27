@@ -24,7 +24,7 @@
 <link rel="stylesheet" href="../shared.css?v=40">
 <!-- the room this game is played in (data-room on the body) -->
 <link rel="stylesheet" href="../themes.css?v=7">
-<link rel="stylesheet" href="style.css?v=2">
+<link rel="stylesheet" href="style.css?v=3">
 </head>
 <body data-room="living" data-game="bridge">
 
@@ -87,8 +87,10 @@
   <div class="pad paper plain" id="pad"></div>
 
   <button id="handBtn" class="primary big">Bid a hand</button>
-  <div class="mini-row">
+  <div class="mini-row four">
     <button id="undoBtn" class="ghost">Undo</button>
+    <!-- the players' names, in a sheet of their own: see /editgame.js -->
+    <button id="editBtn" class="ghost">Edit</button>
     <button id="endBtn" class="ghost">End rubber</button>
     <button id="quitBtn" class="ghost">New rubber</button>
   </div>
@@ -164,7 +166,9 @@
 <script src="/account.js?v=29" defer></script>
 <script src="/awake.js?v=1"></script>
 <script src="/store.js?v=3"></script>
-<script src="app.js?v=3"></script>
+<script src="/roster.js?v=1"></script>
+<script src="/editgame.js?v=1"></script>
+<script src="app.js?v=4"></script>
 <script src="/pwa.js?v=1" defer></script>
 </body>
 </html>

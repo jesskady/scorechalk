@@ -12,6 +12,9 @@ const TYPE = 'cribbage';
 const NAMES_KEY = 'cribbage-names-v1';
 const WIN = 121;
 const COLORS = ['#d9534f', '#2e9e63', '#3b82f6'];   // red, green, blue
+// A player's peg colour is theirs: it goes with them when Edit puts them in
+// another place (S.colors, by place; a game never edited has none).
+const colorOf = (p) => COLORS[S && S.colors ? S.colors[p] : p];
 
 // Points available while pegging, in the sections they are laid out in:
 // the four that come up every play, then of-a-kinds, then runs. Each is
@@ -403,7 +406,7 @@ function buildBoard() {
     const r1 = (ly[1] - ly[0]) / 2, r2 = (ly[2] - ly[1]) / 2;
     out += `<path d="M ${B.xa - 6} ${ly[0]} H ${g.xb} A ${r1} ${r1} 0 0 1 ${g.xb} ${ly[1]}
       H ${B.xa} A ${r2} ${r2} 0 0 0 ${B.xa} ${ly[2]} H ${g.xb + 6}"
-      fill="none" stroke="${COLORS[p]}" stroke-opacity=".38" stroke-width="${B.L - 0.6}"/>`;
+      fill="none" stroke="${colorOf(p)}" stroke-opacity=".38" stroke-width="${B.L - 0.6}"/>`;
   }
 
   // every fifth hole gets a divider across the street, every tenth a number
@@ -434,8 +437,8 @@ function buildBoard() {
 
   // pegs: back peg first, so the front one sits on top
   for (let p = 0; p < n; p++) {
-    out += `<circle id="back${p}" r="3.8" class="peg-back" stroke="${COLORS[p]}"/>`;
-    out += `<circle id="peg${p}" r="4.8" class="peg" fill="${COLORS[p]}"/>`;
+    out += `<circle id="back${p}" r="3.8" class="peg-back" stroke="${colorOf(p)}"/>`;
+    out += `<circle id="peg${p}" r="4.8" class="peg" fill="${colorOf(p)}"/>`;
   }
   svg.innerHTML = out;
   svg.dataset.n = n;
@@ -475,7 +478,7 @@ function buildPlayers() {
   S.names.forEach((name, p) => {
     const col = document.createElement('div');
     col.className = 'pcol';
-    col.style.setProperty('--pc', COLORS[p]);
+    col.style.setProperty('--pc', colorOf(p));
     col.innerHTML = `
       <div class="phead">
         <span class="pname">${esc(name)}</span>
@@ -668,11 +671,11 @@ function renderCount(seq, up) {
   $('countSeq').innerHTML = seq.map((s, i) => {
     const label = s.kind === 'crib' ? `${esc(S.names[s.p])}'s crib` : esc(S.names[s.p]);
     const cls = i < S.step ? 'done' : i === S.step ? 'now' : '';
-    return `<span class="cs ${cls}" style="--pc:${COLORS[s.p]}">${label}</span>`;
+    return `<span class="cs ${cls}" style="--pc:${colorOf(s.p)}">${label}</span>`;
   }).join('<span class="cs-sep">›</span>');
 
   const crib = up.kind === 'crib';
-  $('handCard').style.setProperty('--pc', COLORS[up.p]);
+  $('handCard').style.setProperty('--pc', colorOf(up.p));
   $('handTitle').textContent = crib ? `${S.names[up.p]}'s crib` : `${S.names[up.p]}'s hand`;
 
   document.querySelectorAll('#modeRow .mode').forEach((b) => b.classList.toggle('is-on', b.dataset.mode === handMode));
@@ -717,7 +720,7 @@ $('playModeRow').addEventListener('click', (e) => {
 function renderHistory() {
   const kinds = { play: '', heels: '', hand: 'hand', crib: 'crib' };
   $('history').innerHTML = S.log.slice(-6).reverse().map((e) =>
-    `<div><span><i class="hdot" style="background:${COLORS[e.p]}"></i>${esc(S.names[e.p])}</span>
+    `<div><span><i class="hdot" style="background:${colorOf(e.p)}"></i>${esc(S.names[e.p])}</span>
       <small>${e.kind === 'hand' || e.kind === 'crib' ? kinds[e.kind] : esc(e.label)} · hand ${e.hand}</small>
       <b>${(e.kind === 'hand' || e.kind === 'crib') && !e.pts ? 'nineteen' : '+' + e.pts}</b></div>`).join('');
 }
@@ -809,6 +812,49 @@ $('undoBtn').onclick = () => {
   flash(S.log.length < before ? `Undid ${S.names[last.p]} +${last.pts}` : 'Back to the play');
 };
 
+/* ---------------- editing the game ----------------
+
+   Players can be put in another order, and renamed, once the game has
+   started (see /editgame.js). Everything kept by a player's place moves
+   with them: their pegs and score, their peg colour, every score in the
+   history, the deal, the winner and who You are, and every snapshot Undo
+   keeps too, so Undo still puts each score back on its own player. The
+   dealer keeps the deal; it passes on in the new order. While a hand is
+   being counted the order stays put, as the count goes round the table
+   from the dealer; a shared game stays as it is, as the other phones know
+   the players by their place. */
+
+async function editGame() {
+  const locked = SCStore.get(S.id)?.share
+    ? 'This game is shared with other phones, which know the players by their place, so the players can’t be moved or renamed now.'
+    : null;
+  const fixed = S.phase === 'count' && !S.over
+    ? 'The order can’t change while a hand is being counted, as the count goes round the table: it can once this hand is in.'
+    : null;
+  const got = await SCEditGame.open({ names: S.names, locked, fixed, hint: 'The dealer keeps the deal, and it passes on in the new order.' });
+  if (!got) return;
+  const moved = got.order.some((from, i) => from !== i);
+  if (!moved && got.names.every((n, i) => n === S.names[i])) return;
+  const { list, place } = SCEditGame.moves(got.order);
+  const fix = (o) => {
+    o.names = got.names;
+    o.scores = list(o.scores);
+    o.prev = list(o.prev);
+    o.colors = list(o.colors);
+    for (const k of ['dealer', 'firstDealer', 'winner', 'me']) o[k] = place(o[k]);
+  };
+  // a game never edited has its colours by place: written down, they can move
+  const byPlace = (o) => { if (!o.colors) o.colors = o.names.map((_, i) => i); return o; };
+  S.undo = S.undo.map((raw) => { const o = byPlace(JSON.parse(raw)); fix(o); return JSON.stringify(o); });
+  byPlace(S);
+  fix(S);
+  S.log.forEach((e) => { e.p = place(e.p); });
+  save();
+  buildBoard(); buildPlayers(); render();
+  flash(moved ? `${S.names[S.dealer]} still deals` : 'Names changed');
+}
+$('editBtn').onclick = editGame;
+
 $('quitBtn').onclick = async () => {
   if (S.log.length && !(await askConfirm('This ends the current game and its scores.', 'New game'))) return;
   // given up unfinished: off the profile too
@@ -832,7 +878,7 @@ function showWin() {
   $('winSkunk').textContent = sk === 'double' ? 'Double skunk!' : sk === 'skunk' ? 'Skunk!' : '';
   const order = S.names.map((_, i) => i).sort((a, b) => S.scores[b] - S.scores[a]);
   $('winTable').innerHTML = order.map((i) =>
-    `<li><span><i class="hdot" style="background:${COLORS[i]}"></i>${esc(S.names[i])}</span><b>${Math.min(S.scores[i], WIN)}</b></li>`).join('');
+    `<li><span><i class="hdot" style="background:${colorOf(i)}"></i>${esc(S.names[i])}</span><b>${Math.min(S.scores[i], WIN)}</b></li>`).join('');
   $('winOverlay').classList.remove('hidden');
   saveToProfile();
 }
@@ -900,7 +946,8 @@ function toPayload() {
     game_type: 'cribbage',
     config: { players: S.names.length, firstDealer: S.firstDealer, skunk: S.over ? skunk() : null },
     started_at: S.startedAt,
-    me_idx: 0,
+    // who You are, picked at the setup; No one leaves it to the first player
+    me_idx: Number.isInteger(S.me) ? S.me : 0,
     ended_at: S.over ? Date.now() : null,
     winner_idx: S.over ? S.winner : null,
     players: S.names.map((name, idx) => ({ idx, name })),

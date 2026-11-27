@@ -1067,7 +1067,9 @@ function toPayload() {
     game_type: 'builder',
     config: { name: c.name.trim(), rules: rulesOnly(c), origin: c.source || 'custom' },
     started_at: S.startedAt,
-    me_idx: 0,
+    // who You are, picked at the setup (their side, in a game of teams);
+    // No one leaves it to the first
+    me_idx: Number.isInteger(S.me) ? S.me : 0,
     ended_at: S.endedAt || null,
     winner_idx: S.endedAt && S.winnerIdx != null ? S.winnerIdx : null,
     players: c.names.map((name, idx) => ({ idx, name })),
@@ -1186,7 +1188,9 @@ function showGame() {
   const open = S.cfg.win === 'none' && !S.cfg.useRounds;
   $('finishBtn').classList.toggle('hidden', !open);
   // Undo, Share, New game — and Finish, for a game with no end of its own
-  document.querySelector('.mini-row').classList.toggle('four', open);
+  // and Edit, always: see editGame
+  document.querySelector('.mini-row').classList.toggle('four', !open);
+  document.querySelector('.mini-row').classList.toggle('five', open);
   closeEntry();
   // a phone that joined by seat is always on its own player
   if (SCShare.seat() !== null) S.cur = SCShare.seat();
@@ -1789,6 +1793,50 @@ $('finishBtn').onclick = async () => {
   const top = best(Math.max);
   showWin({ ...top, final: true });
 };
+
+/* ---------------- editing the game ----------------
+
+   Players, or in a game of teams the sides, can be put in another order and
+   renamed once the game has started (see /editgame.js). Everything kept by
+   a side's place moves with it: its score and counters, every entry and
+   change in the history, the edits to past scores, whose turn it is, the
+   winner and who You are; in a game of teams, which side each player is on
+   too, so a rematch keeps the new order. The turn stays with whoever had
+   it and passes on in the new order. A shared game stays as it is, as the
+   other phones know the players by their place. */
+
+async function editGame() {
+  const c = S.cfg;
+  const locked = SCStore.get(S.id)?.share
+    ? `This game is shared with other phones, which know the ${c.members ? 'teams' : 'players'} by their place, so they can’t be moved or renamed now.`
+    : null;
+  const got = await SCEditGame.open({ names: c.names, locked, hint: c.turns ? 'Whoever’s turn it is keeps it.' : null });
+  if (!got) return;
+  const moved = got.order.some((from, i) => from !== i);
+  if (!moved && got.names.every((n, i) => n === c.names[i])) return;
+  const { list, place } = SCEditGame.moves(got.order);
+  closeEntry();
+  c.names = got.names;
+  if (c.members) {
+    c.members = list(c.members);
+    if (c.playerTeams) c.playerTeams = c.playerTeams.map(place);
+    if (Array.isArray(c.teamOf)) c.teamOf = c.teamOf.map(place);
+  } else if (c.playerNames) {
+    c.playerNames = got.names;
+  }
+  S.scores = list(S.scores);
+  S.counts = list(S.counts);
+  for (const e of S.log) { e.p = place(e.p); e.cur = place(e.cur); }
+  for (const e of S.clog || []) e.p = place(e.p);
+  for (const e of S.edits || []) e.p = place(e.p);
+  S.cur = place(S.cur);
+  if (S.winnerIdx != null) S.winnerIdx = place(S.winnerIdx);
+  S.me = place(S.me);
+  save();
+  showGame();
+  flash(moved && c.turns ? `${c.names[S.cur]}'s turn` : 'Players changed');
+}
+$('editBtn').onclick = editGame;
 
 $('quitBtn').onclick = async () => {
   if (S.log.length && !(await askConfirm('This ends the current game and its scores.', 'New game'))) return;

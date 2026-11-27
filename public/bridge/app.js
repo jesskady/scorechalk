@@ -333,6 +333,25 @@ $('enterBtn').onclick = () => {
   if (r.over) showWin(r);
 };
 
+/* ---------------- editing the rubber ----------------
+
+   The players can be renamed once the rubber has started (see
+   /editgame.js). Their seats stay put: North and South are one side and
+   East and West the other, and every hand is scored for the side its
+   declarer sat on, so moving a player would move their scores with them. */
+
+$('editBtn').onclick = async () => {
+  const got = await SCEditGame.open({
+    names: S.names,
+    labels: SEATS.map((seat) => seat[0]),
+    fixed: 'Everyone keeps their seat, as the seats make the sides.',
+  });
+  if (!got || got.names.every((n, i) => n === S.names[i])) return;
+  S.names = got.names;
+  save(); render();
+  flash('Names changed');
+};
+
 /* ---------------- undo, the end of the rubber ---------------- */
 
 $('undoBtn').onclick = () => {

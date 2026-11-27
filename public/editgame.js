@@ -2,20 +2,32 @@
    sheet of its own over the game rather than on the score screen, which
    has no room to spare and shouldn't be changed by a stray tap.
 
-     SCEditGame.open({ names, locked })
+     SCEditGame.open({ names, locked, fixed, hint, labels })
          resolves { order, names } on Save, or null on Cancel.
          names   the players, in the order of play
          locked  a sentence saying why the game can't be edited now (a
                  shared game, whose other phones know the players by their
                  place), or nothing; locked, the sheet only says so
+         fixed   a sentence saying why the order can't change, now or in
+                 this game (Bridge's seats are its partnerships); the names
+                 can still be changed
+         hint    what moving a player does in this game, after the line
+                 on how to: who keeps the turn, or the deal
+         labels  what each place is called, if not its number (Bridge's
+                 seats: N, E, S, W)
          order   for each place in the new order, the place that player
                  had before: [2, 0, 1] puts the third player first
          names   the players' names in the new order, any renamed
 
+     SCEditGame.moves(order)
+         for the page applying it: list(a) puts an array kept per player
+         in the new order, and place(p) says where player p went (anything
+         not a player's place, such as null, comes back as it was)
+
    The game itself is changed by the page, once, on Save: each game knows
-   what it keeps per player and has to move all of it together. For now
-   the players are what can change; the next setting a game allows goes
-   here as a section of its own. The list is the shared .roster, dragged
+   what it keeps per player and has to move all of it together (every game
+   has Edit: see editGame in each). For now the players are what can
+   change; the next setting a game allows goes here as a section of its own. The list is the shared .roster, dragged
    by its grips (/roster.js, which a page using this loads too). */
 
 window.SCEditGame = (function () {
@@ -26,7 +38,7 @@ window.SCEditGame = (function () {
     return e;
   };
 
-  function open({ names, locked }) {
+  function open({ names, locked, fixed, hint, labels }) {
     return new Promise((resolve) => {
       const veil = el('div', 'overlay edit-game');
       const card = el('div', 'win-card');
@@ -58,7 +70,9 @@ window.SCEditGame = (function () {
 
       // the players as they will be: each row remembers the place it came from
       const rows = names.map((name, from) => ({ from, name }));
-      card.append(el('p', 'edit-hint', 'Drag a player by the grip to change the order of play, or tap a name to change it. Whoever’s turn it is keeps it.'));
+      card.append(el('p', 'edit-hint', fixed
+        ? `${fixed} Tap a name to change it.`
+        : `Drag a player by the grip to change the order of play, or tap a name to change it.${hint ? ' ' + hint : ''}`));
       const list = el('ol', 'roster edit-players');
       card.append(list);
 
@@ -72,7 +86,8 @@ window.SCEditGame = (function () {
           inp.placeholder = names[r.from];
           inp.setAttribute('aria-label', `Player ${i + 1}'s name`);
           inp.addEventListener('input', () => { r.name = inp.value; });
-          li.append(el('i', null, `${i + 1}.`), inp, SCRoster.grip(`Move ${r.name.trim() || names[r.from]}`));
+          li.append(el('i', null, labels ? labels[i] : `${i + 1}.`), inp);
+          if (!fixed && rows.length > 1) li.append(SCRoster.grip(`Move ${r.name.trim() || names[r.from]}`));
           list.append(li);
         });
       };
@@ -91,5 +106,14 @@ window.SCEditGame = (function () {
     });
   }
 
-  return { open };
+  function moves(order) {
+    const at = [];
+    order.forEach((from, i) => { at[from] = i; });
+    return {
+      list: (a) => (Array.isArray(a) ? order.map((from) => a[from]) : a),
+      place: (p) => (Number.isInteger(p) && at[p] !== undefined ? at[p] : p),
+    };
+  }
+
+  return { open, moves };
 })();

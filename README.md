@@ -85,7 +85,7 @@ public/
   themes.css      the rooms a game is played in: Parlor, Living Room, Workshop
   account.js      account bubble, injected into every page
   roster.js       dragging a players' list into order: Tournaments, Builder, Yahtzee
-  editgame.js     Edit game: a started game's players moved and renamed, in a sheet
+  editgame.js     Edit game: a started game's players moved and renamed, in a sheet; every game
   account/
     index.html    your profile: darts statistics, game history, My games
     profile.js
@@ -208,6 +208,7 @@ each other every few seconds, and the tests wait as a person would.
 | `darts.mjs` | turns round the table by seat, darts mid-turn kept, a win reaching every phone |
 | `cribbage.mjs` | pegging by seat and at once, counting your own hand |
 | `yahtzee.mjs` | the players put in order at the setup, and moved and renamed mid-game with Edit: their scores, the turn, Undo and You going with them |
+| `editing.mjs` | Edit in Darts, Cribbage, Magic, the Builder (teams too) and Bridge: what moves with a player, and where the order stays put |
 | `server.mjs` | who may write, link cards, error reports, the daily job, the policy pages |
 | `offline.mjs` | every game opening with no signal, a game in progress by its link |
 | `tournament.mjs` | the draw, a match played in darts and its result read back, an undo, results set by hand, the home page |

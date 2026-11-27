@@ -355,6 +355,7 @@ function buildBoard() {
   $('submitBtn').addEventListener('click', submitTurn);
   $('bustBtn').addEventListener('click', bustTurn);
   $('undoTurn').addEventListener('click', undoTurn);
+  $('editBtn').addEventListener('click', editGame);
 
   $('confirmYes').addEventListener('click', () => closeConfirm(true));
   $('confirmNo').addEventListener('click', () => closeConfirm(false));
@@ -749,6 +750,34 @@ async function autoSave() {
 }
 
 // play goes round the players in order
+/* Edit game (see /editgame.js): the players put in another order, or
+   renamed. Everything kept by a player's place moves with them: their
+   score, the turns in the log, whose turn it is (and the darts already
+   thrown in it), who won, and which one is you. The order of play follows
+   the new list from the next turn. Not for a shared game, whose other
+   phones know the players by their place, nor a tournament's match, whose
+   result the tournament reads by place. */
+async function editGame() {
+  const locked = SCStore.get(S.id)?.share
+    ? 'This game is shared with other phones, which know the players by their place, so the players can’t be moved or renamed now.'
+    : tid() ? 'This is a tournament match: the tournament keeps its players, so they can’t be moved or renamed here.' : null;
+  const names = S.players.map((p) => p.name);
+  const got = await SCEditGame.open({ names, locked, hint: 'Whoever’s turn it is keeps it.' });
+  if (!got) return;
+  const moved = got.order.some((from, i) => from !== i);
+  if (!moved && got.names.every((n, i) => n === names[i])) return;
+  const { list, place } = SCEditGame.moves(got.order);
+  S.players = list(S.players);
+  S.players.forEach((p, i) => { p.name = got.names[i]; });
+  S.log.forEach((t) => { t.player = place(t.player); });
+  S.cur = place(S.cur);
+  if (S.winner != null) S.winner = place(S.winner);
+  S.meIdx = place(typeof S.meIdx === 'number' ? S.meIdx : 0);
+  render(); save();
+  autoSave();
+  say(moved ? `${S.players[S.cur].name} to throw` : 'Names changed');
+}
+
 function passTurn() {
   S.cur = (S.cur + 1) % S.players.length;
 }

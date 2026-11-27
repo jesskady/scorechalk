@@ -4,25 +4,9 @@
 
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { phone, open, startGame, share, wait } from './helpers.mjs';
+import { phone, open, startGame, share, wait, drag, editNames, editRename, editPress } from './helpers.mjs';
 
-// Drag a player's row by its grip onto another row, as a finger would.
-async function drag(pg, list, from, to) {
-  const at = (i) => pg.evaluate((list, i) => {
-    const r = document.querySelectorAll(`${list} li`)[i].querySelector('.roster-grip').getBoundingClientRect();
-    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
-  }, list, i);
-  const a = await at(from), b = await at(to);
-  await pg.mouse.move(a.x, a.y);
-  await pg.mouse.down();
-  // past the middle of the row it lands on, in steps, as a drag goes
-  const y = b.y + (to > from ? 8 : -8);
-  await pg.mouse.move(a.x, y, { steps: 8 });
-  await pg.mouse.up();
-  await wait(300);
-}
 const setupNames = (pg) => pg.evaluate(() => [...document.querySelectorAll('#names input')].map((i) => i.value));
-const editNames = (pg) => pg.evaluate(() => [...document.querySelectorAll('.edit-game input')].map((i) => i.value));
 const youAre = (pg) => pg.evaluate(() => document.querySelector('#youRow .is-on').textContent);
 const pressIn = (pg, sel, text) => pg.evaluate((sel, t) => [...document.querySelectorAll(`${sel} button`)].find((b) => b.textContent === t).click(), sel, text);
 async function fill(pg, p, id, pick) {
@@ -67,8 +51,8 @@ describe('Yahtzee', () => {
     assert.deepEqual(await editNames(pg), ['Jess', 'Alex', 'Sam']);
     await drag(pg, '.edit-game .roster', 0, 2);
     assert.deepEqual(await editNames(pg), ['Alex', 'Sam', 'Jess']);
-    await pg.evaluate(() => { const i = document.querySelector('.edit-game li input'); i.value = 'Alexander'; i.dispatchEvent(new Event('input')); });
-    await pressIn(pg, '.edit-game', 'Save'); await wait(400);
+    await editRename(pg, 0, 'Alexander');
+    await editPress(pg, 'Save');
     assert.equal(await pg.$('.edit-game'), null, 'the sheet closes');
 
     const heads = await pg.evaluate(() => [...document.querySelectorAll('.ptile .pname')].map((t) => t.textContent));
@@ -103,7 +87,7 @@ describe('Yahtzee', () => {
     const before = await pg.evaluate(() => JSON.stringify(S));
     await pg.click('#editBtn'); await wait(300);
     await drag(pg, '.edit-game .roster', 0, 1);
-    await pressIn(pg, '.edit-game', 'Cancel'); await wait(300);
+    await editPress(pg, 'Cancel');
     assert.equal(await pg.evaluate(() => JSON.stringify(S)), before);
     await pg.close();
   });
@@ -116,7 +100,7 @@ describe('Yahtzee', () => {
     await pg.click('#editBtn'); await wait(300);
     assert.match(await pg.evaluate(() => document.querySelector('.edit-game p').textContent), /shared/);
     assert.equal(await pg.$('.edit-game .roster'), null, 'no list to drag');
-    await pressIn(pg, '.edit-game', 'OK'); await wait(300);
+    await editPress(pg, 'OK');
     assert.equal(await pg.$('.edit-game'), null);
     await pg.close();
   });

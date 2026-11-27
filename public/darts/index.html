@@ -39,7 +39,7 @@
 <link rel="stylesheet" href="../shared.css?v=40">
 <!-- the room this game is played in: the Parlor (see /themes.css) -->
 <link rel="stylesheet" href="../themes.css?v=7">
-<link rel="stylesheet" href="style.css?v=33">
+<link rel="stylesheet" href="style.css?v=34">
 </head>
 <body data-room="parlor" data-game="darts">
 
@@ -226,6 +226,8 @@
       <button id="undoTurn" class="ghost">Undo turn</button>
       <button id="bustBtn" class="ghost bust-btn">Bust</button>
       <button id="shareBtn" class="ghost">Share</button>
+      <!-- the players' order and names, in a sheet of their own: see /editgame.js -->
+      <button id="editBtn" class="ghost">Edit</button>
       <button id="quitBtn" class="ghost">New game</button>
     </div>
   </div>
@@ -262,7 +264,9 @@
 <script src="/share.js?v=12"></script>
 <script src="/cloud.js?v=3"></script>
 <script src="sync.js?v=31"></script>
-<script src="app.js?v=44"></script>
+<script src="/roster.js?v=1"></script>
+<script src="/editgame.js?v=1"></script>
+<script src="app.js?v=45"></script>
 <script src="/pwa.js?v=1" defer></script>
 </body>
 </html>
