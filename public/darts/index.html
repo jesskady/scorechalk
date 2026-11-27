@@ -39,7 +39,7 @@
 <link rel="stylesheet" href="../shared.css?v=42">
 <!-- the room this game is played in: the Parlor (see /themes.css) -->
 <link rel="stylesheet" href="../themes.css?v=7">
-<link rel="stylesheet" href="style.css?v=35">
+<link rel="stylesheet" href="style.css?v=36">
 </head>
 <body data-room="parlor" data-game="darts">
 
@@ -190,6 +190,18 @@
   <!-- for whoever shared the game: score all players, or their own only -->
   <div class="sc-edit-slot"></div>
   <div id="checkout" class="checkout"></div>
+  <!-- In the checkout's place, which is empty while either shows. A
+       checkout is offered, not declared: End game ends it, and Undo takes it
+       back if that wasn't the finish (see renderWinBar). -->
+  <div class="win-bar hidden" id="winBar" aria-live="polite">
+    <span id="winBarText"></span>
+    <button id="winBarBtn" type="button">End game</button>
+  </div>
+  <!-- a turn already thrown being changed, from Edit's History: see fixTurn -->
+  <div class="win-bar fix-bar hidden" id="fixBar" aria-live="polite">
+    <span id="fixText"></span>
+    <button id="fixCancel" type="button">Cancel</button>
+  </div>
 
   <!-- Darts entry -->
   <div id="dartsPad" class="pad">
@@ -255,10 +267,10 @@
 <script src="/store.js?v=3"></script>
 <script src="/share.js?v=12"></script>
 <script src="/cloud.js?v=3"></script>
-<script src="sync.js?v=31"></script>
+<script src="sync.js?v=32"></script>
 <script src="/roster.js?v=2"></script>
 <script src="/editgame.js?v=3"></script>
-<script src="app.js?v=48"></script>
+<script src="app.js?v=49"></script>
 <script src="/pwa.js?v=1" defer></script>
 </body>
 </html>

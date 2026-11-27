@@ -68,6 +68,11 @@ changing those areas.
   words. A link that goes somewhere other than home (a tournament, Formats)
   stays a text link. Bump `favicon.svg?v=` if the badge changes.
 - **"Score Chalk", two words**, everywhere people can read it.
+- **Every game keeps its state the same way** (README, *How a game keeps its
+  state*): what was done is the record, and scores are worked out from it;
+  `names`, `cur`, `me`, `log`, `edits`; `save()` to the device and profile.
+  Darts included: a change to games in general should need no special case
+  for it, and a new game follows the same shape.
 
 ## Style
 

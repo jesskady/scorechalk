@@ -10,45 +10,193 @@ let S = null;      // game state, null until a game starts
 let msgTimer = null;
 let signedIn = false;   // set once /api/me answers; see buildSetup
 
-/* ---------------- state ---------------- */
+/* ---------------- state ----------------
 
-function makePlayer(name, start, doubleIn) {
-  return { name, score: start, points: 0, turns: 0, opened: !doubleIn };
-}
+   A game is the turns as they were thrown, and the rules, as in the other
+   games. Everything else is worked out from the turns by play(): each
+   player's score, turns and average, whether they are in under double in,
+   which turns bust, and who has checked out. So Undo takes a turn off, a
+   correction changes one, and the game is simply played through again,
+   later busts and checkouts and all.
+
+     id, startedAt       chosen here, so saving the game twice updates one
+                         row on the profile rather than adding a second
+     names, me           the players in order of throwing; which is you
+     start, doubleIn, doubleOut
+     cur                 whose turn it is
+     log                 the turns in the order thrown: { p, darts, ts },
+                         darts as { label, val, dbl }, and bust: true on a
+                         turn marked bust with the Bust button (the rules'
+                         own busts are worked out, not kept)
+     edits               turns changed since: { i, p, n, from, to, after,
+                         ts }, from and to as { darts, bust }; see fixTurn
+     darts, mult         the turn being thrown
+     over, winner        ended with End game, and who won
+     sum                 each player's score, turns and points, for the
+                         pages that read a game without playing it through
+                         (the home page, a tournament, a shared link's card);
+                         written by save()
+     tid                 the tournament this is a match of, if it is one */
 
 function newGame(names, start, rules) {
   return {
-    // Chosen here, not by the server, so saving the same game twice updates
-    // one row instead of creating two.
     id: crypto.randomUUID(),
     startedAt: Date.now(),
-    // which player is the account holder, chosen on the setup screen
-    meIdx: rules.meIdx || 0,
-    players: names.map(n => makePlayer(n, start, rules.doubleIn)),
+    names,
+    me: rules.me || 0,
     start,
     doubleIn: !!rules.doubleIn,
     doubleOut: !!rules.doubleOut,
     cur: 0,
-    darts: [],       // {label, val, dbl}
+    log: [],
+    edits: [],
+    darts: [],
     mult: 1,
-    log: [],         // completed turns, for undo
-    over: false
+    over: false,
+    winner: null,
   };
 }
 
+/* One turn's darts, thrown from `score` by a player in (`opened`) or not
+   yet, under game st's rules: what they score, which count (under double
+   in, darts before the opening double score nothing), whether the player is
+   in afterwards, and whether the turn busts, and why, or checks out. A
+   landed double opens a player even on a turn that busts. `left` is where
+   the turn leaves them: where they were, on a bust. */
+function throwOf(st, score, opened, darts, marked) {
+  let open = opened, pts = 0;
+  const counted = [];
+  for (const d of darts) {
+    if (!open) {
+      if (!d.dbl) { counted.push(false); continue; }  // still not in
+      open = true;
+    }
+    counted.push(true);
+    pts += d.val;
+  }
+  const after = score - pts;
+  let why = marked ? 'marked bust' : '';
+  if (!why && after < 0) why = 'overshot';
+  if (!why && st.doubleOut && after === 1) why = 'left 1';
+  if (!why && st.doubleOut && after === 0 && !(darts.length && darts[darts.length - 1].dbl)) why = 'no double to finish';
+  const bust = !!why;
+  return { pts, counted, open, after, bust, why, left: bust ? score : after, win: !bust && after === 0 };
+}
+
+/* The game played through from its turns (the first `upto` of them): each
+   player as they now stand, each turn as it went, and who checked out
+   first, if anyone has. A player who has checked out is on 0, so any turn
+   of theirs after it busts. */
+function play(st = S, upto = st.log.length) {
+  const players = st.names.map(() => ({ score: st.start, points: 0, turns: 0, opened: !st.doubleIn }));
+  const turns = [];
+  let winner = null;
+  for (const e of st.log.slice(0, upto)) {
+    const p = players[e.p];
+    if (!p) { turns.push(null); continue; }
+    const t = throwOf(st, p.score, p.opened, e.darts || [], !!e.bust);
+    turns.push({ ...t, before: p.score, n: p.turns + 1 });
+    p.turns += 1;
+    p.opened = t.open;
+    if (!t.bust) { p.score = t.left; p.points += t.pts; }
+    if (t.win && winner === null) winner = e.p;
+  }
+  return { players, turns, winner };
+}
+
+/* A turn kept with bust: true is one marked bust by hand. Games kept before
+   this shape, and older phones, said bust for every bust: the ones the
+   rules make anyway are worked out, so only the ones marked by hand keep
+   the mark, and a turn changed later busts or not by the rules. */
+function keepMarkedBusts(st) {
+  st.log.forEach((e, i) => {
+    if (!e.bust) return;
+    delete e.bust;
+    if (!play(st, i + 1).turns[i].bust) e.bust = true;
+  });
+  return st;
+}
+
+/* A game kept in darts' first shape (players with their scores kept as
+   they went, the turns with them; meIdx) in this one: its names, and the
+   turns as thrown. Games on a device, on the profile, in a shared link or a
+   tournament may be in it. Anything already in this shape comes back as it
+   was. */
+function upgrade(st) {
+  if (!st) return st;
+  if (!st.players) {
+    if (!st.edits) st.edits = [];
+    return st;
+  }
+  const { players, meIdx, log, winner, savedTurns, ...rest } = st;
+  return keepMarkedBusts({
+    ...rest,
+    names: players.map((p) => p.name),
+    me: typeof meIdx === 'number' ? meIdx : 0,
+    log: (log || []).map((t) => ({ p: t.player, darts: t.darts || [], ...(t.bust ? { bust: true } : {}) })),
+    edits: [],
+    darts: st.darts || [],
+    mult: st.mult || 1,
+    over: !!st.over,
+    winner: st.over && winner != null ? winner : null,
+  });
+}
+
+/* Kept on this device and, signed in, on the profile (see /cloud.js), as
+   every game is: a moment after each change, all of it. The summary goes
+   with it for the pages that read a game without playing it through. */
 function save() {
-  if (S) SCStore.put(TYPE, S, !!S.over);
+  if (!S) return;
+  S.sum = play().players.map((p) => ({ score: p.score, turns: p.turns, points: p.points }));
+  SCStore.put(TYPE, S, !!S.over);
+  if (window.SCCloud) SCCloud.keep(cloudGame);
+}
+
+/* The game as the profile keeps it: every turn, with the score it left,
+   for the statistics and the game's page there, and the game's own state
+   to pick it up again by. Nothing until a turn has been thrown. */
+const cloudGame = () => (S && S.log.length ? toPayload() : null);
+
+function toPayload() {
+  const G = play(), counts = [];
+  const turns = S.log.map((e, i) => {
+    const t = G.turns[i];
+    const n = counts[e.p] || 0;
+    counts[e.p] = n + 1;
+    return {
+      player_idx: e.p,
+      turn_no: n,
+      detail: e.darts || [],            // the throws
+      points: t.bust ? 0 : t.pts,
+      bust: t.bust,
+      score_after: t.left,
+      created_at: S.startedAt + i,      // ordering only; no clock is kept per turn
+    };
+  });
+  return {
+    id: S.id,
+    game_type: 'darts',
+    config: { start: S.start, doubleIn: S.doubleIn, doubleOut: S.doubleOut, solo: S.names.length === 1 },
+    started_at: S.startedAt,
+    // chosen on the setup screen, not inferred from names
+    me_idx: Number.isInteger(S.me) ? S.me : 0,
+    ended_at: S.over ? Date.now() : null,
+    winner_idx: S.over && S.winner != null ? S.winner : null,
+    players: S.names.map((name, idx) => ({ idx, name })),
+    turns,
+    state: S,
+  };
 }
 
 // The newest darts game in progress here, for the setup's Resume.
 function load() {
   const g = SCStore.latest(TYPE);
-  return g ? g.state : null;
+  return g ? upgrade(g.state) : null;
 }
 
 // A game on screen has its id in the address: a link to it opens it.
 function openGame(state) {
-  S = state;
+  S = upgrade(state);
   // a game saved before ids existed still needs one to sync
   if (!S.id) { S.id = crypto.randomUUID(); S.startedAt = S.startedAt || Date.now(); }
   save();
@@ -252,7 +400,7 @@ function buildSetup() {
     S = newGame(names, start, {
       doubleIn: toggles.doubleIn.classList.contains('is-on'),
       doubleOut: toggles.doubleOut.classList.contains('is-on'),
-      meIdx: playerCount === 1 ? 0 : meIdx
+      me: playerCount === 1 ? 0 : meIdx
     });
     if (match) { S.id = match.id; S.tid = match.tid; }
     openGame(S);
@@ -278,7 +426,7 @@ function buildSetup() {
   const saved = load();
   if (saved && !saved.over) {
     const btn = $('resumeBtn');
-    btn.textContent = 'Resume: ' + saved.players.map(p => p.name).join(' vs ');
+    btn.textContent = 'Resume: ' + saved.names.join(' vs ');
     btn.classList.remove('hidden');
     btn.addEventListener('click', () => openGame(saved));
   }
@@ -296,7 +444,7 @@ async function openFromUrl() {
   // ?s=<token>: a shared game, to score in together or to watch
   const shared = await SCShare.fromUrl(TYPE);
   if (shared && shared.kind === 'edit') { openGame(shared.state); return; }
-  if (shared) { S = shared.state; showGame(); return; }
+  if (shared) { S = upgrade(shared.state); showGame(); return; }
   const at = SCStore.urlId();
   if (!at) return;
   const st = await SCStore.open(TYPE, at.id, at.fresh, window.SCSync ? (id) => window.SCSync.load(id) : null);
@@ -377,6 +525,8 @@ function buildBoard() {
   $('bustBtn').addEventListener('click', bustTurn);
   $('undoTurn').addEventListener('click', undoTurn);
   $('editBtn').addEventListener('click', editGame);
+  $('winBarBtn').addEventListener('click', endGame);
+  $('fixCancel').addEventListener('click', cancelFix);
 
   $('confirmYes').addEventListener('click', () => closeConfirm(true));
   $('confirmNo').addEventListener('click', () => closeConfirm(false));
@@ -385,7 +535,8 @@ function buildBoard() {
   });
 
   $('quitBtn').addEventListener('click', async () => {
-    const names = S.players.map(p => `${p.name} on ${p.score}`).join(' and ');
+    const G = play();
+    const names = S.names.map((name, i) => `${name} on ${G.players[i].score}`).join(' and ');
     if (tid() && S.over) { leaveGame(); return; }
     const ok = await askConfirm(S.over
       ? 'This clears the finished game and goes back to setup.'
@@ -401,8 +552,7 @@ function buildBoard() {
   $('rematchBtn').addEventListener('click', () => {
     if (tid()) { leaveGame(); return; }    // Back to tournament: see showWin
     SCStore.remove(S.id);      // finished, and on the profile when signed in
-    S = newGame(S.players.map(p => p.name), S.start,
-                { doubleIn: S.doubleIn, doubleOut: S.doubleOut, meIdx: S.meIdx });
+    S = newGame(S.names, S.start, { doubleIn: S.doubleIn, doubleOut: S.doubleOut, me: S.me });
     save();
     SCStore.show(S.id);
     $('winOverlay').classList.add('hidden');
@@ -414,8 +564,8 @@ function buildBoard() {
   // tapping a player card switches whose turn it is (fixes mis-taps)
   [0, 1, 2, 3].forEach(i => {
     $('p' + i).addEventListener('click', () => {
-      if (S.over || S.cur === i || i >= S.players.length) return;
-      if (!SCShare.canScore(i)) { say(`${S.players[i].name} enters their turns on their own phone`); return; }
+      if (closed() || fixing || S.cur === i || i >= S.names.length) return;
+      if (!SCShare.canScore(i)) { say(`${S.names[i]} enters their turns on their own phone`); return; }
       if (S.darts.length) { say('Clear the current turn first'); return; }
       S.cur = i;
       render(); save();
@@ -436,7 +586,7 @@ function showGame() {
 /* ---------------- dart entry ---------------- */
 
 function addDart(n, isBull = false) {
-  if (S.over || waiting()) return;
+  if ((closed() && !fixing) || waiting()) return;
   if (S.darts.length >= MAX_DARTS) { say('3 darts thrown — submit the turn'); return; }
 
   let m = S.mult;
@@ -459,51 +609,24 @@ function undoDart() {
   render(); save();
 }
 
-/* Where a turn of `pts` leaves the current player, and whether it's legal.
-   Shared by the live projection, the submit button and submitTurn itself. */
-function outcome(pts) {
-  const left = S.players[S.cur].score - pts;
-
-  if (left < 0) return { left, bust: true, win: false, why: 'overshot' };
-
-  if (S.doubleOut) {
-    if (left === 1) return { left, bust: true, win: false, why: 'left 1' };
-    if (left === 0) {
-      const last = S.darts[S.darts.length - 1];
-      if (!last || !last.dbl) {
-        return { left, bust: true, win: false, why: 'no double to finish' };
-      }
-    }
+/* The turn being thrown, as it stands (see throwOf): from where its player
+   is now, or, changing a turn already thrown (see fixTurn), from where they
+   were before it. Shared by the live projection, the submit button and the
+   turn itself. */
+function current() {
+  if (fixing) {
+    const e = S.log[fixing.i];
+    const p = play(S, fixing.i).players[e.p];
+    return throwOf(S, p.score, p.opened, S.darts, false);
   }
-
-  return { left, bust: false, win: left === 0, why: '' };
+  const p = play().players[S.cur];
+  return throwOf(S, p.score, p.opened, S.darts, false);
 }
 
-/* Splits the turn in progress into what actually scores and what doesn't.
-   Under double-in, darts thrown before the opening double are shown but
-   score nothing. `open` is the player's state once the turn is applied. */
-function breakdown() {
-  const p = S.players[S.cur];
-
-  let open = p.opened;
-  let pts = 0;
-  const counted = [];
-
-  for (const d of S.darts) {
-    if (!open) {
-      if (!d.dbl) { counted.push(false); continue; }  // still not in
-      open = true;
-    }
-    counted.push(true);
-    pts += d.val;
-  }
-
-  return { pts, counted, open };
-}
-
-function turnPoints() {
-  return breakdown().pts;
-}
+// Someone has checked out: the pad waits for End game, or an Undo. Ended
+// with End game, the game is over.
+const checkedOut = () => play().winner !== null;
+const closed = () => S.over || checkedOut();
 
 /* ---------------- checkout suggestions ----------------
 
@@ -667,173 +790,201 @@ function maxFinish(dartsLeft, needDouble) {
 /* ---------------- turn resolution ---------------- */
 
 function submitTurn() {
-  if (S.over) return;
-  if (!SCShare.canScore(S.cur)) return;
-
-  const { pts, open } = breakdown();
-  if (pts > 180) { say('Max 180 in three darts'); return; }
-
-  const p = S.players[S.cur];
-  const before = p.score;
-  const wasOpen = p.opened;
-  const { left, bust, win, why } = outcome(pts);
-
-  S.log.push({
-    player: S.cur,
-    before,
-    wasOpen,
-    pts,
-    bust,
-    darts: S.darts.slice()
-  });
-
-  p.turns += 1;
-  p.opened = open;              // a landed double opens you even if the turn busts
-  if (!bust) {
-    p.score = left;
-    p.points += pts;
-  }
-
-  S.darts = [];
-  S.mult = 1;
-
-  if (win) {
-    S.over = true;
-    S.winner = S.cur;
-    render(); save();
-    showWin(p);
-    // fire and forget: the win is already safe locally
-    autoSave();
-    return;
-  }
-
-  if (bust) say(`Bust — ${why}. ${p.name} stays on ${before}`);
-  else if (S.doubleIn && !wasOpen && open) say(`${p.name} is in`);
-  else if (S.doubleIn && !open) say(`${p.name} still needs a double to open`);
-
-  passTurn();
-  render(); save();
-  autoSave();
+  if (fixing) { saveFix(false); return; }
+  if (closed() || !SCShare.canScore(S.cur)) return;
+  const t = current();
+  S.log.push({ p: S.cur, darts: S.darts.slice(), ts: Date.now() });
+  thrown(t);
 }
 
 /* Manual bust: the turn scores nothing and play passes. For busts the app
-   can't infer on its own — a bounce-out, a mis-entry, a throw out of turn. */
+   can't infer on its own — a bounce-out, a mis-entry, a throw out of turn.
+   A landed double still opens a player under double in, as on any bust. */
 function bustTurn() {
-  if (S.over) return;
-  if (!SCShare.canScore(S.cur)) return;
+  if (fixing) { saveFix(true); return; }
+  if (closed() || !SCShare.canScore(S.cur)) return;
+  const t = current(), stays = play().players[S.cur].score;
+  S.log.push({ p: S.cur, darts: S.darts.slice(), bust: true, ts: Date.now() });
+  thrown({ ...t, bust: true, why: 'marked bust', left: stays, win: false });
+}
 
-  const p = S.players[S.cur];
-  const { open } = breakdown();
-
-  S.log.push({
-    player: S.cur,
-    before: p.score,
-    wasOpen: p.opened,
-    pts: 0,
-    bust: true,
-    darts: S.darts.slice()
-  });
-
-  p.turns += 1;
-  p.opened = open;        // same as an automatic bust: a landed double still opens
-  // p.score deliberately untouched — that is what a bust means
-
+// A turn in: said, and the turn passes on, or the checkout offered.
+function thrown(t) {
+  const name = S.names[S.cur];
   S.darts = [];
   S.mult = 1;
-
-  say(`Bust — ${p.name} stays on ${p.score}`);
+  if (t.win) {
+    render(); save();
+    say(`${name} checked out!`);
+    return;
+  }
+  if (t.bust) say(t.why === 'marked bust' ? `Bust — ${name} stays on ${t.left}` : `Bust — ${t.why}. ${name} stays on ${t.left}`);
+  else if (S.doubleIn && !play(S, S.log.length - 1).players[S.cur].opened && t.open) say(`${name} is in`);
+  else if (S.doubleIn && !t.open) say(`${name} still needs a double to open`);
   passTurn();
   render(); save();
-  autoSave();
 }
 
-/* Signed in, the game goes to the profile after every turn — and after an
-   Undo, and when it is won — so it can be picked up on another device and
-   isn't lost with this one. Silent: localStorage is still the live game, and
-   a save that fails is simply made whole by the next one. One save at a
-   time, so an older one can never land after a newer; turns played while one
-   is on its way go up together in the next. A game with no turns isn't
-   saved until it has one. */
-let saving = false, saveAgain = false;
-async function autoSave() {
-  if (!S || !window.SCSync) return;
-  if (!S.log.length && typeof S.savedTurns !== 'number') return;
-  if (saving) { saveAgain = true; return; }
-  saving = true;
-  const g = S;
-  try {
-    const who = await window.SCSync.me();
-    if (who && who.user) await window.SCSync.saveNow(g);
-    if (g === S) save();          // persist the new savedTurns mark
-  } catch (e) { /* the next turn tries again */ }
-  saving = false;
-  if (saveAgain) { saveAgain = false; autoSave(); }
+/* A checkout is offered, not declared, as in the Builder's live games:
+   the bar says who checked out, Undo takes it back if it wasn't, and End
+   game ends the game, with the result. */
+function renderWinBar(G) {
+  const w = G.winner;
+  const on = w !== null && !S.over && !fixing;
+  $('winBar').classList.toggle('hidden', !on);
+  if (!on) return;
+  $('winBarText').innerHTML = '';
+  $('winBarText').append(`${S.names[w]} checked out!`);
+  const small = document.createElement('small');
+  small.textContent = 'Undo if that wasn’t the finish.';
+  $('winBarText').append(small);
 }
 
-// play goes round the players in order
+function endGame() {
+  const G = play();
+  if (G.winner === null) return;
+  S.over = true;
+  S.winner = G.winner;
+  save();
+  // at the end of a game, to the profile at once rather than a moment later
+  if (window.SCCloud) SCCloud.now(cloudGame).catch(() => {});
+  render();
+  showWin();
+}
+
 /* Edit game (see /editgame.js): the players put in another order, or
    renamed. Everything kept by a player's place moves with them: their
-   score, the turns in the log, whose turn it is (and the darts already
-   thrown in it), who won, and which one is you. The order of play follows
-   the new list from the next turn. Not for a shared game, whose other
-   phones know the players by their place, nor a tournament's match, whose
-   result the tournament reads by place. */
+   turns and the changes to them, whose turn it is (and the darts already
+   thrown in it), who won, and which one is you; their scores follow, as
+   they are worked out from the turns. The order of play follows the new
+   list from the next turn. Not for a shared game, whose other phones know
+   the players by their place, nor a tournament's match, whose result the
+   tournament reads by place. */
 async function editGame() {
+  if (fixing) cancelFix();
   const locked = SCStore.get(S.id)?.share
     ? 'This game is shared with other phones, which know the players by their place, so the players can’t be moved or renamed now.'
     : tid() ? 'This is a tournament match: the tournament keeps its players, so they can’t be moved or renamed here.' : null;
-  const names = S.players.map((p) => p.name);
+  const turns = play().players.map((p) => p.turns);
   // who a new order would pass over for the rest of this round (see passTurn)
   const warn = (order, named) => {
-    if (S.over) return null;
+    if (closed()) return null;
     const { list, place } = SCEditGame.moves(order);
-    return SCEditGame.skipWarning({ names: named, counts: list(S.players.map((p) => p.turns)), cur: place(S.cur) });
+    return SCEditGame.skipWarning({ names: named, counts: list(turns), cur: place(S.cur) });
   };
-  const got = await SCEditGame.open({ names, locked, hint: 'Whoever’s turn it is keeps it.', warn, history: historyRows });
+  const got = await SCEditGame.open({ names: S.names, locked, hint: 'Whoever’s turn it is keeps it.', warn, history: historyRows });
   if (!got) return;
   const moved = got.order.some((from, i) => from !== i);
-  if (!moved && got.names.every((n, i) => n === names[i])) return;
-  const { list, place } = SCEditGame.moves(got.order);
-  S.players = list(S.players);
-  S.players.forEach((p, i) => { p.name = got.names[i]; });
-  S.log.forEach((t) => { t.player = place(t.player); });
+  if (!moved && got.names.every((n, i) => n === S.names[i])) return;
+  const { place } = SCEditGame.moves(got.order);
+  S.names = got.names;
+  S.log.forEach((e) => { e.p = place(e.p); });
+  S.edits.forEach((x) => { x.p = place(x.p); });
   S.cur = place(S.cur);
   if (S.winner != null) S.winner = place(S.winner);
-  S.meIdx = place(typeof S.meIdx === 'number' ? S.meIdx : 0);
+  S.me = place(Number.isInteger(S.me) ? S.me : 0);
   render(); save();
-  autoSave();
-  say(moved ? `${S.players[S.cur].name} to throw` : 'Names changed');
+  say(moved ? `${S.names[S.cur]} to throw` : 'Names changed');
 }
 
+const labels = (darts) => (darts || []).map((d) => d.label).join(' ') || 'no darts';
+
 /* The game's history for Edit's History (see /editgame.js): every turn,
-   its darts, and the score it left. */
-const historyRows = () => S.log.map((t) => ({
-  who: S.players[t.player].name,
-  what: (t.darts || []).map((d) => d.label).join(' '),
-  when: t.bust ? `bust, stays on ${t.before}` : `${t.before} → ${t.before - t.pts}`,
-  pts: t.bust ? 0 : t.pts,
-}));
+   its darts and the score it left, and any change made to one since, in
+   its place. A turn can be tapped to change it (see fixTurn) until the game
+   is over. */
+function historyRows() {
+  const G = play(), rows = [];
+  const changes = (n) => S.edits.filter((x) => x.after === n).map((x) => ({
+    who: S.names[x.p],
+    what: `turn ${x.n} changed`,
+    when: `${labels(x.from.darts)}${x.from.bust ? ' (bust)' : ''} → ${labels(x.to.darts)}${x.to.bust ? ' (bust)' : ''}`,
+  }));
+  rows.push(...changes(0));
+  S.log.forEach((e, i) => {
+    const t = G.turns[i];
+    const edit = !S.over && !SCShare.watching && SCShare.canScore(e.p) ? () => fixTurn(i) : null;
+    rows.push({
+      who: S.names[e.p],
+      what: (e.darts || []).map((d) => d.label).join(' '),
+      when: t.bust ? `bust, stays on ${t.left}` : `${t.before} → ${t.left}`,
+      pts: t.bust ? 0 : t.pts,
+      edit,
+    });
+    rows.push(...changes(i + 1));
+  });
+  return rows;
+}
+
+/* Changing a turn already thrown, from the history: the pad takes that
+   turn's darts, from where its player stood before it, and holds the game
+   (the bar over it says whose turn is being changed) until the change is
+   saved, with Submit or Bust, or cancelled. The turn being thrown waits,
+   darts and all, and comes back after. Saved, the game is played through
+   again: a later turn may now bust, or the change may be a checkout. */
+let fixing = null;    // { i, keep: { darts, mult } } while a turn is changed
+
+function fixTurn(i) {
+  const e = S.log[i];
+  if (!e || S.over) return;
+  if (fixing) cancelFix();
+  fixing = { i, keep: { darts: S.darts, mult: S.mult } };
+  S.darts = (e.darts || []).map((d) => ({ ...d }));
+  S.mult = 1;
+  render();
+}
+
+function endFix() {
+  S.darts = fixing.keep.darts;
+  S.mult = fixing.keep.mult;
+  fixing = null;
+}
+
+function cancelFix() {
+  if (!fixing) return;
+  endFix();
+  render();
+}
+
+function saveFix(bust) {
+  const i = fixing.i, e = S.log[i];
+  const from = { darts: e.darts || [], bust: !!e.bust };
+  const to = { darts: S.darts.slice(), bust: !!bust };
+  const n = play(S, i + 1).turns[i].n;
+  endFix();
+  if (JSON.stringify(from) === JSON.stringify(to)) { render(); return; }
+  S.edits.push({ i, p: e.p, n, from, to, after: S.log.length, ts: Date.now() });
+  S.log[i] = { p: e.p, darts: to.darts, ...(to.bust ? { bust: true } : {}), ts: e.ts };
+  render(); save();
+  const G = play();
+  say(G.winner !== null && !S.over ? `${S.names[G.winner]} checked out!` : `${S.names[e.p]}'s turn ${n} changed`);
+}
 
 /* The turn passes to the next player who has thrown the fewest turns, so a
    round always finishes before anyone throws again, even after Edit has
    changed the order part-way through it, or a card was tapped to throw out
    of turn (see nextTurn in /editgame.js). Whoever it passes over is said. */
 function passTurn() {
-  const { next, skipped } = SCEditGame.nextTurn(S.cur, S.players.map((p) => p.turns));
+  const { next, skipped } = SCEditGame.nextTurn(S.cur, play().players.map((p) => p.turns));
   S.cur = next;
-  if (skipped.length) say(SCEditGame.skipNote(S.players.map((p) => p.name), skipped, next));
+  if (skipped.length) say(SCEditGame.skipNote(S.names, skipped, next));
 }
 
 // A phone that joined by seat throws for its own player, on that player's
 // turn only; otherwise it waits, the pad greyed, for the turn to come round.
-const waiting = () => !S.over && !SCShare.canScore(S.cur);
+const waiting = () => !fixing && !closed() && !SCShare.canScore(S.cur);
 
+/* Undo, as in the other games: the turn being thrown is cleared first;
+   then a change made to a turn since the last one was thrown is taken
+   back; then the last turn comes off. A phone that joined by seat takes
+   back its own player's, wherever it is in the log: everyone else's are
+   theirs to take back. The scores follow, played through again. */
 async function undoTurn() {
-  // a turn in progress is discarded first, whether or not anything is logged
+  if (fixing) { cancelFix(); say('Change cancelled'); return; }
   if (S.darts.length) {
-    const thrown = S.darts.map(d => d.label).join(', ');
+    const thrownSoFar = S.darts.map(d => d.label).join(', ');
     const ok = await askConfirm(
-      `This clears the ${S.darts.length} dart${S.darts.length > 1 ? 's' : ''} entered for this turn (${thrown}).`,
+      `This clears the ${S.darts.length} dart${S.darts.length > 1 ? 's' : ''} entered for this turn (${thrownSoFar}).`,
       'Clear turn');
     if (!ok) return;
     S.darts = []; S.mult = 1;
@@ -842,36 +993,43 @@ async function undoTurn() {
     return;
   }
 
-  // A phone that joined by seat takes back its own player's last turn,
-  // wherever it is in the log: everyone else's are theirs to take back.
   const seat = SCShare.seat();
-  let j = S.log.length - 1;
-  if (seat !== null) while (j >= 0 && S.log[j].player !== seat) j--;
-  if (j < 0) { say('Nothing to undo'); return; }
+  const x = S.edits[S.edits.length - 1];
+  if (x && x.after === S.log.length && (seat === null || x.p === seat)) {
+    const ok = await askConfirm(`This puts ${S.names[x.p]}'s turn ${x.n} back to ${labels(x.from.darts)}${x.from.bust ? ' (bust)' : ''}.`, 'Undo change');
+    if (!ok) return;
+    S.edits.pop();
+    const e = S.log[x.i];
+    S.log[x.i] = { p: e.p, darts: x.from.darts, ...(x.from.bust ? { bust: true } : {}), ts: e.ts };
+    reopen();
+    say(`Undid the change to ${S.names[x.p]}'s turn ${x.n}`);
+    return;
+  }
 
-  const prev = S.log[j];
-  const who = S.players[prev.player];
+  let j = S.log.length - 1;
+  if (seat !== null) while (j >= 0 && S.log[j].p !== seat) j--;
+  if (j < 0) { say('Nothing to undo'); return; }
+  const t = play().turns[j], who = S.names[S.log[j].p];
   const okUndo = await askConfirm(
-    `This rolls back ${who.name}'s last turn of ${prev.pts}` +
-    (prev.bust ? ' (a bust)' : '') + `, back to ${prev.before}.`,
+    `This rolls back ${who}'s last turn of ${t.bust ? 0 : t.pts}` +
+    (t.bust ? ' (a bust)' : '') + `, back to ${t.before}.`,
     'Undo turn');
   if (!okUndo) return;
 
   const last = S.log.splice(j, 1)[0];
-  const p = S.players[last.player];
-  p.score = last.before;
-  p.turns -= 1;
-  if (last.wasOpen !== undefined) p.opened = last.wasOpen;
-  if (!last.bust) p.points -= last.pts;
+  // changes to turns after it move up with them; one to it goes with it
+  S.edits = S.edits.filter((y) => y.i !== j).map((y) => ({ ...y, i: y.i > j ? y.i - 1 : y.i, after: Math.min(y.after, S.log.length) }));
+  S.cur = last.p;
+  reopen();
+  say(`Undid ${who}'s ${t.bust ? 0 : t.pts}`);
+}
 
-  S.cur = last.player;
+// After an Undo: a game ended is open again, and shown as it now stands.
+function reopen() {
   S.over = false;
-  S.winner = undefined;
+  S.winner = null;
   $('winOverlay').classList.add('hidden');
-
   render(); save();
-  autoSave();
-  say(`Undid ${p.name}'s ${last.pts}`);
 }
 
 /* Which alternative the player has paged to, and the position it was paged
@@ -892,12 +1050,14 @@ function coArrow(dir, cls, label) {
     + ` stroke-linecap="round" stroke-linejoin="round"/></svg></button>`;
 }
 
-function renderCheckout(left) {
+// left: where the turn so far leaves the player; opened: whether they are in
+function renderCheckout(left, opened) {
   const box = $('checkout');
   const dartsLeft = MAX_DARTS - S.darts.length;
-  const mustOpen = S.doubleIn && !S.players[S.cur].opened;
+  const mustOpen = S.doubleIn && !opened;
 
-  if (S.over || dartsLeft < 1 || left < 1) {
+  // none while a turn already thrown is being changed: it is history
+  if (closed() || fixing || dartsLeft < 1 || left < 1) {
     box.className = 'checkout empty';
     box.innerHTML = '';
     return;
@@ -931,10 +1091,11 @@ function renderCheckout(left) {
   box.innerHTML = '<span class="co-hint">Checkout darts appear here once you’re in range</span>';
 }
 
-function showWin(p) {
-  const solo = S.players.length === 1;
+function showWin() {
+  const solo = S.names.length === 1;
+  const p = play().players[S.winner], name = S.names[S.winner];
   const avg = p.turns ? (p.points / p.turns).toFixed(1) : '0';
-  $('winName').textContent = solo ? `${p.name} checked out!` : `${p.name} wins!`;
+  $('winName').textContent = solo ? `${name} checked out!` : `${name} wins!`;
   $('winStats').textContent = `${S.start} down in ${p.turns} turns · ${avg} average`;
   $('rematchBtn').textContent = tid() ? 'Back to tournament' : solo ? 'Go again' : 'Rematch';
   $('newBtn').classList.toggle('hidden', !!tid());
@@ -946,45 +1107,51 @@ function showWin(p) {
 function render() {
   if (!S) return;
 
-  const { pts, counted } = breakdown();
-  const solo = S.players.length === 1;
-  const p0 = S.players[S.cur];
+  const G = play();
+  const t = current();
+  const { pts, counted } = t;
+  const solo = S.names.length === 1;
+  // whose turn is on the pad: the one being thrown, or one being changed
+  const up = fixing ? S.log[fixing.i].p : S.cur;
+  const opened = fixing ? play(S, fixing.i).players[up].opened : G.players[S.cur].opened;
+  const done = closed() && !fixing;
 
   // rule badges; double-in turns red until the player has opened
   $('badges').classList.toggle('hidden', !S.doubleIn && !S.doubleOut);
   $('bIn').classList.toggle('hidden', !S.doubleIn);
   $('bOut').classList.toggle('hidden', !S.doubleOut);
   if (S.doubleIn) {
-    const needs = !p0.opened && !S.over;
+    const needs = !opened && !done;
     $('bIn').classList.toggle('alert', needs);
-    $('bIn').textContent = needs ? `${p0.name} needs a double to open` : 'Double in';
+    $('bIn').textContent = needs ? `${S.names[up]} needs a double to open` : 'Double in';
   }
 
   // scoreboard
   $('scoreboard').classList.toggle('solo', solo);
   // three or four across: the player on turn gets the wide card
-  $('scoreboard').classList.toggle('crowded', S.players.length > 2);
-  [0, 1, 2, 3].forEach(i => $('p' + i).classList.toggle('hidden', i >= S.players.length));
+  $('scoreboard').classList.toggle('crowded', S.names.length > 2);
+  [0, 1, 2, 3].forEach(i => $('p' + i).classList.toggle('hidden', i >= S.names.length));
 
-  S.players.forEach((p, i) => {
+  G.players.forEach((p, i) => {
     const el = $('p' + i);
-    const isTurn = i === S.cur && !S.over;
+    const isTurn = i === up && !done;
     el.classList.toggle('active', isTurn);
-    el.querySelector('.pname').textContent = p.name;
+    el.querySelector('.pname').textContent = S.names[i];
     el.querySelector('.pnum').textContent = p.score;
 
-    // live projection of where this turn leaves them
+    // live projection of where this turn leaves them (not for a turn being
+    // changed: the bar over the pad says where that one goes)
     const pend = el.querySelector('.ppend');
-    el.classList.toggle('pending', isTurn && pts > 0);
+    const live = isTurn && !fixing && pts > 0;
+    el.classList.toggle('pending', live);
     pend.classList.remove('bust', 'checkout');
-    if (isTurn && pts > 0) {
-      const o = outcome(pts);
-      if (o.bust) {
+    if (live) {
+      if (t.bust) {
         pend.textContent = '→ bust';
         pend.classList.add('bust');
       } else {
-        pend.textContent = '→ ' + o.left;
-        if (o.win) pend.classList.add('checkout');
+        pend.textContent = '→ ' + t.left;
+        if (t.win) pend.classList.add('checkout');
       }
     }
 
@@ -1014,23 +1181,43 @@ function render() {
     b.classList.toggle('is-on', parseInt(b.dataset.m, 10) === S.mult);
   });
 
-  renderCheckout(outcome(pts).left);
+  renderCheckout(t.after, opened);
+  renderWinBar(G);
+  renderFixBar(t);
+  $('checkout').classList.toggle('hidden-by-bar', !!fixing || (G.winner !== null && !S.over));
 
   // submit button
   const btn = $('submitBtn');
-  const o = outcome(pts);
   $('game').classList.toggle('waiting', waiting());
-  if (S.over) {
+  $('game').classList.toggle('fixing', !!fixing);
+  $('game').classList.toggle('closed', done);
+  if (fixing) {
+    btn.textContent = t.bust ? `Save the change — bust` : t.win ? `Save the change — checkout!` : `Save the change: ${pts}`;
+  } else if (S.over) {
     btn.textContent = 'Game over';
+  } else if (G.winner !== null) {
+    btn.textContent = `${S.names[G.winner]} checked out`;
   } else if (waiting()) {
-    btn.textContent = `${p0.name}'s turn`;
-  } else if (pts > 0 && o.bust) {
+    btn.textContent = `${S.names[S.cur]}'s turn`;
+  } else if (pts > 0 && t.bust) {
     btn.textContent = `Submit ${pts} — bust`;
-  } else if (o.win) {
+  } else if (t.win) {
     btn.textContent = `Submit ${pts} — checkout!`;
   } else {
-    btn.textContent = solo ? `Submit ${pts}` : `Submit ${pts} for ${p0.name}`;
+    btn.textContent = solo ? `Submit ${pts}` : `Submit ${pts} for ${S.names[S.cur]}`;
   }
+}
+
+// Changing a turn already thrown: whose, which, and where it now goes.
+function renderFixBar(t) {
+  $('fixBar').classList.toggle('hidden', !fixing);
+  if (!fixing) return;
+  const i = fixing.i, e = S.log[i], was = play(S, i + 1).turns[i];
+  $('fixText').innerHTML = '';
+  $('fixText').append(`Changing ${S.names[e.p]}'s turn ${was.n}`);
+  const small = document.createElement('small');
+  small.textContent = `Was ${labels(e.darts)}${was.bust ? ', a bust' : ''}: ${was.before} → ${was.left}. Now ${t.bust ? 'a bust' : `${was.before} → ${t.left}`}.`;
+  $('fixText').append(small);
 }
 
 /* ---------------- boot ---------------- */
@@ -1043,75 +1230,101 @@ buildBoard();
 SCShare.attach({
   type: TYPE,
   get: () => S,
-  me: (st) => (st.players.length > 1 ? st.meIdx : null),
+  me: (st) => { st = upgrade(st); return st.names.length > 1 ? st.me : null; },
   apply: applyShared,
-  // Shared by seat: a cell a turn, '<player>:<turn>', counted per player.
+  /* Shared by seat: a cell a turn, '<player>:<turn>', counted per player,
+     holding its darts, and marked when it was marked bust by hand. The
+     points and whether it busted go too, for phones still on darts' first
+     shape, which read them; this one works them out. */
   cells: {
-    names: (st) => st.players.map((p) => p.name),
+    names: (st) => upgrade(st).names,
     of: (st) => {
-      const out = {}, seen = [];
-      for (const t of st.log) {
-        const n = (seen[t.player] = (seen[t.player] || 0) + 1);
-        out[`${t.player}:${n}`] = { darts: t.darts || [], pts: t.pts, bust: !!t.bust };
-      }
+      st = upgrade(st);
+      const G = play(st), out = {}, seen = [];
+      st.log.forEach((e, i) => {
+        const n = (seen[e.p] = (seen[e.p] || 0) + 1), t = G.turns[i];
+        out[`${e.p}:${n}`] = { darts: e.darts || [], marked: !!e.bust, pts: t.bust ? 0 : t.pts, bust: t.bust };
+      });
       return out;
     },
     build: fromCells,
   },
 });
 
-/* A game rebuilt from its turns (see /share.js), by the same rebuild that
-   opens a game from the profile (SCSync.rebuild): each player's turns in
-   order, the scores, who is in under double in, and whose turn it is. The
-   log runs turn by turn round the table. A player on 0 has won. */
+/* A game rebuilt from its turns (see /share.js): each player's turns in
+   order, round the table, played through as on every phone. A turn that
+   differs from the one this phone had is a change made on another phone,
+   and goes in the history as one made here would. Whose turn it is
+   follows: the first with the fewest turns. A game ended here stays ended
+   while the turns still say who won. */
 function fromCells(base, list) {
-  const n = base.players.length;
-  const turns = [];
+  base = upgrade(base);
+  const n = base.names.length, cells = [];
   list.forEach(({ key, value }, k) => {
     const [p, t] = key.split(':').map(Number);
-    if (p >= 0 && p < n && value) turns.push({ p, t, k, v: value });
+    if (p >= 0 && p < n && t >= 1 && value) cells.push({ p, t, k, v: value });
   });
-  turns.sort((a, b) => a.t - b.t || a.k - b.k);
-  const left = base.players.map(() => base.start);
-  const g = {
-    id: base.id, started_at: base.startedAt, ended_at: null, me_idx: base.meIdx,
-    config: { start: base.start, doubleIn: base.doubleIn, doubleOut: base.doubleOut },
-    players: base.players.map((p) => ({ name: p.name })),
-    turns: turns.map(({ p, v }) => {
-      const pts = v.bust ? 0 : Number(v.pts) || 0;
-      left[p] -= pts;
-      return { player_idx: p, detail: v.darts || [], points: pts, bust: !!v.bust, score_after: left[p] };
-    }),
-  };
-  const st = window.SCSync.rebuild(g);
-  const w = st.players.findIndex((p) => p.score === 0);
-  if (w >= 0) { st.over = true; st.winner = w; }
-  return { ...st, darts: base.darts || [], mult: base.mult || 1, savedTurns: base.savedTurns };
+  cells.sort((a, b) => a.t - b.t || a.k - b.k);
+
+  const keyOf = (log, i) => `${log[i].p}:${log.slice(0, i + 1).filter((e) => e.p === log[i].p).length}`;
+  const before = {};
+  base.log.forEach((e, i) => { before[keyOf(base.log, i)] = e; });
+
+  const st = { ...base, log: [], edits: [] };
+  for (const { p, v } of cells) {
+    const e = { p, darts: Array.isArray(v.darts) ? v.darts : [], ts: 0 };
+    // marked bust by hand; a phone on the first shape says bust for any
+    if (v.marked || (!('marked' in v) && v.bust)) e.bust = true;
+    st.log.push(e);
+  }
+  if (cells.some(({ v }) => !('marked' in v))) keepMarkedBusts(st);
+
+  // changes already known here keep their place; new ones from elsewhere join them
+  const at = (p, nth) => st.log.findIndex((e, i) => e.p === p && keyOf(st.log, i) === `${p}:${nth}`);
+  st.edits = (base.edits || []).map((x) => ({ ...x, i: at(x.p, x.n) })).filter((x) => x.i >= 0);
+  st.log.forEach((e, i) => {
+    const key = keyOf(st.log, i), was = before[key];
+    if (was) e.ts = was.ts || 0;
+    const from = was && { darts: was.darts || [], bust: !!was.bust }, to = { darts: e.darts, bust: !!e.bust };
+    if (from && JSON.stringify(from) !== JSON.stringify(to)) {
+      st.edits.push({ i, p: e.p, n: Number(key.split(':')[1]), from, to, after: st.log.length, ts: Date.now() });
+    }
+  });
+
+  const G = play(st);
+  const fewest = Math.min(...G.players.map((p) => p.turns));
+  st.cur = G.players.findIndex((p) => p.turns === fewest);
+  if (st.over && G.winner === null) { st.over = false; st.winner = null; }
+  return st;
 }
 
 /* A newer game from another phone. The darts this phone has entered for
    the turn on the oche carry over, while that turn is still waiting: the
    same player up, no turn entered since. If the turn has been entered on
-   the other phone meanwhile, these darts are let go, and it says so. */
+   the other phone meanwhile, these darts are let go, and it says so. A
+   turn being changed here is let go too. */
 function applyShared(st) {
-  const wasOver = S && S.over;
-  const mine = S && !S.over && (S.darts.length || S.mult !== 1)
-    ? { darts: S.darts, mult: S.mult, cur: S.cur, turns: S.players[S.cur].turns } : null;
+  if (fixing) { endFix(); say('The game changed on another phone: the change was let go'); }
+  st = upgrade(st);
+  const mine = S && !closed() && (S.darts.length || S.mult !== 1)
+    ? { darts: S.darts, mult: S.mult, cur: S.cur, turns: play().players[S.cur].turns } : null;
+  const wasOut = S && checkedOut();
   S = st;
   if (mine) {
     // still that player's turn to throw: no turn of theirs entered since
-    if (!S.over && S.players[mine.cur].turns === mine.turns) {
+    if (!closed() && play().players[mine.cur].turns === mine.turns) {
       S.darts = mine.darts;
       S.mult = mine.mult;
       S.cur = mine.cur;
     } else if (mine.darts.length) {
-      say(`${S.players[mine.cur].name}'s turn was entered on another phone`);
+      say(`${S.names[mine.cur]}'s turn was entered on another phone`);
     }
   }
   save();
   showGame();
-  // the turn that came in won the game
-  if (S.over && !wasOver && S.winner != null) showWin(S.players[S.winner]);
+  // the turn that came in was a checkout: offered here too
+  if (checkedOut() && !wasOut && !S.over) say(`${S.names[play().winner]} checked out!`);
+  if (S.over) showWin();
 }
 
 openFromUrl();

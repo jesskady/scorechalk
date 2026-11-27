@@ -24,7 +24,7 @@ describe('Setting the order before the game', () => {
     assert.deepEqual(await pg.evaluate(() => [1, 2, 3].map((n) => $('name' + n).value)), ['Cy', 'Ann', 'Bob']);
     assert.equal(await pg.$eval('#meSel .is-on', (b) => b.textContent), 'Cy');
     await pg.click('#startBtn'); await wait(500);
-    assert.deepEqual(await pg.evaluate(() => [S.players.map((p) => p.name), S.meIdx]), [['Cy', 'Ann', 'Bob'], 0]);
+    assert.deepEqual(await pg.evaluate(() => [S.names, S.me]), [['Cy', 'Ann', 'Bob'], 0]);
     assert.deepEqual(pg.errors, []);
     await pg.close();
   });
@@ -60,7 +60,7 @@ describe('Edit game', () => {
   test('Darts: scores, the turn, Undo and You go with each player', async () => {
     const pg = await phone();
     await open(pg, '/darts/');
-    await pg.evaluate(() => openGame(newGame(['Ann', 'Bob', 'Cy'], 101, { meIdx: 2 })));
+    await pg.evaluate(() => openGame(newGame(['Ann', 'Bob', 'Cy'], 101, { me: 2 })));
     await wait(300);
     const turn = (...ds) => pg.evaluate((ds) => { for (const n of ds) addDart(n); submitTurn(); }, ds);
     await turn(20, 20, 20);          // Ann 41
@@ -74,10 +74,9 @@ describe('Edit game', () => {
     await editPress(pg, 'Save');
 
     const look = () => pg.evaluate(() => ({
-      names: S.players.map((p) => p.name), scores: S.players.map((p) => p.score),
-      up: S.players[S.cur].name, me: toPayloadMe(), darts: S.darts.length,
+      names: S.names, scores: play().players.map((p) => p.score),
+      up: S.names[S.cur], me: toPayload().me_idx, darts: S.darts.length,
     }));
-    await pg.evaluate(() => { window.toPayloadMe = () => SCSync.toPayload(S).me_idx; });
     assert.deepEqual(await look(), { names: ['Bobby', 'Cy', 'Ann'], scores: [86, 101, 41], up: 'Cy', me: 1, darts: 1 },
       'Cy keeps the turn and the dart thrown, and is still you');
 
@@ -271,7 +270,7 @@ describe('Reordering part-way through a round', () => {
     await pg.evaluate(() => openGame(newGame(['Ann', 'Bob', 'Cy', 'Dee'], 501, {})));
     await wait(300);
     const turn = () => pg.evaluate(() => { addDart(20); submitTurn(); });
-    const up = () => pg.evaluate(() => S.players[S.cur].name);
+    const up = () => pg.evaluate(() => S.names[S.cur]);
     await turn(); await turn();                      // Ann, Bob
     await pg.click('#editBtn'); await wait(300);
     await reorder(pg);
@@ -284,7 +283,7 @@ describe('Reordering part-way through a round', () => {
     assert.equal(await pg.evaluate(() => $('msg').textContent), 'Ann already played this round: Dee’s turn');
     await turn();
     assert.equal(await up(), 'Cy');
-    assert.deepEqual(await pg.evaluate(() => S.players.map((p) => p.turns)), [1, 1, 1, 1]);
+    assert.deepEqual(await pg.evaluate(() => play().players.map((p) => p.turns)), [1, 1, 1, 1]);
     assert.deepEqual(pg.errors, []);
     await pg.close();
   });

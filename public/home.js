@@ -30,8 +30,11 @@
 
   // room: which look the card takes — 'parlor' chalk, 'living' legal pad, 'workshop' graph paper
   const SPEC = {
+    // each player's score as the game last saved it (sum); a game kept in
+    // darts' first shape has its players with their scores instead
     darts: { room: 'parlor', name: 'Darts',
-      line: (g) => (g.over ? null : list(g.players.map((p) => `${p.name} ${p.score}`))) },
+      line: (g) => (g.over ? null : list(g.players ? g.players.map((p) => `${p.name} ${p.score}`)
+        : g.names.map((n, i) => `${n} ${g.sum ? g.sum[i].score : g.start}`))) },
     cribbage: { room: 'living', name: 'Cribbage',
       line: (g) => (g.over ? null : list([...g.names.map((n, i) => `${n} ${g.scores[i]}`), `hand ${g.hand}`])) },
     yahtzee: { room: 'living', name: 'Yahtzee',
