@@ -2,6 +2,19 @@
 
 Topics, sources and queries per run, newest first. Use it to avoid repeating ground.
 
+## 2026-11-27 (run 9)
+
+Main moved 23 commits since run 8 (7560fdb → 98a89c6), all deployed: guide prefetch (c7386b3), an All games page (1b024a4), Spades, Oh Hell, Skyjo and Rummikub (1c56876), a rubber Bridge score pad (5e92ff9, d115450), and Edit game everywhere (62707f5, 1f06d63). All 28 sitemap URLs return 200, but every lastmod is 2026-11-27. The Cloudflare API answered for the first time (zone settings, flags, RUM). PageSpeed Insights returned 429 for the ninth run, and a local Lighthouse install was refused in the sandbox, so timing came from Playwright at 390 px.
+
+Topics:
+1. **Bing's lastmod and IndexNow guidance** (Technical). Query: "Bing sitemap lastmod accuracy guidance IndexNow submit only changed URLs". Sources: blogs.bing.com/webmaster/July-2025/Keeping-Content-Discoverable-with-Sitemaps-in-AI-Powered-Search; blogs.bing.com/webmaster/february-2023/The-Importance-of-Setting-the-lastmod-Tag-in-Your-Sitemap; searchengineland.com (Bing to rely more on lastmod); ctrl.blog (Bing stopped sitemap pings). Takeaway: accurate lastmod drives Bing's recrawl choices, and generation-time or blanket dates waste them. This fed SEO-040.
+2. **Rubber bridge score pad demand** (Content & UX). Queries: "rubber bridge score pad online calculator app above below the line"; "\"bridge score calculator\" online contract tricks vulnerable". Sources: App Store Bridge Scorepad (id369153332), BridgePad (id1311836790), Bridge Scoring Helper (id1455659697); dummies.com how to score a bridge rubber; kwbridge.com/scoring.pdf; en.wikipedia.org/wiki/Bridge_scoring; funbridge.com/counting-bridge; everycalculators.com bridge calculator pages. Takeaway: native apps, plus thin keyword pages with arithmetic mistakes, and no web score pad. This fed SEO-042.
+3. **Hub-and-spoke internal linking for a category page** (Technical). Query: "hub page internal linking category page link to guide pages vs app pages SEO 2026". Sources: blog.hubspot.com/website/silo-seo; ionos.com digitalguide hub pages; ahrefs.com/blog/content-hub; yoast.com internal linking; library.linkbot.com internal-linking best practices. Takeaway: the hub should link every cluster page. Vendor opinion, but consistent with Google ignoring URL fragments. This fed SEO-041.
+
+Also this run: Cloudflare GraphQL RUM for the last 7 and previous 7 days (aggregates only), and a Playwright 390×844 check of /, /games/, /bridge/, /spades-score-keeper/ and /skyjo-score-keeper/.
+
+Not yet explored (ideas for future runs): r/Darts and r/EDH rules (need reddit.com reachable); Google Trends seasonality for "yahtzee score sheet" and the holiday games; a PSI API key; an image sitemap once guide images exist; what Rarepike and other web scorers rank for; Phase 10 and Five Crowns SERPs; ItemList or CollectionPage markup for `/games/`; Chicago (four-deal) bridge and duplicate scoring demand; a Search Console check once SEO-039 is finished.
+
 ## 2026-11-26 (run 8)
 
 Main moved 4 commits since run 7 (f120507 → 7560fdb) and they're deployed: manifest screenshots, categories and shortcut icons (c291c84); an honest sitemap rebuilt on deploy, with `Sitemap: chrome` commits skipped (428e0c9); and Hearts, Phase 10, Five Crowns and Rummy 500 templates and guides (0c7eb55, 7560fdb). All 22 sitemap URLs return 200. PageSpeed Insights returned 429 for the eighth run. The Cloudflare API returned "Missing X-Auth-Email header" (no token injected) and api.coundflare.com 502, so no traffic data again. A Playwright 390×844 check of /, /hearts-score-keeper/ and /phase-10-score-keeper/ fed SEO-035 and SEO-036.
