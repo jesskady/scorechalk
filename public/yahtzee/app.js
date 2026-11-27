@@ -336,6 +336,19 @@ function render() {
 /* A passing message takes the title's place in the top bar for a moment:
    anywhere over the sheet would cover a score, and the title's space is
    exactly what is free. */
+/* A sentence the game needs read, over the foot of the sheet: the title
+   holds a few words on a phone, and this is a whole sentence. It stays a
+   few seconds, and a tap puts it away sooner. */
+let toastTimer = null;
+function notice(text) {
+  const t = $('toast');
+  t.textContent = text;
+  t.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.hidden = true; }, 5000);
+}
+$('toast').onclick = () => { clearTimeout(toastTimer); $('toast').hidden = true; };
+
 function flash(text) {
   const t = document.querySelector('.topbar h1');
   t.textContent = text;
@@ -436,8 +449,9 @@ function done(text, turnWas) {
   save(); render();
   // the turn passed: bring the next player's column into view
   if (turnWas != null && S.cur !== turnWas) showColumn(S.cur);
-  // a player passed over, having played this round already, is the news
-  if (skipSaid) { flash(skipSaid); skipSaid = null; } else if (text) flash(text);
+  if (text) flash(text);
+  // a player passed over, having played this round already, said in full
+  if (skipSaid) { notice(skipSaid); skipSaid = null; }
   if (S.over) showWin();
 }
 

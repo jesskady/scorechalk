@@ -254,7 +254,10 @@ describe('Reordering part-way through a round', () => {
     };
     await fill(0, 'ones', '1');                      // Cy
     assert.equal(await up(), 'Dee', 'Ann is passed over: she has played this round');
-    assert.equal(await pg.evaluate(() => document.querySelector('.topbar h1').textContent), 'Ann already played this round: Dee’s turn');
+    // said in full where it can be read, not squeezed into the title
+    assert.deepEqual(await pg.evaluate(() => [toast.hidden, toast.textContent]), [false, 'Ann already played this round: Dee’s turn']);
+    await pg.click('#toast'); await wait(100);
+    assert.equal(await pg.evaluate(() => toast.hidden), true, 'a tap puts it away');
     await fill(2, 'ones', '4');                      // Dee: the round is done
     assert.equal(await up(), 'Cy', 'the next round starts at the top of the new list');
     assert.deepEqual(await pg.evaluate(() => S.names.map((_, p) => boxesFilled(p))), [1, 1, 1, 1], 'one box each');

@@ -38,7 +38,7 @@
 <!-- the room this game is played in (data-room on the body), with any
      adjustments of this game's own at the top of style.css -->
 <link rel="stylesheet" href="../themes.css?v=7">
-<link rel="stylesheet" href="style.css?v=16">
+<link rel="stylesheet" href="style.css?v=17">
 </head>
 <body data-room="living" data-game="yahtzee">
 
@@ -107,6 +107,10 @@
 
 </section>
 
+<!-- A notice that needs saying in full, which the title has no room for:
+     the turn passing over someone who has played this round. See notice(). -->
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
 <!-- ============ ENTRY ============ -->
 <!-- scoring one box: what it offers depends on the box; see openEntry() -->
 <div id="entryOverlay" class="overlay sheet-entry hidden">
@@ -155,7 +159,7 @@
 <script src="/cloud.js?v=3"></script>
 <script src="/roster.js?v=2"></script>
 <script src="/editgame.js?v=2"></script>
-<script src="app.js?v=24"></script>
+<script src="app.js?v=25"></script>
 <script src="/pwa.js?v=1" defer></script>
 </body>
 </html>
