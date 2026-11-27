@@ -733,6 +733,18 @@ $('playModeRow').addEventListener('click', (e) => {
   render();
 });
 
+/* The whole history for Edit's History (see /editgame.js): every score, as
+   the last few are shown under the board. */
+const historyRows = () => S.log.map((e) => {
+  const counted = e.kind === 'hand' || e.kind === 'crib';
+  return {
+    who: S.names[e.p], dot: colorOf(e.p),
+    what: counted ? e.kind : e.label,
+    when: `hand ${e.hand}`,
+    pts: counted && !e.pts ? 'nineteen' : `+${e.pts}`,
+  };
+});
+
 function renderHistory() {
   const kinds = { play: '', heels: '', hand: 'hand', crib: 'crib' };
   $('history').innerHTML = S.log.slice(-6).reverse().map((e) =>
@@ -847,7 +859,7 @@ async function editGame() {
   const fixed = S.phase === 'count' && !S.over
     ? 'The order can’t change while a hand is being counted, as the count goes round the table: it can once this hand is in.'
     : null;
-  const got = await SCEditGame.open({ names: S.names, locked, fixed, hint: 'The dealer keeps the deal, and it passes on in the new order.' });
+  const got = await SCEditGame.open({ names: S.names, locked, fixed, hint: 'The dealer keeps the deal, and it passes on in the new order.', history: historyRows });
   if (!got) return;
   const moved = got.order.some((from, i) => from !== i);
   if (!moved && got.names.every((n, i) => n === S.names[i])) return;

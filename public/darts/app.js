@@ -789,7 +789,7 @@ async function editGame() {
     const { list, place } = SCEditGame.moves(order);
     return SCEditGame.skipWarning({ names: named, counts: list(S.players.map((p) => p.turns)), cur: place(S.cur) });
   };
-  const got = await SCEditGame.open({ names, locked, hint: 'Whoever’s turn it is keeps it.', warn });
+  const got = await SCEditGame.open({ names, locked, hint: 'Whoever’s turn it is keeps it.', warn, history: historyRows });
   if (!got) return;
   const moved = got.order.some((from, i) => from !== i);
   if (!moved && got.names.every((n, i) => n === names[i])) return;
@@ -804,6 +804,15 @@ async function editGame() {
   autoSave();
   say(moved ? `${S.players[S.cur].name} to throw` : 'Names changed');
 }
+
+/* The game's history for Edit's History (see /editgame.js): every turn,
+   its darts, and the score it left. */
+const historyRows = () => S.log.map((t) => ({
+  who: S.players[t.player].name,
+  what: (t.darts || []).map((d) => d.label).join(' '),
+  when: t.bust ? `bust, stays on ${t.before}` : `${t.before} → ${t.before - t.pts}`,
+  pts: t.bust ? 0 : t.pts,
+}));
 
 /* The turn passes to the next player who has thrown the fewest turns, so a
    round always finishes before anyone throws again, even after Edit has

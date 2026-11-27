@@ -2,7 +2,7 @@
    sheet of its own over the game rather than on the score screen, which
    has no room to spare and shouldn't be changed by a stray tap.
 
-     SCEditGame.open({ names, locked, fixed, hint, labels, warn })
+     SCEditGame.open({ names, locked, fixed, hint, labels, warn, history })
          resolves { order, names } on Save, or null on Cancel.
          names   the players, in the order of play
          locked  a sentence saying why the game can't be edited now (a
@@ -18,6 +18,12 @@
          warn    warn(order, names): something to say before the new order
                  is saved (see skipWarning), or null; said, Save asks again
                  and Go back returns to the list as it was left
+         history history(): the game's history, oldest first, a row for
+                 each thing done: { who, dot, what, when, pts, neg } (who
+                 did it, their colour if they have one, what it was, when,
+                 the points, and neg for a loss). A History button shows it
+                 newest first, scrolling in the sheet, locked or not, since
+                 looking changes nothing.
          order   for each place in the new order, the place that player
                  had before: [2, 0, 1] puts the third player first
          names   the players' names in the new order, any renamed
@@ -55,15 +61,55 @@ window.SCEditGame = (function () {
     return e;
   };
 
-  function open({ names, locked, fixed, hint, labels, warn }) {
+  function open({ names, locked, fixed, hint, labels, warn, history }) {
     return new Promise((resolve) => {
       const veil = el('div', 'overlay edit-game');
       const card = el('div', 'win-card');
       card.setAttribute('role', 'dialog');
       card.setAttribute('aria-modal', 'true');
       card.setAttribute('aria-label', 'Edit game');
-      card.append(el('h2', null, 'Edit game'));
+      const title = el('h2', null, 'Edit game');
+      card.append(title);
       veil.append(card);
+
+      // The history, newest first, in the sheet's place while it is open:
+      // whatever was showing comes back with Back.
+      const past = el('div', 'edit-history');
+      past.hidden = true;
+      const pastList = el('ol');
+      const pastBack = el('button', 'ghost', 'Back');
+      pastBack.type = 'button';
+      past.append(pastList, pastBack);
+      let behind = [];
+      const showPast = () => {
+        const items = (history() || []).slice().reverse();
+        pastList.innerHTML = '';
+        if (!items.length) pastList.append(el('li', 'empty', 'Nothing has been scored yet.'));
+        for (const r of items) {
+          const li = el('li');
+          const who = el('span', 'hwho');
+          if (r.dot) { const d = el('i', 'hdot'); d.style.background = r.dot; who.append(d); }
+          who.append(document.createTextNode(r.who || ''));
+          if (r.what) who.append(el('em', null, r.what));
+          li.append(who, el('small', null, r.when || ''), el('b', r.neg ? 'neg' : null, r.pts == null ? '' : String(r.pts)));
+          pastList.append(li);
+        }
+        behind = [...card.children].filter((x) => x !== title && x !== past && !x.hidden);
+        behind.forEach((x) => { x.hidden = true; });
+        past.hidden = false;
+        title.textContent = 'History';
+        pastList.scrollTop = 0;
+        pastBack.focus();
+      };
+      pastBack.onclick = () => {
+        past.hidden = true;
+        behind.forEach((x) => { x.hidden = false; });
+        title.textContent = 'Edit game';
+      };
+      const pastBtn = el('button', 'ghost', 'History');
+      pastBtn.type = 'button';
+      pastBtn.onclick = showPast;
+      pastBtn.hidden = !history;
 
       const close = (result) => {
         document.removeEventListener('keydown', onKey);
@@ -79,7 +125,7 @@ window.SCEditGame = (function () {
         const ok = el('button', 'primary big', 'OK');
         ok.type = 'button';
         ok.onclick = () => close(null);
-        card.append(ok);
+        card.append(pastBtn, ok, past);
         document.body.append(veil);
         ok.focus();
         return;
@@ -116,7 +162,7 @@ window.SCEditGame = (function () {
       const cancel = el('button', 'ghost', 'Cancel');
       cancel.type = 'button';
       cancel.onclick = () => close(null);
-      const editing = [card.querySelector('.edit-hint'), list, save, cancel];
+      const editing = [card.querySelector('.edit-hint'), list, save, cancel].concat(history ? [pastBtn] : []);
 
       // A warning, when the game has one for this order: the list makes way
       // for it, and Save asks again. Go back brings the list back as it was.
@@ -144,7 +190,7 @@ window.SCEditGame = (function () {
         showing(true);
       };
       sure.onclick = () => close(result());
-      card.append(save, cancel, ask);
+      card.append(pastBtn, save, cancel, ask, past);
       document.body.append(veil);
     });
   }

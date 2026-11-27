@@ -435,6 +435,25 @@ $('restartBtn').onclick = async () => {
   restart();
 };
 
+/* The game's history for Edit's History (see /editgame.js), from Undo's
+   list. A life total is tapped one point at a time, so a run of taps on
+   the same counter is one line: Ann's life −3, not three lines of −1. */
+function historyRows() {
+  const runs = [];
+  for (const e of S.log) {
+    const last = runs[runs.length - 1];
+    if (last && last.e.p === e.p && last.e.what === e.what && last.e.q === e.q) last.d += e.d;
+    else runs.push({ e, d: e.d });
+  }
+  return runs.filter((r) => r.d).map(({ e, d }) => ({
+    who: S.names[e.p], dot: colorOf(e.p),
+    what: e.what === 'cmdr' ? `from ${S.names[e.q]}’s commander` : e.what,
+    pts: d > 0 ? `+${d}` : `−${-d}`,
+    // a loss: life going down, poison or commander damage going up
+    neg: e.what === 'life' ? d < 0 : d > 0,
+  }));
+}
+
 /* Edit game (see /editgame.js): the players given other places around the
    table, or renamed, without starting over. Everything kept by place moves
    with them: life, poison, commander damage both ways (taken, and dealt by
@@ -442,7 +461,7 @@ $('restartBtn').onclick = async () => {
    change with it, as the other phones are sent the whole game. */
 $('editBtn').onclick = async () => {
   $('menuOverlay').classList.add('hidden');
-  const got = await SCEditGame.open({ names: S.names, hint: 'Each panel moves to its new place on the screen.' });
+  const got = await SCEditGame.open({ names: S.names, hint: 'Each panel moves to its new place on the screen.', history: historyRows });
   if (!got) return;
   const moved = got.order.some((from, i) => from !== i);
   if (!moved && got.names.every((n, i) => n === S.names[i])) return;

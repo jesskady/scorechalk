@@ -519,7 +519,7 @@ async function editGame() {
   const locked = SCStore.get(S.id)?.share
     ? 'This game is shared with other phones, which know the players by their place, so the players can’t be moved or renamed now.'
     : null;
-  const got = await SCEditGame.open({ names: S.names, locked, hint: 'Whoever’s turn it is keeps it.', warn: skipWarning });
+  const got = await SCEditGame.open({ names: S.names, locked, hint: 'Whoever’s turn it is keeps it.', warn: skipWarning, history: historyRows });
   if (!got) return;
   const moved = got.order.some((from, i) => from !== i);
   const renamed = got.names.some((name, i) => name !== S.names[got.order[i]]);
@@ -528,6 +528,30 @@ async function editGame() {
   S.names = got.names;
   save(); buildSheet(); render();
   flash(moved ? `${S.names[S.cur]}'s turn` : 'Names changed');
+}
+
+/* The game's history for Edit's History (see /editgame.js), from Undo's
+   list: every box filled, changed or emptied, and the extra Yahtzees, in
+   the order they came. A box filled is that player's next turn. */
+function historyRows() {
+  const turns = S.names.map(() => 0);
+  return S.log.map((e) => {
+    const who = S.names[e.p];
+    if (e.id === 'ybonus') {
+      const d = (e.v - e.prev) * YAHTZEE_BONUS;
+      return { who, what: 'Yahtzee bonus', pts: d > 0 ? `+${d}` : `−${-d}`, neg: d < 0 };
+    }
+    const label = box(e.id).label;
+    if (e.prev == null) {
+      turns[e.p] += 1;
+      return { who, what: label, when: `turn ${turns[e.p]}`, pts: e.v ? e.v : 'scratched' };
+    }
+    if (e.v == null) {
+      turns[e.p] -= 1;
+      return { who, what: `${label} emptied`, pts: '—', neg: true };
+    }
+    return { who, what: `${label} changed`, pts: `${e.prev || 'scratched'} → ${e.v || 'scratched'}` };
+  });
 }
 
 // Who a new order would pass over for the rest of this round (see

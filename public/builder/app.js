@@ -1609,16 +1609,7 @@ function render() {
   // The last few things done, newest first: each score, and any change made
   // to one since, in its place among them. A score is tapped to change it.
   // Counter changes go in among them too, by when they were made.
-  const rounds = roundsOfLog(), items = [];
-  const since = (n) => [
-    ...(S.edits || []).filter((x) => x.after === n).map((x) => ({ x, ts: x.ts || 0 })),
-    ...(S.clog || []).filter((y) => y.after === n).map((y) => ({ y, ts: y.ts || 0 })),
-  ].sort((a, b) => a.ts - b.ts);
-  items.push(...since(0));
-  S.log.forEach((e, i) => {
-    items.push({ e, i });
-    items.push(...since(i + 1));
-  });
+  const rounds = roundsOfLog(), items = historyItems();
   const ks = countersOf(S);
   $('history').innerHTML = items.slice(-6).map(({ e, i, x, y }) => {
     if (y) {
@@ -1638,6 +1629,39 @@ function render() {
   renderCounters();
   renderTiles();
   if (sheetOn()) renderSheet();
+}
+
+/* Everything done, oldest first: each score as { e, i }, and any change made
+   to one since (x) or to a counter (y), in its place among them, by when. */
+function historyItems() {
+  const items = [];
+  const since = (n) => [
+    ...(S.edits || []).filter((x) => x.after === n).map((x) => ({ x, ts: x.ts || 0 })),
+    ...(S.clog || []).filter((y) => y.after === n).map((y) => ({ y, ts: y.ts || 0 })),
+  ].sort((a, b) => a.ts - b.ts);
+  items.push(...since(0));
+  S.log.forEach((e, i) => {
+    items.push({ e, i });
+    items.push(...since(i + 1));
+  });
+  return items;
+}
+
+/* The whole history for Edit's History (see /editgame.js), in the words of
+   the last few shown under the scores. */
+function historyRows() {
+  const c = S.cfg, rounds = roundsOfLog(), ks = countersOf(S);
+  return historyItems().map(({ e, i, x, y }) => {
+    if (y) {
+      const k = ks.find((z) => z.id === y.id), diff = y.to - y.from;
+      return { who: c.names[y.p], what: (k && k.name) || 'Counter', when: `${fmt(y.from)} → ${fmt(y.to)}`, pts: signed(diff), neg: diff < 0 };
+    }
+    if (x) {
+      const diff = x.to - x.from;
+      return { who: c.names[x.p], what: `${c.turns ? `round ${x.r} ` : ''}changed`, when: `${turnText(x.from)} → ${turnText(x.to)}`, pts: signed(diff), neg: diff < 0 };
+    }
+    return { who: c.names[e.p], what: partsText(e.parts), when: c.turns ? `round ${rounds[i]}` : '', pts: signed(e.d), neg: e.d < 0 };
+  });
 }
 
 // The leader: only once someone is actually ahead, and never in a solo game.
@@ -1823,7 +1847,7 @@ async function editGame() {
     const out = list(c.names.map((_, i) => isOut(i)));
     return SCEditGame.skipWarning({ names, counts: list(turnCounts()), cur: place(S.cur), playing: (i) => !out[i] });
   };
-  const got = await SCEditGame.open({ names: c.names, locked, hint: c.turns ? 'Whoever’s turn it is keeps it.' : null, warn });
+  const got = await SCEditGame.open({ names: c.names, locked, hint: c.turns ? 'Whoever’s turn it is keeps it.' : null, warn, history: historyRows });
   if (!got) return;
   const moved = got.order.some((from, i) => from !== i);
   if (!moved && got.names.every((n, i) => n === c.names[i])) return;

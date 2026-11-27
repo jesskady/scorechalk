@@ -224,12 +224,18 @@ function renderPad(r) {
 }
 
 // Every hand, newest first: the contract, by whom, how it went, and what it scored.
+// What hand i scored for each side, below the line and above it.
+function handPoints(r, i) {
+  return [0, 1].map((s) => ({
+    below: r.games.reduce((t, g) => t + g.below[s].filter((e) => e.h === i).reduce((u, e) => u + e.pts, 0), 0),
+    above: r.above[s].filter((e) => e.h === i).reduce((u, e) => u + e.pts, 0),
+  }));
+}
+
 function renderHands(r) {
   $('hands').innerHTML = S.hands.map((h, i) => {
     const side = h.decl % 2;
-    const pts = [0, 1].map((s) => {
-      const below = r.games.reduce((t, g) => t + g.below[s].filter((e) => e.h === i).reduce((u, e) => u + e.pts, 0), 0);
-      const above = r.above[s].filter((e) => e.h === i).reduce((u, e) => u + e.pts, 0);
+    const pts = handPoints(r, i).map(({ below, above }, s) => {
       const bits = [below && `${fmt(below)} below`, above && `${fmt(above)} above`].filter(Boolean);
       return bits.length ? `${s ? 'They' : 'We'} ${bits.join(', ')}` : '';
     }).filter(Boolean).join(' · ');
@@ -340,8 +346,21 @@ $('enterBtn').onclick = () => {
    East and West the other, and every hand is scored for the side its
    declarer sat on, so moving a player would move their scores with them. */
 
+/* The rubber's history for Edit's History (see /editgame.js): every hand,
+   who declared it, how it went, and what it scored each side. */
+function historyRows() {
+  const r = score(S.hands, S.ended);
+  return S.hands.map((h, i) => {
+    const side = h.decl % 2;
+    const pts = handPoints(r, i).map(({ below, above }, s) => (below + above ? `${s ? 'They' : 'We'} +${fmt(below + above)}` : ''))
+      .filter(Boolean).join(' · ');
+    return { who: `${contractText(h)} by ${S.names[h.decl]}`, what: side ? 'They' : 'We', when: `hand ${i + 1}, ${resultText(h)}`, pts };
+  });
+}
+
 $('editBtn').onclick = async () => {
   const got = await SCEditGame.open({
+    history: historyRows,
     names: S.names,
     labels: SEATS.map((seat) => seat[0]),
     fixed: 'Everyone keeps their seat, as the seats make the sides.',

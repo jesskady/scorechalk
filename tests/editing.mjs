@@ -6,7 +6,7 @@
 
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { phone, open, startGame, wait, drag, editNames, editRename, editPress } from './helpers.mjs';
+import { phone, open, startGame, share, wait, drag, editNames, editRename, editPress } from './helpers.mjs';
 
 const LIST = '.edit-game .roster';
 const grips = (pg) => pg.evaluate(() => document.querySelectorAll('.edit-game .roster-grip').length);
@@ -313,6 +313,70 @@ describe('Reordering part-way through a round', () => {
     await editPress(pg, 'Save');
     assert.equal(await pg.$('.edit-game'), null, 'saved straight away');
     assert.deepEqual(await pg.evaluate(() => S.cfg.names), ['Bob', 'Cy', 'Ann', 'Dee']);
+    assert.deepEqual(pg.errors, []);
+    await pg.close();
+  });
+});
+
+/* History, in Edit: the game's whole history, newest first, scrolling in
+   the sheet; Back returns to the list. It shows in a locked game too,
+   since looking changes nothing. */
+describe('History in Edit', () => {
+  const rows = (pg) => pg.evaluate(() => [...document.querySelectorAll('.edit-history li')].map((li) =>
+    [...li.querySelectorAll('.hwho, small, b')].map((x) => x.textContent.trim()).join(' | ')));
+
+  test('Yahtzee: every box, newest first; Back returns to the players', async () => {
+    const pg = await phone();
+    await open(pg, '/yahtzee/');
+    await pg.evaluate(() => { S = newGame(['Ann', 'Bob']); openGame(S); setBox(0, 'threes', 9); setBox(1, 'full', 25); setBox(0, 'small', 0); setBox(1, 'full', 0); save(); render(); });
+    await wait(300);
+    await pg.click('#editBtn'); await wait(300);
+    await editPress(pg, 'History');
+    assert.equal(await pg.$eval('.edit-game h2', (h) => h.textContent), 'History');
+    assert.deepEqual(await rows(pg), [
+      'BobFull house changed |  | 25 → scratched',
+      'AnnSm. straight | turn 2 | scratched',
+      'BobFull house | turn 1 | 25',
+      'AnnThrees | turn 1 | 9',
+    ]);
+    await editPress(pg, 'Back');
+    assert.deepEqual(await editNames(pg), ['Ann', 'Bob'], 'back to the players');
+    assert.deepEqual(pg.errors, []);
+    await pg.close();
+  });
+
+  test('Magic: a run of taps on one counter is one line', async () => {
+    const pg = await phone();
+    await open(pg, '/magic/');
+    await pg.evaluate(() => {
+      S = newGame('commander', ['Ann', 'Bob'], 40);
+      for (let i = 0; i < 4; i++) change(0, 'life', -1);
+      change(1, 'cmdr', 6, 0);
+      save(); SCStore.show(S.id, '#play'); route();
+    });
+    await wait(500);
+    await pg.click('#hubBtn'); await wait(200);
+    await pg.click('#editBtn'); await wait(300);
+    await editPress(pg, 'History');
+    assert.deepEqual(await rows(pg), ['Bobfrom Ann’s commander |  | +6', 'Annlife |  | −4']);
+    assert.deepEqual(pg.errors, []);
+    await pg.close();
+  });
+
+  test('a shared game: locked for editing, its history still there to read', async () => {
+    const pg = await phone();
+    await open(pg, '/darts/');
+    await pg.evaluate(() => openGame(newGame(['Ann', 'Bob'], 101, {})));
+    await wait(300);
+    await pg.evaluate(() => { for (const n of [20, 20, 1]) addDart(n); submitTurn(); });
+    await share(pg);
+    await pg.click('#editBtn'); await wait(300);
+    assert.match(await pg.evaluate(() => document.querySelector('.edit-game p').textContent), /shared/);
+    await editPress(pg, 'History');
+    assert.deepEqual(await rows(pg), ['Ann20 20 1 | 101 → 60 | 41']);
+    await editPress(pg, 'Back');
+    await editPress(pg, 'OK');
+    assert.equal(await pg.$('.edit-game'), null);
     assert.deepEqual(pg.errors, []);
     await pg.close();
   });
