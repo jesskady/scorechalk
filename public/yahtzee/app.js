@@ -39,7 +39,6 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 
 let S = null;          // the game; null on the setup screen
 let me = null;         // the signed-in user, for saving to the profile
-let msgTimer = null;
 
 /* ---------------- state ---------------- */
 
@@ -333,29 +332,22 @@ function render() {
   });
 }
 
-/* A passing message takes the title's place in the top bar for a moment:
-   anywhere over the sheet would cover a score, and the title's space is
-   exactly what is free. */
-/* A sentence the game needs read, over the foot of the sheet: the title
-   holds a few words on a phone, and this is a whole sentence. It stays a
-   few seconds, and a tap puts it away sooner. */
+/* A message, over the foot of the sheet, in full: the title stays the
+   title (on a phone it holds a word or two, too little for a sentence).
+   It goes after a few seconds, longer for a sentence that needs reading,
+   and a tap puts it away sooner. Scores aren't said: the sheet shows them. */
 let toastTimer = null;
-function notice(text) {
+function notice(text, ms = 5000) {
   const t = $('toast');
   t.textContent = text;
   t.hidden = false;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { t.hidden = true; }, 5000);
+  toastTimer = setTimeout(() => { t.hidden = true; }, ms);
 }
 $('toast').onclick = () => { clearTimeout(toastTimer); $('toast').hidden = true; };
 
-function flash(text) {
-  const t = document.querySelector('.topbar h1');
-  t.textContent = text;
-  t.classList.add('msg-on');
-  clearTimeout(msgTimer);
-  msgTimer = setTimeout(() => { t.textContent = 'Yahtzee'; t.classList.remove('msg-on'); }, 2400);
-}
+// a short one: Nothing to undo, and the like
+const flash = (text) => notice(text, 2500);
 
 /* ---------------- scoring a box ----------------
 
@@ -384,7 +376,7 @@ function openEntry(p, id) {
       $('entryHint').textContent = 'Only once the Yahtzee box has scored 50.';
     } else {
       $('entryHint').textContent = `+${YAHTZEE_BONUS} for each extra Yahtzee. ${n ? `${n} so far.` : ''}`;
-      body.append(choice(`+${YAHTZEE_BONUS}`, () => { setYBonus(p, n + 1); done(`${name}: Yahtzee bonus +${YAHTZEE_BONUS}`); }, 'big'));
+      body.append(choice(`+${YAHTZEE_BONUS}`, () => { setYBonus(p, n + 1); done(); }, 'big'));
       if (n) body.append(choice('Take one off', () => { setYBonus(p, n - 1); done(); }, 'quiet'));
     }
     $('entryEmpty').classList.add('hidden');
@@ -441,16 +433,15 @@ function score(v) {
   const { p, id } = entry;
   const turnWas = S.cur;
   setBox(p, id, v);
-  done(`${S.names[p]}: ${box(id).label} ${v ? v : 'scratched'}`, turnWas);
+  done(turnWas);
 }
 
-function done(text, turnWas) {
+function done(turnWas) {
   closeEntry();
   save(); render();
   // the turn passed: bring the next player's column into view
   if (turnWas != null && S.cur !== turnWas) showColumn(S.cur);
-  if (text) flash(text);
-  // a player passed over, having played this round already, said in full
+  // a player passed over, having played this round already
   if (skipSaid) { notice(skipSaid); skipSaid = null; }
   if (S.over) showWin();
 }
@@ -512,7 +503,7 @@ if (window.visualViewport) window.visualViewport.addEventListener('resize', plac
 
 $('entryClose').onclick = closeEntry;
 $('entryOverlay').addEventListener('click', (e) => { if (e.target === $('entryOverlay')) closeEntry(); });
-$('entryEmpty').onclick = () => { setBox(entry.p, entry.id, null); done('Box emptied'); };
+$('entryEmpty').onclick = () => { setBox(entry.p, entry.id, null); done(); };
 
 /* ---------------- editing the game ----------------
 

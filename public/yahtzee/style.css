@@ -128,9 +128,8 @@ button.cell:active{background:var(--line)}
 .tbtn:active{background:var(--card);color:var(--txt)}
 .tbtn.rules{text-decoration:none;min-width:30px;text-align:center;padding:6px 8px}
 
-/* a passing message, standing in for the title (see flash) */
+/* the title gives way to the buttons on a narrow phone */
 .topbar h1{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.topbar h1.msg-on{color:var(--gold);letter-spacing:0;text-transform:none;font-size:13px}
 
 /* ---------- Scoring a box ---------- */
 .overlay{
@@ -196,9 +195,8 @@ button.cell:active{background:var(--line)}
 .sheet.wide .ptile{padding-left:1px;padding-right:1px}
 
 /* ---------- the room ---------- */
-/* the name in the room's lettering; a passing message keeps the plain face */
+/* the name in the room's lettering */
 .topbar h1.room-title{font-size:19px;color:var(--txt)}
-.topbar h1.room-title.msg-on{font-family:inherit;font-size:13px;color:var(--gold)}
 .brand h1.room-title{font-size:30px}
 /* on the slip, the entry's own text takes the paper's ink */
 .entry-card.paper .entry-top b,.entry-card.paper .entry-hint,.entry-card.paper .entry-top small{color:var(--paper-ink)}
