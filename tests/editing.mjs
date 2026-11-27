@@ -210,3 +210,107 @@ describe('Edit game', () => {
     await pg.close();
   });
 });
+
+/* A new order part-way through a round: whoever has already played this
+   round is passed over until everyone has, so no one plays twice in it.
+   Save warns first when that will happen, and the game says so when it
+   does; the next round starts at the top of the new list. Ann and Bob
+   have played, it is Cy's turn, Dee is still to play; Cy, Ann, Dee, Bob
+   would bring Ann round again before Dee. */
+describe('Reordering part-way through a round', () => {
+  const warning = (pg) => pg.evaluate(() => { const w = document.querySelector('.edit-game .edit-warn'); return w && !w.hidden ? w.querySelector('p').textContent : null; });
+  // Cy, Ann, Dee, Bob: Cy to the top, then Dee above Bob
+  async function reorder(pg) {
+    await drag(pg, LIST, 2, 0);
+    await drag(pg, LIST, 3, 2);
+    assert.deepEqual(await editNames(pg), ['Cy', 'Ann', 'Dee', 'Bob']);
+  }
+
+  test('Yahtzee: a warning on Save, then the round finishes before Ann plays again', async () => {
+    const pg = await phone();
+    await open(pg, '/yahtzee/');
+    await pg.evaluate(() => { S = newGame(['Ann', 'Bob', 'Cy', 'Dee']); openGame(S); setBox(0, 'ones', 3); setBox(1, 'ones', 2); save(); render(); });
+    await wait(300);
+    const up = () => pg.evaluate(() => S.names[S.cur]);
+    assert.equal(await up(), 'Cy');
+
+    await pg.click('#editBtn'); await wait(300);
+    await reorder(pg);
+    await editPress(pg, 'Save');
+    assert.equal(await warning(pg),
+      'Ann has already played this round, so they’ll be skipped until it’s over: after Cy, it’s Dee’s turn. The new order starts next round.');
+    // Go back: the list as it was left, nothing saved
+    await editPress(pg, 'Go back');
+    assert.deepEqual(await editNames(pg), ['Cy', 'Ann', 'Dee', 'Bob']);
+    assert.deepEqual(await pg.evaluate(() => S.names), ['Ann', 'Bob', 'Cy', 'Dee']);
+    await editPress(pg, 'Save');
+    await editPress(pg, 'Save');
+    assert.deepEqual(await pg.evaluate(() => S.names), ['Cy', 'Ann', 'Dee', 'Bob']);
+
+    const fill = async (p, id, pick) => {
+      await pg.click(`#sheet button.cell[data-p="${p}"][data-id="${id}"]`); await wait(250);
+      await pg.evaluate((t) => [...document.querySelectorAll('#entryBody button')].find((b) => b.textContent === t).click(), pick);
+      await wait(300);
+    };
+    await fill(0, 'ones', '1');                      // Cy
+    assert.equal(await up(), 'Dee', 'Ann is passed over: she has played this round');
+    assert.equal(await pg.evaluate(() => document.querySelector('.topbar h1').textContent), 'Ann already played this round: Dee’s turn');
+    await fill(2, 'ones', '4');                      // Dee: the round is done
+    assert.equal(await up(), 'Cy', 'the next round starts at the top of the new list');
+    assert.deepEqual(await pg.evaluate(() => S.names.map((_, p) => boxesFilled(p))), [1, 1, 1, 1], 'one box each');
+    assert.deepEqual(pg.errors, []);
+    await pg.close();
+  });
+
+  test('Darts: the same, turn by turn', async () => {
+    const pg = await phone();
+    await open(pg, '/darts/');
+    await pg.evaluate(() => openGame(newGame(['Ann', 'Bob', 'Cy', 'Dee'], 501, {})));
+    await wait(300);
+    const turn = () => pg.evaluate(() => { addDart(20); submitTurn(); });
+    const up = () => pg.evaluate(() => S.players[S.cur].name);
+    await turn(); await turn();                      // Ann, Bob
+    await pg.click('#editBtn'); await wait(300);
+    await reorder(pg);
+    await editPress(pg, 'Save');
+    assert.match(await warning(pg), /^Ann has already played this round/);
+    await editPress(pg, 'Save');
+    assert.equal(await up(), 'Cy');
+    await turn();
+    assert.equal(await up(), 'Dee');
+    assert.equal(await pg.evaluate(() => $('msg').textContent), 'Ann already played this round: Dee’s turn');
+    await turn();
+    assert.equal(await up(), 'Cy');
+    assert.deepEqual(await pg.evaluate(() => S.players.map((p) => p.turns)), [1, 1, 1, 1]);
+    assert.deepEqual(pg.errors, []);
+    await pg.close();
+  });
+
+  test('The Builder: the same; and a new order with no one to skip saves without asking', async () => {
+    const pg = await phone();
+    await open(pg, '/builder/');
+    await pg.evaluate(() => { Object.assign(cfg, { mode: 'up', start: 0, win: 'none', turns: true, useRounds: false, teams: false, names: ['Ann', 'Bob', 'Cy', 'Dee'] }); cfg.players = 4; saveCfg(); renderSetup(); });
+    await startGame(pg);
+    const play = () => pg.evaluate(() => commit(5));
+    const up = () => pg.evaluate(() => S.cfg.names[S.cur]);
+    await play(); await play();                      // Ann, Bob
+    await pg.click('#editBtn'); await wait(300);
+    await reorder(pg);
+    await editPress(pg, 'Save');
+    assert.match(await warning(pg), /^Ann has already played this round/);
+    await editPress(pg, 'Save');
+    await play();                                    // Cy
+    assert.equal(await up(), 'Dee');
+    await play();                                    // Dee
+    assert.equal(await up(), 'Cy');
+
+    // at the top of a round no one has played yet: nothing to warn of
+    await pg.click('#editBtn'); await wait(300);
+    await drag(pg, LIST, 3, 0);
+    await editPress(pg, 'Save');
+    assert.equal(await pg.$('.edit-game'), null, 'saved straight away');
+    assert.deepEqual(await pg.evaluate(() => S.cfg.names), ['Bob', 'Cy', 'Ann', 'Dee']);
+    assert.deepEqual(pg.errors, []);
+    await pg.close();
+  });
+});

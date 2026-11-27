@@ -376,13 +376,16 @@ function best(pick) {
   return { winners: from.filter(i => S.scores[i] === v) };
 }
 
+/* Whose turn follows from's: the next side still in that has had the
+   fewest turns, so a round always finishes before anyone plays again, even
+   after Edit has changed the order part-way through it, or a turn was
+   taken out of order (see nextTurn in /editgame.js). Whoever it passes
+   over is said, in skipSaid. */
+let skipSaid = null;
 function nextPlayer(from) {
-  const n = S.scores.length;
-  for (let k = 1; k <= n; k++) {
-    const i = (from + k) % n;
-    if (!isOut(i)) return i;
-  }
-  return from;
+  const { next, skipped } = SCEditGame.nextTurn(from, turnCounts(), (i) => !isOut(i));
+  skipSaid = skipped.length ? SCEditGame.skipNote(S.cfg.names, skipped, next) : null;
+  return next;
 }
 
 /* ---------------- screens ---------------- */
@@ -1667,7 +1670,10 @@ function commit(d) {
   S.parts = [];
   S.sign = S.cfg.mode === 'down' ? -1 : 1;
   if (isOut(p)) flash(`${S.cfg.names[p]} is out`);
-  if (S.cfg.turns) S.cur = nextPlayer(p);
+  if (S.cfg.turns) {
+    S.cur = nextPlayer(p);
+    if (skipSaid) flash(skipSaid);
+  }
   // a phone scoring one player stays on that player
   if (SCShare.seat() !== null) S.cur = SCShare.seat();
   save();
@@ -1810,7 +1816,14 @@ async function editGame() {
   const locked = SCStore.get(S.id)?.share
     ? `This game is shared with other phones, which know the ${c.members ? 'teams' : 'players'} by their place, so they can’t be moved or renamed now.`
     : null;
-  const got = await SCEditGame.open({ names: c.names, locked, hint: c.turns ? 'Whoever’s turn it is keeps it.' : null });
+  // who a new order would pass over for the rest of this round (see nextPlayer)
+  const warn = (order, names) => {
+    if (!c.turns || S.endedAt || result()) return null;
+    const { list, place } = SCEditGame.moves(order);
+    const out = list(c.names.map((_, i) => isOut(i)));
+    return SCEditGame.skipWarning({ names, counts: list(turnCounts()), cur: place(S.cur), playing: (i) => !out[i] });
+  };
+  const got = await SCEditGame.open({ names: c.names, locked, hint: c.turns ? 'Whoever’s turn it is keeps it.' : null, warn });
   if (!got) return;
   const moved = got.order.some((from, i) => from !== i);
   if (!moved && got.names.every((n, i) => n === c.names[i])) return;

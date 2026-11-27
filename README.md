@@ -208,7 +208,7 @@ each other every few seconds, and the tests wait as a person would.
 | `darts.mjs` | turns round the table by seat, darts mid-turn kept, a win reaching every phone |
 | `cribbage.mjs` | pegging by seat and at once, counting your own hand |
 | `yahtzee.mjs` | the players put in order at the setup, and moved and renamed mid-game with Edit: their scores, the turn, Undo and You going with them |
-| `editing.mjs` | the order set at the setup in Darts, Cribbage and Magic; Edit in those, the Builder (teams too) and Bridge: what moves with a player, and where the order stays put |
+| `editing.mjs` | the order set at the setup in Darts, Cribbage and Magic; Edit in those, the Builder (teams too) and Bridge: what moves with a player, and where the order stays put; a new order part-way through a round: the warning on Save, and no one playing twice in a round |
 | `server.mjs` | who may write, link cards, error reports, the daily job, the policy pages |
 | `offline.mjs` | every game opening with no signal, a game in progress by its link |
 | `tournament.mjs` | the draw, a match played in darts and its result read back, an undo, results set by hand, the home page |

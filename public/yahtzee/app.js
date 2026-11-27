@@ -101,14 +101,18 @@ const filled = (p, id) => S.cells[p][id] != null;
 const sheetFull = (p) => BOXES.every((b) => filled(p, b.id));
 const gameDone = () => S.names.every((_, p) => sheetFull(p));
 
-// The next player with a box still open, after p.
+const boxesFilled = (p) => BOXES.filter((b) => filled(p, b.id)).length;
+
+/* Whose turn follows p's: the next player with a box still open who has
+   filled the fewest, so a round always finishes before anyone plays again,
+   even after Edit has changed the order part-way through it (see nextTurn
+   in /editgame.js). Whoever it passes over is said, in skipSaid. */
+let skipSaid = null;
 function nextPlayer(p) {
-  const n = S.names.length;
-  for (let k = 1; k <= n; k++) {
-    const q = (p + k) % n;
-    if (!sheetFull(q)) return q;
-  }
-  return p;
+  const counts = S.names.map((_, q) => boxesFilled(q));
+  const { next, skipped } = SCEditGame.nextTurn(p, counts, (q) => !sheetFull(q));
+  skipSaid = skipped.length ? SCEditGame.skipNote(S.names, skipped, next) : null;
+  return next;
 }
 
 /* Every score goes through here, and is logged with what it replaced so
@@ -116,6 +120,7 @@ function nextPlayer(p) {
    is ends their turn; changing a box, or scoring for someone else, does
    not move the turn. */
 function setBox(p, id, v) {
+  skipSaid = null;
   const prev = S.cells[p][id];
   const passes = p === S.cur && prev == null && v != null;
   S.log.push({ p, id, prev, v, cur: S.cur, sel: S.sel });
@@ -431,7 +436,8 @@ function done(text, turnWas) {
   save(); render();
   // the turn passed: bring the next player's column into view
   if (turnWas != null && S.cur !== turnWas) showColumn(S.cur);
-  if (text) flash(text);
+  // a player passed over, having played this round already, is the news
+  if (skipSaid) { flash(skipSaid); skipSaid = null; } else if (text) flash(text);
   if (S.over) showWin();
 }
 
@@ -508,7 +514,7 @@ async function editGame() {
   const locked = SCStore.get(S.id)?.share
     ? 'This game is shared with other phones, which know the players by their place, so the players can’t be moved or renamed now.'
     : null;
-  const got = await SCEditGame.open({ names: S.names, locked, hint: 'Whoever’s turn it is keeps it.' });
+  const got = await SCEditGame.open({ names: S.names, locked, hint: 'Whoever’s turn it is keeps it.', warn: skipWarning });
   if (!got) return;
   const moved = got.order.some((from, i) => from !== i);
   const renamed = got.names.some((name, i) => name !== S.names[got.order[i]]);
@@ -517,6 +523,16 @@ async function editGame() {
   S.names = got.names;
   save(); buildSheet(); render();
   flash(moved ? `${S.names[S.cur]}'s turn` : 'Names changed');
+}
+
+// Who a new order would pass over for the rest of this round (see
+// nextPlayer), said before it is saved.
+function skipWarning(order, names) {
+  if (S.over) return null;
+  const { list, place } = SCEditGame.moves(order);
+  const counts = list(S.names.map((_, q) => boxesFilled(q)));
+  const full = list(S.names.map((_, q) => sheetFull(q)));
+  return SCEditGame.skipWarning({ names, counts, cur: place(S.cur), playing: (i) => !full[i] });
 }
 
 // order[i] is the place the player now i-th had before.

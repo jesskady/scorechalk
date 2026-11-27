@@ -783,7 +783,13 @@ async function editGame() {
     ? 'This game is shared with other phones, which know the players by their place, so the players can’t be moved or renamed now.'
     : tid() ? 'This is a tournament match: the tournament keeps its players, so they can’t be moved or renamed here.' : null;
   const names = S.players.map((p) => p.name);
-  const got = await SCEditGame.open({ names, locked, hint: 'Whoever’s turn it is keeps it.' });
+  // who a new order would pass over for the rest of this round (see passTurn)
+  const warn = (order, named) => {
+    if (S.over) return null;
+    const { list, place } = SCEditGame.moves(order);
+    return SCEditGame.skipWarning({ names: named, counts: list(S.players.map((p) => p.turns)), cur: place(S.cur) });
+  };
+  const got = await SCEditGame.open({ names, locked, hint: 'Whoever’s turn it is keeps it.', warn });
   if (!got) return;
   const moved = got.order.some((from, i) => from !== i);
   if (!moved && got.names.every((n, i) => n === names[i])) return;
@@ -799,8 +805,14 @@ async function editGame() {
   say(moved ? `${S.players[S.cur].name} to throw` : 'Names changed');
 }
 
+/* The turn passes to the next player who has thrown the fewest turns, so a
+   round always finishes before anyone throws again, even after Edit has
+   changed the order part-way through it, or a card was tapped to throw out
+   of turn (see nextTurn in /editgame.js). Whoever it passes over is said. */
 function passTurn() {
-  S.cur = (S.cur + 1) % S.players.length;
+  const { next, skipped } = SCEditGame.nextTurn(S.cur, S.players.map((p) => p.turns));
+  S.cur = next;
+  if (skipped.length) say(SCEditGame.skipNote(S.players.map((p) => p.name), skipped, next));
 }
 
 // A phone that joined by seat throws for its own player, on that player's

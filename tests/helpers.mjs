@@ -144,7 +144,8 @@ export const editRename = (page, i, name) => page.evaluate((i, name) => {
   inp.dispatchEvent(new Event('input'));
 }, i, name);
 export async function editPress(page, text) {
-  await page.evaluate((t) => [...document.querySelectorAll('.edit-game button')].find((b) => b.textContent === t).click(), text);
+  // the one on screen: the list's Save is hidden while a warning asks again
+  await page.evaluate((t) => [...document.querySelectorAll('.edit-game button')].find((b) => b.textContent === t && b.offsetParent).click(), text);
   await wait(400);
 }
 
