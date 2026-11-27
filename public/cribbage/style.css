@@ -103,9 +103,12 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 /* badge row: one line, fixed height, so nothing below it moves */
 .prow{display:flex;gap:5px;align-items:center;justify-content:center;min-height:22px;max-width:100%}
 .pmeta{display:flex;gap:5px;align-items:center}
+/* Heels, the dealer's to claim: the Dealer badge's colours, which read in
+   every room (the room's gold on its badge brown nearly vanishes in the
+   Living Room), with a gold edge, as it is a button, not a label */
 .heels{
-  font-size:11px;color:var(--gold);white-space:nowrap;
-  border:1px solid var(--badge-line,#6b5620);background:var(--badge-bg,#241f11);border-radius:999px;padding:2px 9px;
+  font-size:11px;color:var(--badge-fg,var(--gold));white-space:nowrap;
+  border:1px solid var(--gold);background:var(--badge-bg,#241f11);border-radius:999px;padding:2px 9px;
 }
 .heels b{font-weight:800}
 .heels:active{filter:brightness(1.15)}
