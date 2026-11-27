@@ -177,3 +177,23 @@ describe('Darts, worked out from its turns', () => {
     await pg.close();
   });
 });
+
+/* Checkout suggestions: the routes in the fewest darts first, then those
+   taking one more, so a player who would rather set up a double they like
+   has them too. */
+describe('Darts checkout suggestions', () => {
+  test('on 101, the two-dart finish first, then three-dart routes', async () => {
+    const pg = await phone();
+    await open(pg, '/darts/');
+    await pg.evaluate(() => openGame(newGame(['Ann', 'Bob'], 101, { doubleOut: true })));
+    await wait(300);
+    const shown = () => pg.$$eval('#checkout .co-darts b', (bs) => bs.map((b) => b.textContent).join(' '));
+    assert.equal(await shown(), 'T17 D25', 'the chart answer first');
+    const seen = [await shown()];
+    for (let k = 0; k < 3; k++) { await pg.click('#checkout .co-arrow.next'); await wait(100); seen.push(await shown()); }
+    assert.deepEqual(seen.slice(1).map((r) => r.split(' ').length), [3, 3, 3], 'then three-dart routes');
+    assert.ok(seen.includes('T20 9 D16'));
+    assert.deepEqual(pg.errors, []);
+    await pg.close();
+  });
+});

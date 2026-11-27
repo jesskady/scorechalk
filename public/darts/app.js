@@ -757,12 +757,15 @@ function searchFinish(target, darts, needDouble, mustOpenDouble) {
   return [...seen.values()].sort((a, b) => a.cost - b.cost).map(e => e.path);
 }
 
-/* Ways to finish, shortest first and cheapest first within that, or empty.
-   Only the shortest dart count is offered: if a leg can be closed in one
-   dart, walking the player through three-dart routes to the same number is
-   noise, not an alternative. Capped so cycling stays a short loop.
-   Memoised because render() asks on every dart tapped. */
-const MAX_SUGGESTIONS = 6;
+/* Ways to finish, or empty: every route in the fewest darts it can be done
+   in, cheapest first, then the routes taking one dart more, and so on up to
+   the darts left. The first is still the chart answer; the longer routes
+   come after it, as a player with three darts often prefers one, setting
+   up a double they like rather than going for the bull (101: T17 D25,
+   then T20 9 D16 and the like). Capped at a few for each number of darts,
+   so cycling stays a short loop. Memoised because render() asks on every
+   dart tapped. */
+const PER_DART_COUNT = 6;
 const finishCache = new Map();
 
 function finishKey(target, dartsLeft, needDouble, mustOpenDouble) {
@@ -776,10 +779,9 @@ function findFinishes(target, dartsLeft, needDouble, mustOpenDouble) {
   if (finishCache.has(key)) return finishCache.get(key);
 
   let paths = [];
-  for (let k = 1; k <= dartsLeft && !paths.length; k++) {
-    paths = searchFinish(target, k, needDouble, mustOpenDouble);
+  for (let k = 1; k <= dartsLeft; k++) {
+    paths = paths.concat(searchFinish(target, k, needDouble, mustOpenDouble).slice(0, PER_DART_COUNT));
   }
-  paths = paths.slice(0, MAX_SUGGESTIONS);
   finishCache.set(key, paths);
   return paths;
 }
