@@ -66,7 +66,8 @@ describe('the server', () => {
       'hearts-score-keeper': '/builder/#hearts', 'phase-10-score-keeper': '/builder/#phase-10',
       'five-crowns-score-keeper': '/builder/#five-crowns', 'rummy-500-score-keeper': '/builder/#rummy-500',
       'spades-score-keeper': '/builder/#spades', 'oh-hell-score-keeper': '/builder/#oh-hell',
-      'skyjo-score-keeper': '/builder/#skyjo', 'rummikub-score-sheet': '/builder/#rummikub' };
+      'skyjo-score-keeper': '/builder/#skyjo', 'rummikub-score-sheet': '/builder/#rummikub',
+      'qwirkle-score-sheet': '/builder/#qwirkle' };
     const sitemap = await (await fetch(U + '/sitemap.xml')).text();
     for (const [slug, game] of Object.entries(guides)) {
       const r = await fetch(`${U}/${slug}/`);

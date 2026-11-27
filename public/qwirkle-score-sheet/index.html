@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1c2723">
+<title>Qwirkle Score Sheet — Free Online Qwirkle Scoring</title>
+<!-- visits, and errors on these pages: see /report.js -->
+<script src="/report.js?v=1"></script>
+<!-- Score Chalk as an app: installable, and working offline (see /pwa.js) -->
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="Score Chalk">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="A free Qwirkle score sheet: count each turn's tiles on 1, 5 and 10, tap Qwirkle for a line of six (12 points) and Went out for the 6-point bonus at the end. Highest total wins. Kept from every phone.">
+<link rel="canonical" href="https://scorechalk.com/qwirkle-score-sheet/">
+<meta property="og:site_name" content="Score Chalk">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://scorechalk.com/qwirkle-score-sheet/">
+<meta property="og:title" content="Qwirkle Score Sheet — Free Online Qwirkle Scoring">
+<meta property="og:description" content="A free Qwirkle score sheet: count each turn's tiles on 1, 5 and 10, tap Qwirkle for a line of six (12 points) and Went out for the 6-point bonus at the end. Highest total wins. Kept from every phone.">
+<meta property="og:image" content="https://scorechalk.com/og/builder.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml">
+<link rel="icon" href="/icons/icon-192.png" sizes="192x192">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredericka+the+Great&display=swap">
+<link rel="stylesheet" href="/shared.css?v=42">
+<link rel="stylesheet" href="/guide.css?v=1">
+<script type="application/ld+json">[{"@context":"https://schema.org","@type":"WebApplication","name":"Score Chalk — Qwirkle score sheet","url":"https://scorechalk.com/qwirkle-score-sheet/","applicationCategory":"GameApplication","operatingSystem":"Any (web browser)","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"A free Qwirkle score sheet: count each turn's tiles on 1, 5 and 10, tap Qwirkle for a line of six (12 points) and Went out for the 6-point bonus at the end. Highest total wins. Kept from every phone."},{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How do you score Qwirkle?","acceptedAnswer":{"@type":"Answer","text":"Each turn scores one point for every tile in each line the turn makes or adds to, counting the tiles already in that line. A tile that is part of two lines scores in both."}},{"@type":"Question","name":"How many points is a Qwirkle?","acceptedAnswer":{"@type":"Answer","text":"12: a line of six tiles scores 6, and completing it earns a 6-point bonus on top."}},{"@type":"Question","name":"How does Qwirkle end?","acceptedAnswer":{"@type":"Answer","text":"Once the bag is empty, the first player to use all their tiles ends the game and scores a 6-point bonus. The highest total wins."}},{"@type":"Question","name":"What do you score for trading tiles?","acceptedAnswer":{"@type":"Answer","text":"Nothing: a turn spent trading tiles back into the bag scores 0."}}]}]</script>
+<!-- Start is the one thing this page is for, so fetch the game page it opens
+     once the button is near the screen, and the tap lands at once. Prefetch,
+     not prerender: the game pages read saved games from storage on load.
+     Browsers without speculation rules ignore this. -->
+<script type="speculationrules">{"prefetch":[{"where":{"href_matches":["/builder/*","/darts/","/cribbage/","/yahtzee/","/magic/"]},"eagerness":"moderate"}]}</script>
+</head>
+<body class="guide">
+<!-- A scoring guide: written for people searching how to score Qwirkle,
+     with the way straight into the game. -->
+<main>
+  <a class="backlink mark" href="/" aria-label="All games"><span class="arrow" aria-hidden="true">&lsaquo;</span><img src="/favicon.svg?v=2" alt="" width="30" height="30"></a>
+  <section class="hero">
+    <span class="kicker">Score Chalk</span>
+    <h1>Qwirkle score sheet</h1>
+    <p class="lede">Count each turn's tiles on 1, 5 and 10, tap Qwirkle for a line of six and Went out for the bonus at the end. Score Chalk keeps the sheet, turn by turn, and adds it all up.</p>
+    <a class="start" href="/builder/#qwirkle">Start a Qwirkle game</a>
+    <span class="free">Free · no account · works on any phone</span>
+  </section>
+
+<h2>How Qwirkle scoring works</h2>
+<p>On your turn you lay tiles in one line, all sharing a colour or a shape. You score <b>one point for every tile in each line you make or add to</b>, counting the tiles that were already in that line, not just yours. A tile you lay can touch two lines at once, across and down, and then <b>it scores in both</b>.</p>
+<p>A line can hold at most six tiles: the six colours of one shape, or the six shapes of one colour. Completing one is a <b>Qwirkle</b>, worth <b>12</b>: 6 for the line and a 6-point bonus. A turn spent <b>trading tiles</b> scores nothing.</p>
+<p>When the bag is empty, the first player to lay their last tile <b>ends the game and scores 6 more</b>. The <b>highest total</b> wins.</p>
+
+<h3>What scores</h3>
+<table><thead><tr><th>On a turn</th><th>Points</th></tr></thead><tbody><tr><td>Each tile in a line you make or add to</td><td>1</td></tr><tr><td>A Qwirkle: completing a line of six</td><td>12 (6 + a 6 bonus)</td></tr><tr><td>Trading tiles</td><td>0</td></tr><tr><td>Going out first, once the bag is empty</td><td>6</td></tr></tbody></table>
+
+<h3>Two example turns</h3>
+<p>Kim lays two tiles at the end of a line of two, making a line of four: 4 points. One of her tiles also sits beside a tile on the board in the other direction, making a line of two: 2 more. Her turn scores 6.</p>
+<p>Alex lays the sixth tile of a line: a Qwirkle, 12. That tile also makes a line of three the other way: 3 more, 15 in all. On Score Chalk that's Qwirkle and 1, 1, 1, or Qwirkle and a typed 3.</p>
+<p class="note">Some tables play to a target score instead of until the bag runs out. A target can be set in the Builder, or just tap Finish when you stop.</p>
+
+  <h2>Keeping score with Score Chalk</h2>
+  <div class="features"><div class="feature"><b>A turn in a few taps</b>Count the tiles on 1, 5 and 10 (a 13 is 10, 1, 1, 1), or type the total for a big turn. Qwirkle and Went out have buttons of their own.</div><div class="feature"><b>The sheet says what happened</b>A Qwirkle shows as a Qwirkle and the end bonus as Went out, not just numbers, so anyone can follow the game back.</div><div class="feature"><b>A score sheet, as on paper</b>A row a turn and a column a player, with running totals. A turn that went in wrong can be changed later, and the totals follow.</div><div class="feature"><b>Undo</b>Scored a turn for the wrong player? Undo takes it back.</div><div class="feature"><b>Keep score together</b>Share the game and everyone joins from their own phone, picking which player they are. Everyone sees the whole table live, and someone can watch from anywhere with a read-only link.</div><div class="feature"><b>Free, nothing to install</b>Opens in any phone or computer browser. No account, no ads. Add it to your home screen and it works offline too.</div></div>
+
+  <h2>Questions</h2>
+  <details><summary>How do you score Qwirkle?</summary><p>Each turn scores one point for every tile in each line the turn makes or adds to, counting the tiles already in that line. A tile that is part of two lines scores in both.</p></details>
+  <details><summary>How many points is a Qwirkle?</summary><p>12: a line of six tiles scores 6, and completing it earns a 6-point bonus on top.</p></details>
+  <details><summary>How does Qwirkle end?</summary><p>Once the bag is empty, the first player to use all their tiles ends the game and scores a 6-point bonus. The highest total wins.</p></details>
+  <details><summary>What do you score for trading tiles?</summary><p>Nothing: a turn spent trading tiles back into the bag scores 0.</p></details>
+
+  <p class="again"><a class="start" href="/builder/#qwirkle">Start a Qwirkle game</a></p>
+  <p class="others">Other scorekeepers: <a href="/rummikub-score-sheet/">Rummikub score sheet</a> <a href="/skyjo-score-keeper/">Skyjo score keeper</a> <a href="/spades-score-keeper/">Spades score keeper</a> <a href="/oh-hell-score-keeper/">Oh Hell score keeper</a> <a href="/hearts-score-keeper/">Hearts score keeper</a> <a href="/phase-10-score-keeper/">Phase 10 score keeper</a> <a href="/five-crowns-score-keeper/">Five Crowns score keeper</a> <a href="/rummy-500-score-keeper/">Rummy 500 score keeper</a> <a href="/uno-score-keeper/">UNO score keeper</a> <a href="/euchre-score-keeper/">Euchre score keeper</a> <a href="/canasta-score-keeper/">Canasta score keeper</a> <a href="/cribbage-score-keeper/">Cribbage score keeper</a> <a href="/yahtzee-score-sheet/">Yahtzee score sheet</a> <a href="/farkle-score-sheet/">Farkle score sheet</a> <a href="/darts-scorer/">Darts scorer</a> <a href="/mtg-life-counter/">MTG life counter</a> <a href="/score-keeper/">Any game</a></p>
+</main>
+<script src="/pwa.js?v=1" defer></script>
+</body>
+</html>

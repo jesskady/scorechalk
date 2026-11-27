@@ -325,6 +325,18 @@ const TEMPLATES = [
       typed: false, signs: false, turns: true, players: 4,
       theme: 'living',
     } },
+  // Qwirkle: a point for every tile in each line a turn makes or adds to,
+  // counted on 1, 5 and 10, or typed for a big turn. A Qwirkle (a line of
+  // all six) is 12 with its bonus, and the player who ends the game by
+  // going out takes 6; both are named, so the sheet says what happened. No
+  // target: the bag runs out, someone goes out, and Finish shows the final
+  // scores, highest first. Points only go up, so no minus.
+  { id: 'qwirkle', label: 'Qwirkle',
+    rules: {
+      ...defaultRules(), name: 'Qwirkle', win: 'none',
+      quick: '1, 5, 10, Qwirkle 12, Went out 6', typed: true, signs: false, turns: true,
+      theme: 'living',
+    } },
 ];
 
 /* Each game's scoring guide, which links back to it: a template's own, and
@@ -335,7 +347,7 @@ const GUIDES = {
   euchre: '/euchre-score-keeper/', hearts: '/hearts-score-keeper/', 'rummy-500': '/rummy-500-score-keeper/',
   'five-crowns': '/five-crowns-score-keeper/', 'phase-10': '/phase-10-score-keeper/',
   spades: '/spades-score-keeper/', 'oh-hell': '/oh-hell-score-keeper/', skyjo: '/skyjo-score-keeper/',
-  rummikub: '/rummikub-score-sheet/',
+  rummikub: '/rummikub-score-sheet/', qwirkle: '/qwirkle-score-sheet/',
 };
 function guideOf(src) {
   const t = TEMPLATES.find((x) => x.id === src);

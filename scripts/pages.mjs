@@ -12,7 +12,7 @@ export const PAGES = [
   '/cribbage-score-keeper/', '/yahtzee-score-sheet/', '/darts-scorer/', '/mtg-life-counter/',
   '/canasta-score-keeper/', '/farkle-score-sheet/', '/uno-score-keeper/', '/euchre-score-keeper/',
   '/hearts-score-keeper/', '/phase-10-score-keeper/', '/five-crowns-score-keeper/', '/rummy-500-score-keeper/',
-  '/spades-score-keeper/', '/oh-hell-score-keeper/', '/skyjo-score-keeper/', '/rummikub-score-sheet/', '/score-keeper/',
+  '/spades-score-keeper/', '/oh-hell-score-keeper/', '/skyjo-score-keeper/', '/rummikub-score-sheet/', '/qwirkle-score-sheet/', '/score-keeper/',
   '/privacy/', '/terms/',
 ];
 
