@@ -12,7 +12,7 @@ import { listCustomGames, putCustomGame, deleteCustomGame } from './custom-games
 import { reportError, recordError, cleanErrors } from './errors.js';
 import { accountKey } from './guard.js';
 import { admin, isAdminEmail } from './admin.js';
-import { syncWork } from './work.js';
+import { syncWork, workApi } from './work.js';
 import { shareCheck, createShare, getShare, putShare, putCells, claimSeat, freeSeat, deleteShare, cleanShares, previewFor } from './share.js';
 
 const CANONICAL = 'scorechalk.com';
@@ -28,7 +28,8 @@ export default {
   // that have gone 30 days without a change, and errors unseen as long; and
   // bring the work board up to date with the agents' ledgers (work.js).
   async scheduled(event, env, ctx) {
-    ctx.waitUntil(Promise.all([cleanShares(env), cleanErrors(env), syncWork(env)]));
+    // (the tests' server sets WORK_SYNC=off, so a run never depends on GitHub)
+    ctx.waitUntil(Promise.all([cleanShares(env), cleanErrors(env), env.WORK_SYNC === 'off' ? null : syncWork(env)]));
   },
 
   // Every request, with any that throws kept as an error (see errors.js)
@@ -143,6 +144,10 @@ async function route(request, env, url) {
       if (!authConfigured(env)) return json({ error: 'Sign-in is not configured.' }, 503);
       return admin(request, env, url);
     }
+
+    // the work board, for the agents and local sessions: a token, not a
+    // cookie (worker/work.js, workApi)
+    if (url.pathname === '/api/work' || url.pathname.startsWith('/api/work/')) return workApi(request, env, url);
 
     // Writes from a signed-in account — saving games, My games — are limited
     // per account, by its session, so a script with many IP addresses gets

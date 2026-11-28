@@ -37,7 +37,7 @@ export async function startServer() {
   if (migrate.status !== 0) throw new Error('migrations failed:\n' + migrate.stdout + migrate.stderr);
 
   server = spawn(process.execPath, [WRANGLER, 'dev', '--port', String(PORT), '--persist-to', dataDir, '--test-scheduled',
-    '--var', 'GOOGLE_CLIENT_SECRET:test-only', '--var', 'SESSION_SECRET:test-only-secret', '--var', 'LIMITS:off', '--var', 'ADMIN_EMAILS:admin@test.local',
+    '--var', 'GOOGLE_CLIENT_SECRET:test-only', '--var', 'SESSION_SECRET:test-only-secret', '--var', 'LIMITS:off', '--var', 'ADMIN_EMAILS:admin@test.local', '--var', 'WORK_TOKEN:test-only-work-token-0123456789abcdef', '--var', 'WORK_SYNC:off',
     // more settings for one run, as NAME:value pairs split by spaces — such as
     // Cloudflare's always-pass or always-fail Turnstile test keys
     ...(process.env.TEST_VARS || '').split(/\s+/).filter(Boolean).flatMap((v) => ['--var', v])],

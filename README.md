@@ -349,7 +349,11 @@ session ever needs revoking.
   item can't be deleted (the next sync would bring it back), only marked
   Won't do. A new agent is one entry in `SOURCES` in `worker/work.js`, so
   long as its ledger has the same columns. Kept in `work_items` and
-  `work_log` (`migrations/0011`).
+  `work_log` (`migrations/0011`). The same board answers at `/api/work` to a
+  token instead of a cookie. The token is the `WORK_TOKEN` secret. The audit
+  reads the board through it before each run, and `npm run work`
+  (`scripts/work.mjs`, with the token in `.work-token`) uses it from a
+  terminal.
 - **Activity**: sign-ups, games started and finished, and games shared, a
   bar a day over 7, 30 or 90 days or a year (UTC days), with which games are
   played — and the same numbers as a table.

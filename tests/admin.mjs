@@ -3,6 +3,7 @@
 
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { U, account, sql, phone, open, wait } from './helpers.mjs';
 
 const as = (who, path, method = 'GET', body) =>
@@ -132,8 +133,8 @@ describe('the admin side', () => {
       '# Score Chalk SEO ledger', '',
       '| ID | Suggestion | Area | Impact | Effort | First seen | Status | Last checked | Evidence / notes |',
       '|---|---|---|---|---|---|---|---|---|',
-      `| SEO-001 | Send \`X-Robots-Tag: noindex\` on shared links. The Worker already rewrites these. | Technical: Crawling | High | S | 2026-11-22 | ${s1} | 2026-11-25 | ${note} |`,
-      `| SEO-002 | Add a **Cricket** mode, then a guide page. | Content & UX: New pages | Med | L | 2026-11-23 | ${s2} | 2026-11-25 | |`,
+      `| SEO-901 | Send \`X-Robots-Tag: noindex\` on shared links. The Worker already rewrites these. | Technical: Crawling | High | S | 2026-11-22 | ${s1} | 2026-11-25 | ${note} |`,
+      `| SEO-902 | Add a **Cricket** mode, then a guide page. | Content & UX: New pages | Med | L | 2026-11-23 | ${s2} | 2026-11-25 | |`,
       '', 'Not part of the table.',
     ].join('\n');
     const read = (md) => as(boss, '/api/admin/work/import', 'POST', { source: 'seo', markdown: md });
@@ -144,30 +145,30 @@ describe('the admin side', () => {
     assert.equal(first.status, 200, JSON.stringify(first.data));
     assert.deepEqual([first.data.rows, first.data.added], [2, 2]);
     let it = await items();
-    assert.equal(it['SEO-001'].title, 'Send `X-Robots-Tag: noindex` on shared links', 'the first sentence is the title');
-    assert.deepEqual([it['SEO-001'].status, it['SEO-001'].impact, it['SEO-002'].status], ['todo', 'High', 'new']);
+    assert.equal(it['SEO-901'].title, 'Send `X-Robots-Tag: noindex` on shared links', 'the first sentence is the title');
+    assert.deepEqual([it['SEO-901'].status, it['SEO-901'].impact, it['SEO-902'].status], ['todo', 'High', 'new']);
 
     // set here, the same ledger read again: it stays
-    assert.equal((await as(boss, '/api/admin/work/item/SEO-002', 'PATCH', { status: 'dismissed', notes: 'Not this year' })).status, 200);
+    assert.equal((await as(boss, '/api/admin/work/item/SEO-902', 'PATCH', { status: 'dismissed', notes: 'Not this year' })).status, 200);
     assert.equal((await read(ledger('Pending', 'New', 'Checked again.'))).data.moved, 0);
     it = await items();
-    assert.deepEqual([it['SEO-002'].status, it['SEO-002'].notes], ['dismissed', 'Not this year']);
-    assert.equal(it['SEO-001'].agent_notes, 'Checked again.', "the agent's evidence is kept up to date");
+    assert.deepEqual([it['SEO-902'].status, it['SEO-902'].notes], ['dismissed', 'Not this year']);
+    assert.equal(it['SEO-901'].agent_notes, 'Checked again.', "the agent's evidence is kept up to date");
 
     // the agent finds it done: that moves it
     assert.equal((await read(ledger('Done', 'Pending'))).data.moved, 2);
     it = await items();
-    assert.equal(it['SEO-001'].status, 'done');
-    assert.ok(it['SEO-001'].done_at);
-    assert.equal(it['SEO-002'].status, 'todo');
-    const log = (await as(boss, '/api/admin/work/item/SEO-002')).data.log.map((x) => [x.by, x.change]);
+    assert.equal(it['SEO-901'].status, 'done');
+    assert.ok(it['SEO-901'].done_at);
+    assert.equal(it['SEO-902'].status, 'todo');
+    const log = (await as(boss, '/api/admin/work/item/SEO-902')).data.log.map((x) => [x.by, x.change]);
     assert.deepEqual(log, [
       ['sync: seo', 'Added by the SEO audit as New'],
       ['admin@test.local', "New → Won't do"], ['admin@test.local', 'Notes edited'],
       ['sync: seo', "Won't do → To do (the SEO audit says Pending)"],
     ]);
-    assert.equal((await as(boss, '/api/admin/work/item/SEO-001', 'DELETE')).status, 400, "an agent's item isn't deleted, it would come back");
-    assert.equal((await as(boss, '/api/admin/work/item/SEO-001', 'PATCH', { title: 'Mine now' })).data.item.title,
+    assert.equal((await as(boss, '/api/admin/work/item/SEO-901', 'DELETE')).status, 400, "an agent's item isn't deleted, it would come back");
+    assert.equal((await as(boss, '/api/admin/work/item/SEO-901', 'PATCH', { title: 'Mine now' })).data.item.title,
       'Send `X-Robots-Tag: noindex` on shared links', "an agent's words stay the ledger's");
   });
 
@@ -183,6 +184,33 @@ describe('the admin side', () => {
     assert.equal((await as(boss, `/api/admin/work/item/${a.data.id}`, 'PATCH', { status: 'nope' })).status, 400);
     assert.equal((await as(boss, `/api/admin/work/item/${b.data.id}`, 'DELETE')).status, 200);
     assert.equal((await as(boss, `/api/admin/work/item/${b.data.id}`)).status, 404);
+  });
+
+  test('the work board from a terminal: a token, not a cookie', async () => {
+    const TOKEN = 'test-only-work-token-0123456789abcdef';
+    const api = (path, method = 'GET', body, tok = TOKEN) => fetch(U + '/api' + path, {
+      method, headers: { 'content-type': 'application/json', authorization: 'Bearer ' + tok, 'x-work-by': 'claude' },
+      body: body && JSON.stringify(body),
+    }).then(async (r) => ({ status: r.status, data: await r.json().catch(() => null) }));
+    const boss = account('admin@test.local', 'Boss');
+
+    assert.equal((await api('/work', 'GET', null, '')).status, 403, 'no token');
+    assert.equal((await api('/work', 'GET', null, TOKEN + 'x')).status, 403, 'the wrong one');
+    assert.equal((await as(boss, '/api/work')).status, 403, "an admin's cookie isn't the token");
+
+    const { id } = (await api('/work', 'POST', { kind: 'bug', title: 'Found while fixing something else' })).data;
+    const cli = (...args) => spawnSync(process.execPath, ['scripts/work.mjs', ...args], {
+      cwd: new URL('..', import.meta.url), encoding: 'utf8', env: { ...process.env, WORK_URL: U, WORK_TOKEN: TOKEN },
+    });
+    const started = cli('doing', id);
+    assert.equal(started.status, 0, started.stderr);
+    const done = cli('done', id, 'Deployed in abc1234');
+    assert.match(done.stdout, new RegExp(`${id}\\s+Done`));
+    assert.match(cli('list', 'done').stdout, new RegExp(id));
+    const shown = cli('show', id).stdout;
+    assert.match(shown, /\d{4}-\d\d-\d\d: Deployed in abc1234/, 'the note is dated, in the notes');
+    assert.match(shown, /api: claude: In progress → Done/, 'the history says who');
+    assert.notEqual(cli('show', 'NOPE-1').status, 0);
   });
 
   test('the page: a stranger is asked to sign in, an admin sees the users', async () => {

@@ -39,6 +39,27 @@ changing those areas.
 - **Run the full suite only before a deploy**, not after every small local
   change; check those in the browser on `npm run dev` instead.
 
+## The work board
+
+Everything to be done on the site is on the work board at `/admin/#work`
+(`worker/work.js`). `SEO-###` items come from the SEO audit's ledger, and
+`W-###` items are bugs, ideas and tasks added by hand. From a terminal,
+`npm run work` reads and changes it on the live site. Its token is in
+`.work-token` (gitignored); never print or commit it.
+
+- **"Let's tackle SEO-012"** (or `W-003`): first `npm run work -- show SEO-012`
+  for the detail, what the audit last saw, and the owner's notes. Then
+  `npm run work -- doing SEO-012`.
+- **Once it's live**, after the deploy that ships it and the push, run
+  `npm run work -- done SEO-012 "Deployed in <short sha>: <what shipped>"`.
+  Not before: Done means it's on the live site, and the audit will go and
+  check. If only part of it shipped, leave it In progress and add a line with
+  `npm run work -- note SEO-012 "…"`.
+- **A bug or idea found along the way** that isn't being fixed now: add it with
+  `npm run work -- add bug "title" "detail"`, and mention it to the owner.
+- Statuses change on the board, never by editing `qa/seo/ledger.md`. That
+  file belongs to the audit, which reads the board each run.
+
 ## How the site should behave
 
 - **Two ways of doing the same thing get a choice screen.** When a game offers

@@ -19,14 +19,17 @@
    GET    /api/admin/work              every item, and the sources
    GET    /api/admin/work/item/<id>    one item's history
    POST   /api/admin/work              a new item, by hand
-   PATCH  /api/admin/work/item/<id>    status, notes; title, detail, kind and
+   PATCH  /api/admin/work/item/<id>    status, notes, or `note` (one dated line
+                                       added to them); title, detail, kind and
                                        impact too for one written by hand
    DELETE /api/admin/work/item/<id>    only one written by hand: an agent's
                                        would come back at the next sync
    POST   /api/admin/work/sync         read every ledger from GitHub now
    POST   /api/admin/work/import       {source, markdown}: read a ledger from
                                        the request instead (the tests, or a
-                                       ledger on a branch not pushed yet) */
+                                       ledger on a branch not pushed yet)
+
+   The same paths under /api/work answer a token instead: see workApi. */
 
 const json = (body, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -182,7 +185,7 @@ export async function syncWork(env) {
 
 const clip = (s, n) => (s == null ? null : String(s).slice(0, n));
 
-export async function work(request, env, path, me) {
+export async function work(request, env, path, by) {
   const m = request.method;
 
   if (path === '/work' && m === 'GET') {
@@ -213,7 +216,7 @@ export async function work(request, env, path, me) {
         id, kind, title, clip(b.detail, 20000) || null, IMPACTS.includes(b.impact) ? b.impact : null,
         status, clip(b.notes, 20000) || null, now, now, status === 'done' ? now : null),
       env.DB.prepare('INSERT INTO work_log (item_id, at, by, change) VALUES (?, ?, ?, ?)')
-        .bind(id, now, me.email, `Added as ${STATUSES[status]}`),
+        .bind(id, now, by, `Added as ${STATUSES[status]}`),
     ]);
     return json({ ok: true, id });
   }
@@ -252,6 +255,13 @@ export async function work(request, env, path, me) {
       next.notes = clip(b.notes, 20000) || null;
       changes.push('Notes edited');
     }
+    // a line added to the notes, dated, without having to send them all back:
+    // "Deployed in 1a2b3c4" from a session that has just shipped it
+    if (b.note !== undefined && String(b.note).trim()) {
+      const line = `${new Date().toISOString().slice(0, 10)}: ${String(b.note).trim().slice(0, 2000)}`;
+      next.notes = clip((next.notes ? next.notes + '\n' : '') + line, 20000);
+      changes.push('Note: ' + String(b.note).trim().slice(0, 200));
+    }
     // an agent's own words are the ledger's, and the next sync would put them back
     if (mine) {
       if (b.title !== undefined) {
@@ -275,7 +285,7 @@ export async function work(request, env, path, me) {
         `UPDATE work_items SET status = ?, notes = ?, title = ?, detail = ?, kind = ?, impact = ?, updated_at = ?, done_at = ?
           WHERE id = ?`).bind(next.status, next.notes, next.title, next.detail, next.kind, next.impact, now, next.done_at, id),
       ...changes.map((c) => env.DB.prepare('INSERT INTO work_log (item_id, at, by, change) VALUES (?, ?, ?, ?)')
-        .bind(id, now, me.email, c)),
+        .bind(id, now, by, c)),
     ]);
     return json({ ok: true, item: next });
   }
@@ -290,4 +300,30 @@ export async function work(request, env, path, me) {
   }
 
   return json({ error: 'Method not allowed' }, 405);
+}
+
+/* The same board for the agents and for Claude sessions on the owner's
+   laptop, which have no admin cookie: /api/work/..., the same paths as
+   under /api/admin, with `Authorization: Bearer <WORK_TOKEN>`. WORK_TOKEN
+   is a secret (wrangler secret put WORK_TOKEN); unset, this door is shut.
+   In the cloud sandbox the token is a network secret for scorechalk.com,
+   so the proxy adds the header and the agent never sees it; on the laptop
+   scripts/work.mjs reads it from .work-token (gitignored).
+   `X-Work-By` names who is acting ("seo audit", "claude"), for the history. */
+export async function workApi(request, env, url) {
+  const want = env.WORK_TOKEN;
+  const got = (request.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
+  if (!want || want.length < 32 || !(await same(got, want))) return json({ error: 'Not allowed' }, 403);
+  const who = (request.headers.get('x-work-by') || '').replace(/[^\w .()-]/g, '').trim().slice(0, 40);
+  return work(request, env, url.pathname.slice('/api'.length), 'api: ' + (who || 'unnamed'));
+}
+
+// compared by their digests, so how long the check takes says nothing about the token
+async function same(a, b) {
+  const enc = new TextEncoder();
+  const [x, y] = await Promise.all([a, b].map((s) => crypto.subtle.digest('SHA-256', enc.encode(s))));
+  const u = new Uint8Array(x), v = new Uint8Array(y);
+  let d = 0;
+  for (let i = 0; i < u.length; i++) d |= u[i] ^ v[i];
+  return d === 0;
 }

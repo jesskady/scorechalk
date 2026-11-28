@@ -118,7 +118,7 @@ export async function admin(request, env, url) {
   const path = url.pathname.slice('/api/admin'.length);
 
   // the work board: see worker/work.js
-  if (path === '/work' || path.startsWith('/work/')) return work(request, env, path, me);
+  if (path === '/work' || path.startsWith('/work/')) return work(request, env, path, me.email);
 
   if (path === '/overview' && request.method === 'GET') {
     const names = await tableNames(env);

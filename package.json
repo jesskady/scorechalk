@@ -10,7 +10,8 @@
     "sitemap": "node scripts/sitemap.mjs",
     "indexnow": "node scripts/indexnow.mjs",
     "previews": "node scripts/previews.mjs",
-    "store-shots": "node scripts/store-shots.mjs"
+    "store-shots": "node scripts/store-shots.mjs",
+    "work": "node scripts/work.mjs"
   },
   "devDependencies": {
     "puppeteer-core": "^24.0.0",
