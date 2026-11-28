@@ -12,6 +12,7 @@
 .games-page .board-in{max-width:860px;gap:14px}
 .games-page .backlink.mark{justify-self:start;margin-left:-6px}
 .games-head{display:grid;gap:6px;padding-right:44px} /* clear of the account bubble */
+.games-intro{margin:2px 0 0;max-width:34em;font:500 15px/1.5 var(--f-body);color:var(--chalk-dim)}
 .games-head .kicker{font:700 11px/1 var(--f-deco);letter-spacing:.2em;text-transform:uppercase;color:var(--brass)}
 .games-head h1{
   margin:0;font:400 clamp(38px,8vw,64px)/1 var(--f-chalk);color:var(--chalk);
@@ -37,9 +38,11 @@
 .game-row{
   display:grid;grid-template-columns:64px minmax(0,1fr);column-gap:16px;row-gap:4px;align-items:center;
   padding:12px 10px;border-radius:6px;text-decoration:none;color:var(--chalk);
-  border-bottom:1px dashed #ecebe324;transition:background .15s ease;
+  transition:background .15s ease;
 }
-.game-list li:last-child .game-row{border-bottom:none}
+/* the divider goes under the whole entry: the row, and its guide link */
+.game-list li{border-bottom:1px dashed #ecebe324}
+.game-list li:last-child{border-bottom:none}
 .game-row:hover{background:#ffffff0a}
 .game-row .what{display:grid;gap:3px;min-width:0}
 .game-row b{font:700 19px/1.15 var(--f-body);color:var(--chalk)}
@@ -56,6 +59,19 @@
   .game-row b{font-size:21px}
   .game-row small{font-size:15px}
 }
+
+/* the guide link: under the row, lined up with the game's name, small enough
+   that the row is still the obvious tap. It's a link of its own beside the
+   row's, because a link can't hold another link. */
+.guide{
+  display:inline-block;margin:0 0 10px 90px;padding:2px 0;
+  font:600 13.5px/1.3 var(--f-body);color:var(--chalk-dim);
+  text-decoration:underline;text-decoration-color:#ecebe355;text-underline-offset:3px;
+}
+.game-row:has(+ .guide){padding-bottom:4px}
+.guide::after{content:" \2192"}
+.guide:hover,.guide:focus-visible{color:var(--chalk);text-decoration-color:var(--brass)}
+@media (min-width:640px){.guide{margin-left:106px;font-size:14px}}
 
 /* the tiles: a small framed slate, a taped slip of legal pad, a scrap of graph paper */
 .tile{grid-row:1 / span 2;width:64px;height:64px;display:grid;place-items:center;border-radius:3px}

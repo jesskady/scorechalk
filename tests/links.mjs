@@ -81,6 +81,14 @@ describe('game links', () => {
     await open(pg, '/games/');
     const rows = await pg.$$eval('#list a', (as) => as.map((a) => a.getAttribute('href')));
     for (const h of home) assert.ok(rows.includes(h), `${h} is on /games/`);
+    // and every game with a scoring guide links to it, under its row
+    const guides = await pg.$$eval('#list li', (lis) => lis.map((li) => [li.querySelector('b').textContent,
+      li.querySelector('a.guide') && li.querySelector('a.guide').getAttribute('href')]));
+    for (const [name, href] of guides) {
+      if (name === 'Bridge') continue;                 // no guide yet
+      assert.ok(href, `${name} links to its guide`);
+      assert.equal((await fetch(new URL(href, pg.url()))).status, 200, href);
+    }
     // a phone's width, with no sideways scroll
     assert.ok(await pg.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
 
