@@ -34,7 +34,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredericka+the+Great&family=Josefin+Sans:wght@400;600;700&family=Bree+Serif&family=Kalam:wght@400;700&display=swap">
-<link rel="stylesheet" href="../shared.css?v=43">
+<link rel="stylesheet" href="../shared.css?v=44">
 <!-- the room this game is played in (data-room on the body), with any
      adjustments of this game's own at the top of style.css -->
 <link rel="stylesheet" href="../themes.css?v=7">
@@ -143,6 +143,7 @@
   <div class="win-card">
     <div class="trophy">🏆</div>
     <h2 id="winName"></h2>
+    <p id="winSeries" class="win-series" hidden></p>
     <ol id="winTable" class="standings"></ol>
     <p id="winSave" class="win-save"></p>
     <button id="rematchBtn" class="primary big">Rematch</button>
@@ -158,7 +159,9 @@
 <script src="/cloud.js?v=3"></script>
 <script src="/roster.js?v=2"></script>
 <script src="/editgame.js?v=3"></script>
-<script src="app.js?v=26"></script>
+<!-- a series of rematches, and who won each: see /series.js -->
+<script src="/series.js?v=1"></script>
+<script src="app.js?v=27"></script>
 <script src="/pwa.js?v=1" defer></script>
 </body>
 </html>

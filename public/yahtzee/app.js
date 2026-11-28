@@ -590,6 +590,7 @@ function reorder(order) {
   S.cur = where(S.cur);
   S.sel = where(S.sel);
   S.me = where(S.me);
+  S.series = SCSeries.move(S.series, where);
 }
 
 /* ---------------- undo, new game ---------------- */
@@ -631,18 +632,30 @@ function showWin() {
   const order = S.names.map((_, p) => p).sort((a, b) => g[b] - g[a]);
   $('winTable').innerHTML = order.map((p) => `<li><span>${esc(S.names[p])}</span><b>${g[p]}</b></li>`).join('');
   $('winTable').classList.toggle('hidden', S.names.length === 1);
+  SCSeries.show($('winSeries'), S.names, S.series && SCSeries.add(S.series, winnerOf()));
   $('winOverlay').classList.remove('hidden');
   saveToProfile();
+}
+
+// The game's winner, by place, or null for a tie.
+function winnerOf() {
+  const g = S.names.map((_, p) => totals(p).grand), top = Math.max(...g);
+  return g.filter((v) => v === top).length === 1 ? g.indexOf(top) : null;
 }
 
 $('keepBtn').onclick = () => $('winOverlay').classList.add('hidden');
 $('rematchBtn').onclick = () => {
   SCStore.remove(S.id);      // finished, and on the profile when signed in
+  // the series goes on: this game's winner with the ones before (see /series.js)
+  const series = SCSeries.add(S.series, winnerOf());
   S = newGame(S.names);
+  if (S.names.length > 1) S.series = series;
   save();
   SCStore.show(S.id);
   $('winOverlay').classList.add('hidden');
   buildSheet(); render();
+  const said = SCSeries.next(S.names, S.series);
+  if (said) notice(said);
 };
 $('newBtn').onclick = () => { SCStore.remove(S.id); leaveGame(); };
 

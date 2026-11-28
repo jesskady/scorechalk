@@ -555,11 +555,15 @@ function buildBoard() {
   $('rematchBtn').addEventListener('click', () => {
     if (tid()) { leaveGame(); return; }    // Back to tournament: see showWin
     SCStore.remove(S.id);      // finished, and on the profile when signed in
+    // the series goes on: this game's winner with the ones before (see /series.js)
+    const series = SCSeries.add(S.series, S.winner);
     S = newGame(S.names, S.start, { doubleIn: S.doubleIn, doubleOut: S.doubleOut, me: S.me });
+    if (S.names.length > 1) S.series = series;
     save();
     SCStore.show(S.id);
     $('winOverlay').classList.add('hidden');
     render();
+    say(SCSeries.next(S.names, S.series), 4000);
   });
 
   $('newBtn').addEventListener('click', () => { SCStore.remove(S.id); leaveGame(); });
@@ -895,6 +899,7 @@ async function editGame() {
   S.cur = place(S.cur);
   if (S.winner != null) S.winner = place(S.winner);
   S.me = place(Number.isInteger(S.me) ? S.me : 0);
+  S.series = SCSeries.move(S.series, place);
   render(); save();
   say(moved ? `${S.names[S.cur]} to throw` : 'Names changed');
 }
@@ -1126,6 +1131,7 @@ function showWin() {
   $('winName').textContent = solo ? `${name} checked out!` : `${name} wins!`;
   $('winStats').textContent = `${S.start} down in ${p.turns} turns · ${avg} average`;
   $('rematchBtn').textContent = tid() ? 'Back to tournament' : solo ? 'Go again' : 'Rematch';
+  SCSeries.show($('winSeries'), S.names, S.series && SCSeries.add(S.series, S.winner));
   $('newBtn').classList.toggle('hidden', !!tid());
   $('winOverlay').classList.remove('hidden');
 }

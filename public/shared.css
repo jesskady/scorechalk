@@ -169,6 +169,11 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
 }
 .roster.sorting li:not(.dragging){transition:transform .15s}
 
+/* ---------- A series of rematches (/series.js) ----------
+   On a game's result, under who won: the wins so far, game after game. */
+.win-series{font-weight:700;font-size:14.5px;color:var(--gold)}
+.win-series[hidden]{display:none}
+
 /* ---------- Edit game (/editgame.js) ----------
    A sheet over the game, on the game's own .overlay and .win-card: the
    players' list in it is the .roster above. Ten players scroll inside it,

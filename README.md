@@ -200,6 +200,10 @@ works the same way in each:
   `fromCells` rebuilds the game from them; a cell that changed is an edit.
 - **Edit game** (`public/editgame.js`) moves players with `SCEditGame.moves`,
   and the turn passes with `SCEditGame.nextTurn`.
+- **`series`**, on a game started with Rematch, is who won each game before
+  it (a place, or `null` for a tie), for the running tally on the result
+  screen (`public/series.js`). Edit moves it with the players; New setup
+  starts without one.
 - A game kept in an **older shape** (so far, Darts' and Cribbage's first) is
   brought up to date when it is opened, by the game's own `upgrade()`, so games on a
   device, on the profile, in a shared link or a tournament keep working.
@@ -237,7 +241,7 @@ each other every few seconds, and the tests wait as a person would.
 | `links.mjs` | games by id and link; several of a kind at once; the old keys moving in; under an iPhone status bar, the way home and Sign in below it |
 | `builder.mjs` | the setup's steps, rounds under Take turns; the sheet, scoring in its bubble, changing a score and undoing it, flip, the board's rows; counters: taps, Undo, Out at and Wins at, setup; live scoring, with and without buttons; Qwirkle's keys, no minus, and Finish |
 | `sharing.mjs` | joining by seat, scoring only your own, scoring at once, the same cell from two phones, counters and live scores between phones, watching, Yahtzee |
-| `darts.mjs` | turns round the table by seat, darts mid-turn kept, a checkout reaching every phone; a game in the first shape opening as it was; a turn changed from History, a later turn busting or checking out, and after End game, the game opening again; a checkout offered, undone and ended; checkout suggestions, the fewest darts first, then three-dart routes |
+| `darts.mjs` | turns round the table by seat, darts mid-turn kept, a checkout reaching every phone; a game in the first shape opening as it was; a turn changed from History, a later turn busting or checking out, and after End game, the game opening again; a checkout offered, undone and ended; checkout suggestions, the fewest darts first, then three-dart routes; best of three through Rematch, the tally following the players through Edit and ending at New setup |
 | `cribbage.mjs` | pegging by seat and at once, counting your own hand; a shared game is its scores, nothing else; a game in the first shape opening as it was; a peg moved, removed, a count changed from History, and Undo; 121 offered, undone, ended, and changed after |
 | `yahtzee.mjs` | the players put in order at the setup, and moved and renamed mid-game with Edit: their scores, the turn, Undo and You going with them |
 | `editing.mjs` | the order set at the setup in Darts, Cribbage and Magic; Edit in those, the Builder (teams too) and Bridge: what moves with a player, and where the order stays put; a new order part-way through a round: the warning on Save, and no one playing twice in a round; History in Edit, newest first, in a locked game too; a score changed from History in Yahtzee, the Builder and Bridge, and Undo taking the change back |

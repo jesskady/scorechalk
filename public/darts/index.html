@@ -36,7 +36,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredericka+the+Great&family=Josefin+Sans:wght@400;600;700&family=Bree+Serif&family=Kalam:wght@400;700&display=swap">
-<link rel="stylesheet" href="../shared.css?v=43">
+<link rel="stylesheet" href="../shared.css?v=44">
 <!-- the room this game is played in: the Parlor (see /themes.css) -->
 <link rel="stylesheet" href="../themes.css?v=7">
 <link rel="stylesheet" href="style.css?v=37">
@@ -256,6 +256,7 @@
   <div class="win-card">
     <div class="trophy">🎯</div>
     <h2 id="winName"></h2>
+    <p id="winSeries" class="win-series" hidden></p>
     <p id="winStats"></p>
     <button id="rematchBtn" class="primary big">Rematch</button>
     <button id="keepBtn" class="ghost">Back to the board</button>
@@ -271,7 +272,9 @@
 <script src="sync.js?v=32"></script>
 <script src="/roster.js?v=2"></script>
 <script src="/editgame.js?v=3"></script>
-<script src="app.js?v=50"></script>
+<!-- a series of rematches, and who won each: see /series.js -->
+<script src="/series.js?v=1"></script>
+<script src="app.js?v=51"></script>
 <script src="/pwa.js?v=1" defer></script>
 </body>
 </html>

@@ -4,7 +4,7 @@
 
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { phone, open, startGame, share, join, settle, wait, editPress } from './helpers.mjs';
+import { phone, open, startGame, share, join, settle, wait, drag, editPress } from './helpers.mjs';
 
 const look = (pg) => pg.evaluate(() => ({
   up: S.names[S.cur],
@@ -207,6 +207,50 @@ describe('Darts checkout suggestions', () => {
     while (await pg.$('#checkout .co-arrow.next')) { await pg.click('#checkout .co-arrow.next'); await wait(60); seen.push(await shown()); }
     assert.equal(seen[0], 'D25 T17');
     assert.equal(new Set(seen).size, seen.length, 'no route twice, whatever its order');
+    await pg.close();
+  });
+});
+
+/* A series: Rematch after Rematch, the game remembers who won each, so
+   best two of three keeps itself. */
+describe('Darts, a series of rematches', () => {
+  test('best of three: each rematch says the series so far, each result the tally', async () => {
+    const pg = await phone();
+    await open(pg, '/darts/');
+    await pg.evaluate(() => openGame(newGame(['Ann', 'Bob'], 40, { doubleOut: true })));
+    await wait(300);
+    // whoever is up throws a miss until it is p's turn, then D20 and out
+    const win = async (p) => {
+      await pg.evaluate((p) => { while (S.cur !== p) { addDart(0); submitTurn(); } }, p);
+      await pg.click('.mult[data-m="2"]');
+      await pg.evaluate(() => [...document.querySelectorAll('#numgrid .key')].find((b) => b.textContent === '20').click());
+      await pg.click('#submitBtn'); await wait(300);
+      await pg.click('#winBarBtn'); await wait(300);
+    };
+    const series = () => pg.evaluate(() => (winSeries.hidden ? '' : winSeries.textContent));
+
+    await win(0);
+    assert.equal(await series(), '', 'one game: nothing to tally yet');
+    await pg.click('#rematchBtn'); await wait(300);
+    assert.equal(await pg.evaluate(() => msg.textContent), 'Game 2 · Ann 1 · Bob 0');
+
+    await win(1);
+    assert.equal(await series(), 'After 2 games: Ann 1 · Bob 1');
+    await pg.click('#rematchBtn'); await wait(300);
+
+    // the players swapped round with Edit: their wins go with them
+    await pg.click('#editBtn'); await wait(300);
+    await drag(pg, '.edit-game .roster', 0, 1);
+    await editPress(pg, 'Save');
+    assert.deepEqual(await pg.evaluate(() => [S.names, S.series]), [['Bob', 'Ann'], [1, 0]]);
+
+    await win(0);                       // Bob takes the decider
+    assert.equal(await series(), 'After 3 games: Bob 2 · Ann 1');
+    // New setup ends the series
+    await pg.click('#newBtn'); await wait(600);
+    await pg.click('#startBtn'); await wait(300);
+    assert.equal(await pg.evaluate(() => S.series), undefined);
+    assert.deepEqual(pg.errors, []);
     await pg.close();
   });
 });

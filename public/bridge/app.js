@@ -460,26 +460,36 @@ $('endBtn').onclick = async () => {
   showWin(score(S.hands, true));
 };
 
+// Which partnership won the rubber, on the totals: 0 We, 1 They, null level.
+const sideWon = (r) => (r.totals[0] === r.totals[1] ? null : r.totals[0] > r.totals[1] ? 0 : 1);
+const sides = () => [0, 1].map((s) => sideName(S.names, s));
+
 function showWin(r) {
   const [a, b] = r.totals;
-  const top = a === b ? null : a > b ? 0 : 1;
+  const top = sideWon(r);
   $('winName').textContent = top === null ? 'All square' : `${top ? 'They' : 'We'} win by ${fmt(Math.abs(a - b))}`;
   const rubber = r.won.findIndex((w) => w === 2);
   $('winWhy').textContent = rubber >= 0
     ? `${rubber ? 'They' : 'We'} won the rubber, ${r.won[rubber]} games to ${r.won[1 - rubber]}.`
     : 'The rubber was ended before anyone won two games.';
   $('winTable').innerHTML = [0, 1].map((s) => `<li><span>${esc(sideName(S.names, s))}</span><b>${fmt(r.totals[s])}</b></li>`).join('');
+  SCSeries.show($('winSeries'), sides(), S.series && SCSeries.add(S.series, top));
   $('winOverlay').classList.remove('hidden');
 }
 $('keepBtn').onclick = () => $('winOverlay').classList.add('hidden');
 $('againBtn').onclick = () => {
   const names = S.names;
+  // the series goes on, partnership by partnership (see /series.js)
+  const series = SCSeries.add(S.series, sideWon(score(S.hands, S.ended)));
   SCStore.remove(S.id);
   S = newGame(names);
+  S.series = series;
   save();
   SCStore.show(S.id);
   $('winOverlay').classList.add('hidden');
   render();
+  const said = SCSeries.next(sides(), S.series).replace(/^Game/, 'Rubber');
+  if (said) flash(said);
 };
 $('quitBtn').onclick = async () => {
   if (S.hands.length && !S.over && !(await askConfirm('This ends the rubber in progress and its scores.', 'New rubber'))) return;

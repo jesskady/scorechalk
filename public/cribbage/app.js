@@ -1121,6 +1121,7 @@ async function editGame() {
   S.names = got.names;
   S.colors = list(S.colors);
   for (const k of ['winner', 'me']) S[k] = place(S[k]);
+  S.series = SCSeries.move(S.series, place);
   S.log.forEach((e) => { if (e.p != null) e.p = place(e.p); });
   S.edits.forEach((x) => {
     x.p = place(x.p);
@@ -1160,6 +1161,7 @@ function showWin() {
   const order = S.names.map((_, i) => i).sort((a, b) => G.scores[b] - G.scores[a]);
   $('winTable').innerHTML = order.map((i) =>
     `<li><span><i class="hdot" style="background:${colorOf(i)}"></i>${esc(S.names[i])}</span><b>${Math.min(G.scores[i], WIN)}</b></li>`).join('');
+  SCSeries.show($('winSeries'), S.names, S.series && SCSeries.add(S.series, S.winner));
   $('winOverlay').classList.remove('hidden');
   saveToProfile();
 }
@@ -1175,12 +1177,17 @@ $('rematchBtn').onclick = () => {
   const loser = G.scores.indexOf(Math.min(...G.scores));
   SCStore.remove(S.id);      // finished, and on the profile when signed in
   const colors = S.colors;     // the same players keep their colours
+  // the series goes on: this game's winner with the ones before (see /series.js)
+  const series = SCSeries.add(S.series, S.winner);
   S = newGame(S.names, loser);
   if (colors) S.colors = colors;
+  S.series = series;
   save();
   SCStore.show(S.id);
   $('winOverlay').classList.add('hidden');
   buildBoard(); buildPlayers(); render();
+  const said = SCSeries.next(S.names, S.series);
+  if (said) flash(said);
 };
 $('newBtn').onclick = () => { SCStore.remove(S.id); leaveGame(); };
 

@@ -1895,6 +1895,7 @@ async function editGame() {
   S.cur = place(S.cur);
   if (S.winnerIdx != null) S.winnerIdx = place(S.winnerIdx);
   S.me = place(S.me);
+  S.series = SCSeries.move(S.series, place);
   save();
   showGame();
   flash(moved && c.turns ? `${c.names[S.cur]}'s turn` : 'Players changed');
@@ -2304,6 +2305,7 @@ function showWin(r) {
   // the game is over: kept on it, so every save from here says so
   if (!S.endedAt) S.endedAt = Date.now();
   S.winnerIdx = r.winners && r.winners.length === 1 ? r.winners[0] : null;
+  SCSeries.show($('winSeries'), c.names, S.series && SCSeries.add(S.series, S.winnerIdx));
   SCStore.put(TYPE, S, true);
   saveToProfile(r);
 }
@@ -2313,11 +2315,17 @@ $('rematchBtn').onclick = () => {
   // a game in teams is rebuilt from its players, not from the team names
   if (c.playerNames) { c.names = c.playerNames; c.teamOf = c.playerTeams || []; }
   SCStore.remove(S.id);      // finished, and on the profile when signed in
+  // the series goes on: this game's winner with the ones before (see
+  // /series.js); in a game of teams, the side, as the sides stay as they were
+  const series = SCSeries.add(S.series, S.winnerIdx);
   S = newGame(c);
+  if (S.cfg.names.length > 1) S.series = series;
   save();
   SCStore.show(S.id);
   $('winOverlay').classList.add('hidden');
   render();
+  const said = SCSeries.next(S.cfg.names, S.series);
+  if (said) flash(said);
 };
 $('keepBtn').onclick = () => { $('winOverlay').classList.add('hidden'); renderWinBar(); };
 $('newBtn').onclick = endGame;

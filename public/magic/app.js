@@ -473,6 +473,7 @@ $('editBtn').onclick = async () => {
   S.poison = list(S.poison);
   S.cmdr = list(S.cmdr).map(list);
   S.log.forEach((e) => { e.p = place(e.p); e.q = place(e.q); });
+  S.series = SCSeries.move(S.series, place);
   for (const k of Object.keys(deltas)) delete deltas[k];
   save();
   buildTable(); render();
@@ -485,8 +486,12 @@ function restart() {
   if (!S.won) SCCloud.drop(S.id);
   SCStore.remove(S.id);
   const colors = S.colors;     // the same players keep their colours
+  // a game won goes into the series (see /series.js); one restarted part way
+  // through leaves it as it was
+  const series = S.won ? SCSeries.add(S.series, winnerOf()) : S.series;
   S = newGame(S.format, S.names, S.start);
   if (colors) S.colors = colors;
+  if (series && S.names.length > 1) S.series = series;
   for (const k of Object.keys(deltas)) delete deltas[k];
   save();
   SCStore.show(S.id, '#play');
@@ -494,9 +499,13 @@ function restart() {
   buildTable(); render();
 }
 
+// The last player standing, by place.
+const winnerOf = () => S.names.findIndex((_, i) => !outReason(i));
+
 function showWin() {
-  const p = S.names.findIndex((_, i) => !outReason(i));
+  const p = winnerOf();
   $('winName').textContent = `${S.names[p]} wins!`;
+  SCSeries.show($('winSeries'), S.names, S.series && SCSeries.add(S.series, p));
   $('winOverlay').classList.remove('hidden');
 }
 $('rematchBtn').onclick = restart;
