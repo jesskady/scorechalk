@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <!-- what a search result shows: the name, and what it's for -->
-<title>Score Chalk — Free Score Keeper for Darts, Cribbage, Yahtzee &amp; Card Games</title>
+<title>Score Chalk — The Easy, Free Score Keeper for Cards, Dice, Darts, or any other game</title>
 <!-- visits, and errors on these pages: see /report.js -->
 <script src="/report.js?v=1"></script>
 <!-- Score Chalk as an app: installable, and working offline (see /pwa.js) -->
@@ -25,7 +25,7 @@
 <meta property="og:site_name" content="Score Chalk">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://scorechalk.com/">
-<meta property="og:title" content="Score Chalk">
+<meta property="og:title" content="Score Chalk — easy and free scorekeeping">
 <meta property="og:description" content="Easy scorekeeping, even for the trickiest games. Every bid, bonus and running total added up for you, on one phone or everyone's.">
 <meta property="og:image" content="https://scorechalk.com/og/home.png">
 <meta property="og:image:width" content="1200">
@@ -56,7 +56,7 @@
            other page (see .backlink.mark in /shared.css) -->
       <img class="mark" src="/favicon.svg?v=2" alt="" width="54" height="54">
       <h1>Score Chalk</h1>
-      <p>Easy scorekeeping, even for the trickiest games.</p>
+      <p>Free, easy, customizable scorekeeper for any game.</p>
       <!-- shown by /pwa.js where the browser offers installing -->
       <button id="installBtn" class="install" type="button" hidden>Install the app</button>
     </div>
@@ -69,17 +69,16 @@
   </div>
 </header>
 
-<!-- ============ The two rooms ============
+<!-- ============ The games ============
      Adding a game means a folder under public/ (or a Builder template) and
-     a row on /games/, the list of every game. Each room here shows four:
-     the Parlor for party and pub games, the Living Room for family and
-     tabletop ones. -->
+     a row on /games/, the list of every game. Each section here shows four,
+     drawn in its room's look (the Parlor's chalk, the Living Room's legal
+     pad); the rooms are the look, not the pitch, so they go unnamed. -->
 <main class="rooms">
   <section class="room parlor" id="parlor" aria-labelledby="parlor-h">
     <div class="room-head">
-      <span class="kicker">The Parlor</span>
-      <h2 id="parlor-h">Team games &amp; long tallies</h2>
-      <p>Partners, running totals to 500 and every checkout worked out, on one phone for the whole table.</p>
+      <h2 id="parlor-h">Free, Easy Scorekeeper</h2>
+      <p>Score Chalk supports teams and multi-device sharing now! You can count up, count down, have a fixed number of rounds, and end the game when a target score is reached or just highest/lowest wins. You set the terms!</p>
     </div>
     <div class="shelf">
       <a class="chalk-card" href="/darts/">
@@ -131,7 +130,6 @@
 
   <section class="room living" id="living" aria-labelledby="living-h">
     <div class="room-head">
-      <span class="kicker">The Living Room</span>
       <h2 id="living-h">Score sheets &amp; counters</h2>
       <p>Yahtzee's boxes, cribbage's pegs and every life point, filled in and added up as you play.</p>
     </div>
@@ -189,7 +187,6 @@
 <footer class="workshop">
   <div class="workshop-in">
     <div>
-      <span class="kicker">The Workshop</span>
       <h2>Build your own scorekeeper</h2>
       <p>For a game that isn't here yet: choose how it ends, which way it scores, teams or no teams, and name your own scoring buttons.</p>
       <a class="build" href="/builder/">Open the Builder</a>

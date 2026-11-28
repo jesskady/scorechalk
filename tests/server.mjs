@@ -127,7 +127,7 @@ describe('the server', () => {
 
     // the home page says what it is, and is the one address for itself
     const home = await (await get('/')).text();
-    assert.match(home, /<title>Score Chalk — Free Score Keeper/);
+    assert.match(home, /<title>Score Chalk — The Easy, Free Score Keeper/);
     assert.match(home, /<link rel="canonical" href="https:\/\/scorechalk\.com\/">/);
     const ld = JSON.parse(home.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)[1]);
     assert.deepEqual(ld.map((x) => x['@type']), ['WebSite', 'Organization']);
