@@ -64,6 +64,16 @@ Everything to be done on the site is on the work board at `/admin/#work`
 - Statuses change on the board, never by editing `qa/seo/ledger.md`. That
   file belongs to the audit, which reads the board each run.
 
+## What Score Chalk is
+
+The best replacement for the pen-and-paper score sheet: easy scorekeeping,
+especially for games whose scoring is a pain to track by hand (bids, bags,
+doubling, running totals, checkouts). It isn't a rules engine or a game
+platform. Copy leads with that convenience, in the positive ("easy
+scorekeeping, even for the trickiest games"), not with what's wrong with
+paper, and not with pubs or tabletops. The rooms (Parlor, Living Room,
+Workshop) are the look, not the pitch.
+
 ## How the site should behave
 
 - **Two ways of doing the same thing get a choice screen.** When a game offers

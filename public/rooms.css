@@ -60,7 +60,7 @@ html:has(body.home-rooms){background:var(--slate)}
   text-shadow:0 0 1px #fff6, 0 0 14px #ffffff14;
 }
 .logo > :not(.mark):not(h1){grid-column:1 / -1}
-.logo p{margin:0;font:500 15px/1.4 var(--f-body);color:var(--chalk-dim);max-width:34ch;min-width:0}
+.logo p{margin:0;font:500 15px/1.4 var(--f-body);color:var(--chalk-dim);max-width:48ch;min-width:0}
 @media (min-width:700px){
   .logo{gap:12px 22px}
   .logo .mark{width:104px;height:104px}
