@@ -125,6 +125,66 @@ describe('the admin side', () => {
     assert.equal((await as(boss, '/api/admin/activity?days=9999')).data.days, 365, 'a year at most');
   });
 
+  test('the work board: a ledger read in, a status set here kept until the agent changes its own', async () => {
+    const boss = account('admin@test.local', 'Boss');
+    const player = account('player2@test.local');
+    const ledger = (s1, s2, note = 'Checked live.') => [
+      '# Score Chalk SEO ledger', '',
+      '| ID | Suggestion | Area | Impact | Effort | First seen | Status | Last checked | Evidence / notes |',
+      '|---|---|---|---|---|---|---|---|---|',
+      `| SEO-001 | Send \`X-Robots-Tag: noindex\` on shared links. The Worker already rewrites these. | Technical: Crawling | High | S | 2026-11-22 | ${s1} | 2026-11-25 | ${note} |`,
+      `| SEO-002 | Add a **Cricket** mode, then a guide page. | Content & UX: New pages | Med | L | 2026-11-23 | ${s2} | 2026-11-25 | |`,
+      '', 'Not part of the table.',
+    ].join('\n');
+    const read = (md) => as(boss, '/api/admin/work/import', 'POST', { source: 'seo', markdown: md });
+    const items = async () => Object.fromEntries((await as(boss, '/api/admin/work')).data.items.map((i) => [i.id, i]));
+
+    assert.equal((await as(player, '/api/admin/work')).status, 403, 'admins only');
+    const first = await read(ledger('Pending', 'New'));
+    assert.equal(first.status, 200, JSON.stringify(first.data));
+    assert.deepEqual([first.data.rows, first.data.added], [2, 2]);
+    let it = await items();
+    assert.equal(it['SEO-001'].title, 'Send `X-Robots-Tag: noindex` on shared links', 'the first sentence is the title');
+    assert.deepEqual([it['SEO-001'].status, it['SEO-001'].impact, it['SEO-002'].status], ['todo', 'High', 'new']);
+
+    // set here, the same ledger read again: it stays
+    assert.equal((await as(boss, '/api/admin/work/item/SEO-002', 'PATCH', { status: 'dismissed', notes: 'Not this year' })).status, 200);
+    assert.equal((await read(ledger('Pending', 'New', 'Checked again.'))).data.moved, 0);
+    it = await items();
+    assert.deepEqual([it['SEO-002'].status, it['SEO-002'].notes], ['dismissed', 'Not this year']);
+    assert.equal(it['SEO-001'].agent_notes, 'Checked again.', "the agent's evidence is kept up to date");
+
+    // the agent finds it done: that moves it
+    assert.equal((await read(ledger('Done', 'Pending'))).data.moved, 2);
+    it = await items();
+    assert.equal(it['SEO-001'].status, 'done');
+    assert.ok(it['SEO-001'].done_at);
+    assert.equal(it['SEO-002'].status, 'todo');
+    const log = (await as(boss, '/api/admin/work/item/SEO-002')).data.log.map((x) => [x.by, x.change]);
+    assert.deepEqual(log, [
+      ['sync: seo', 'Added by the SEO audit as New'],
+      ['admin@test.local', "New → Won't do"], ['admin@test.local', 'Notes edited'],
+      ['sync: seo', "Won't do → To do (the SEO audit says Pending)"],
+    ]);
+    assert.equal((await as(boss, '/api/admin/work/item/SEO-001', 'DELETE')).status, 400, "an agent's item isn't deleted, it would come back");
+    assert.equal((await as(boss, '/api/admin/work/item/SEO-001', 'PATCH', { title: 'Mine now' })).data.item.title,
+      'Send `X-Robots-Tag: noindex` on shared links', "an agent's words stay the ledger's");
+  });
+
+  test('the work board: an item written by hand', async () => {
+    const boss = account('admin@test.local', 'Boss');
+    assert.equal((await as(boss, '/api/admin/work', 'POST', { title: '  ' })).status, 400);
+    const a = await as(boss, '/api/admin/work', 'POST', { title: 'Darts: two tabs lose a turn', kind: 'bug', impact: 'High' });
+    const b = await as(boss, '/api/admin/work', 'POST', { title: 'Dark mode for Yahtzee', kind: 'idea' });
+    assert.match(a.data.id, /^W-\d{3}$/);
+    assert.equal(Number(b.data.id.slice(2)), Number(a.data.id.slice(2)) + 1, 'numbered in turn');
+    const p = await as(boss, `/api/admin/work/item/${a.data.id}`, 'PATCH', { status: 'doing', title: 'Darts: two tabs on one game lose a turn' });
+    assert.deepEqual([p.data.item.status, p.data.item.title, p.data.item.source], ['doing', 'Darts: two tabs on one game lose a turn', 'me']);
+    assert.equal((await as(boss, `/api/admin/work/item/${a.data.id}`, 'PATCH', { status: 'nope' })).status, 400);
+    assert.equal((await as(boss, `/api/admin/work/item/${b.data.id}`, 'DELETE')).status, 200);
+    assert.equal((await as(boss, `/api/admin/work/item/${b.data.id}`)).status, 404);
+  });
+
   test('the page: a stranger is asked to sign in, an admin sees the users', async () => {
     const boss = account('admin@test.local', 'Boss');
     const pg = await phone(1200, 800);
@@ -146,6 +206,21 @@ describe('the admin side', () => {
     await pg.waitForSelector('.adm-err', { timeout: 10000 });
     await open(pg, '/admin/#log');
     await pg.waitForSelector('.adm-log', { timeout: 10000 });
+
+    // the work board: add a bug, open it, move it on
+    await open(pg, '/admin/#work');
+    await pg.waitForSelector('.adm-works', { timeout: 10000 });
+    await pg.click('.adm-add summary');
+    await pg.type('.adm-add input[name=title]', 'Cribbage: the crib counts twice');
+    await pg.select('.adm-add select[name=kind]', 'bug');
+    await pg.click('.adm-add button');
+    await pg.waitForFunction(() => [...document.querySelectorAll('.adm-work-title')].some((b) => b.textContent === 'Cribbage: the crib counts twice'), { timeout: 10000 });
+    const row = await pg.evaluateHandle(() => [...document.querySelectorAll('.adm-work')].find((r) => r.textContent.includes('the crib counts twice')));
+    await (await row.$('.adm-work-title')).click();
+    await pg.waitForFunction((r) => r.querySelector('.adm-hist li'), { timeout: 10000 }, row);
+    await (await row.$('.adm-status')).select('doing');
+    await pg.waitForFunction((r) => r.dataset.status === 'doing' && r.querySelectorAll('.adm-hist li').length === 2, { timeout: 10000 }, row);
+    assert.equal(await pg.$eval('.st-doing b', (b) => Number(b.textContent) >= 1), true, 'the count follows');
     await wait(200);
     assert.deepEqual(pg.errors, []);
     await pg.close();

@@ -12,6 +12,7 @@ import { listCustomGames, putCustomGame, deleteCustomGame } from './custom-games
 import { reportError, recordError, cleanErrors } from './errors.js';
 import { accountKey } from './guard.js';
 import { admin, isAdminEmail } from './admin.js';
+import { syncWork } from './work.js';
 import { shareCheck, createShare, getShare, putShare, putCells, claimSeat, freeSeat, deleteShare, cleanShares, previewFor } from './share.js';
 
 const CANONICAL = 'scorechalk.com';
@@ -24,9 +25,10 @@ const json = (body, status = 200) =>
 
 export default {
   // Once a day (see "triggers" in wrangler.jsonc): let go of shared games
-  // that have gone 30 days without a change, and errors unseen as long.
+  // that have gone 30 days without a change, and errors unseen as long; and
+  // bring the work board up to date with the agents' ledgers (work.js).
   async scheduled(event, env, ctx) {
-    ctx.waitUntil(Promise.all([cleanShares(env), cleanErrors(env)]));
+    ctx.waitUntil(Promise.all([cleanShares(env), cleanErrors(env), syncWork(env)]));
   },
 
   // Every request, with any that throws kept as an error (see errors.js)

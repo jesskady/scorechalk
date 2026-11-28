@@ -135,6 +135,7 @@ worker/
   stats.js        /api/stats: lifetime darts figures, in SQL
   custom-games.js /api/custom-games: My games, saved builder rules
   admin.js        /api/admin: the tables, users, and deleting (see Admin)
+  work.js         /api/admin/work: the work board, and reading the agents' ledgers
 migrations/
   0001_init.sql   users, games, game_players, turns
 
@@ -146,6 +147,7 @@ darts, so a second game does not inherit a column named after the first.
   0004_...sql     turns.darts -> turns.detail
   0005_...sql     custom_games: My games
   0010_...sql     admin_log: what admins have deleted
+  0011_...sql     work_items, work_log: the work board
 ```
 
 `public/` is what gets published and nothing outside it is, so
@@ -337,6 +339,17 @@ session ever needs revoking.
 
 - **Overview**: every table and how many rows it holds, and the database's
   size against `DB_CEILING_MB`.
+- **Work**: one list of everything there is to do on the site. The scheduled
+  agents' suggestions are read from their ledgers on GitHub
+  (`qa/seo/ledger.md` on the `qa/seo` branch) by the daily job and by
+  **Sync ledgers**. Bugs, improvements and ideas can be added by hand
+  (`W-001`, …). Each item has a status (New, To do, In progress, Done, Won't
+  do), notes of your own, and a history. A status set here stays until the
+  agent's ledger reports a different one, which then wins once. An agent's
+  item can't be deleted (the next sync would bring it back), only marked
+  Won't do. A new agent is one entry in `SOURCES` in `worker/work.js`, so
+  long as its ledger has the same columns. Kept in `work_items` and
+  `work_log` (`migrations/0011`).
 - **Activity**: sign-ups, games started and finished, and games shared, a
   bar a day over 7, 30 or 90 days or a year (UTC days), with which games are
   played — and the same numbers as a table.

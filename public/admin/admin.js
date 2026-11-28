@@ -8,6 +8,7 @@
      #users  or  #users/<search>
      #errors/latest  or  #errors/count
      #log
+     #work/<open|done|dismissed|all>[/<source>]   the work board
      #tables/<table>  or  #tables/<table>/<column>/<value>[/<offset>] */
 
 (function () {
@@ -522,6 +523,267 @@
     return [card];
   }
 
+  /* ---------------- the work board ---------------- */
+
+  // Which statuses each filter shows. Open is what's still to be done.
+  const FILTERS = { open: ['doing', 'new', 'todo'], done: ['done'], dismissed: ['dismissed'], all: null };
+  const ORDER = ['doing', 'new', 'todo', 'done', 'dismissed'];
+  const IMPACT = { High: 0, Med: 1, Low: 2 };
+  const idNum = (id) => Number((id.match(/\d+$/) || [0])[0]);
+
+  async function send(path, method, body) {
+    const r = await fetch('/api/admin' + path, {
+      method, headers: { 'content-type': 'application/json', accept: 'application/json' }, body: JSON.stringify(body || {}),
+    });
+    const data = await r.json().catch(() => null);
+    if (!r.ok) throw new Error((data && data.error) || `Error ${r.status}`);
+    return data;
+  }
+
+  // The ledgers are Markdown: `code` and **bold** are shown as such, the rest as text.
+  function inline(text) {
+    const p = el('p', 'adm-md');
+    String(text || '').split(/(`[^`]+`|\*\*[^*]+\*\*)/).forEach((bit) => {
+      if (/^`.+`$/.test(bit)) p.append(el('code', null, bit.slice(1, -1)));
+      else if (/^\*\*.+\*\*$/.test(bit)) p.append(el('b', null, bit.slice(2, -2)));
+      else if (bit) p.append(document.createTextNode(bit));
+    });
+    return p;
+  }
+
+  function statusPick(statuses, value) {
+    const s = el('select', 'adm-status');
+    for (const k of ORDER) {
+      const o = el('option', null, statuses[k]);
+      o.value = k;
+      if (k === value) o.selected = true;
+      s.append(o);
+    }
+    return s;
+  }
+
+  function workRow(it, d, recount) {
+    const row = el('li', 'adm-work');
+    row.dataset.status = it.status;
+    const from = it.source === 'me' ? 'Mine' : (d.sources[it.source] || it.source);
+
+    const head = el('div', 'adm-work-head');
+    const facts = el('div', 'adm-work-facts');
+    facts.append(el('span', 'adm-mono adm-work-id', it.id));
+    // an agent's items are all of its one kind, which the source already says
+    if (it.source === 'me') facts.append(el('span', 'adm-badge kind-' + it.kind, it.kind));
+    if (it.impact) facts.append(el('span', 'adm-badge imp-' + it.impact.toLowerCase(), it.impact + ' impact'));
+    if (it.effort) facts.append(el('span', 'adm-badge', 'effort ' + it.effort));
+    facts.append(el('small', null, [from, it.area].filter(Boolean).join(' · ')));
+
+    const pick = statusPick(d.statuses, it.status);
+    pick.setAttribute('aria-label', `Status of ${it.id}`);
+    pick.addEventListener('change', async () => {
+      pick.disabled = true;
+      try {
+        const r = await send('/work/item/' + part(it.id), 'PATCH', { status: pick.value });
+        Object.assign(it, r.item);
+        row.dataset.status = it.status;
+        recount();
+        if (body.isConnected && !body.classList.contains('hidden')) fill();
+      } catch (e) { pick.value = it.status; alertIn(row, e.message); }
+      pick.disabled = false;
+    });
+    head.append(facts, pick);
+
+    const title = el('button', 'adm-work-title', it.title);
+    title.setAttribute('aria-expanded', 'false');
+    const body = el('div', 'adm-work-body hidden');
+
+    // what's inside is drawn when first opened, and again after a change
+    async function fill() {
+      const parts = [];
+      if (it.detail) parts.push(inline(it.detail));
+      if (it.agent_notes) {
+        const det = el('details');
+        det.append(el('summary', null, `What the ${from} last saw` + (it.last_checked ? `, ${it.last_checked}` : '')), inline(it.agent_notes));
+        parts.push(det);
+      }
+      const dates = [it.first_seen && `first seen ${it.first_seen}`,
+        it.agent_status && it.agent_status !== d.statuses[it.status] && `the ledger says ${it.agent_status}`,
+        it.done_at && `done ${fmtDate(it.done_at)}`].filter(Boolean);
+      if (dates.length) parts.push(el('small', null, dates.join(' · ')));
+
+      // your own notes: kept apart from the ledger's, so a sync never touches them
+      const notes = el('textarea', 'adm-notes');
+      notes.placeholder = 'Your notes';
+      notes.value = it.notes || '';
+      notes.rows = Math.min(8, Math.max(2, (it.notes || '').split('\n').length + 1));
+      const save = el('button', 'adm-btn', 'Save notes');
+      save.addEventListener('click', async () => {
+        save.disabled = true;
+        try {
+          Object.assign(it, (await send('/work/item/' + part(it.id), 'PATCH', { notes: notes.value })).item);
+          save.textContent = 'Saved';
+          setTimeout(() => { save.textContent = 'Save notes'; }, 1500);
+          showLog();
+        } catch (e) { save.textContent = e.message; }
+        save.disabled = false;
+      });
+      const acts = el('div', 'adm-acts');
+      acts.append(save);
+      if (it.source === 'me') {
+        acts.append(deleteButton('Delete', 'Sure? It goes for good', async () => {
+          await send('/work/item/' + part(it.id), 'DELETE');
+          d.items.splice(d.items.indexOf(it), 1);
+          row.remove();
+          recount();
+        }));
+      }
+      const hist = el('ul', 'adm-hist');
+      async function showLog() {
+        const r = await api('/work/item/' + part(it.id));
+        hist.replaceChildren(...r.log.map((x) => {
+          const li = el('li');
+          li.append(el('small', null, `${fmtDate(x.at)} · ${x.by}`), document.createTextNode(' ' + x.change));
+          return li;
+        }));
+      }
+      parts.push(notes, acts, hist);
+      body.replaceChildren(...parts);
+      showLog().catch(() => {});
+    }
+
+    title.addEventListener('click', () => {
+      const open = body.classList.toggle('hidden') === false;
+      title.setAttribute('aria-expanded', String(open));
+      if (open) fill();
+    });
+    row.append(head, title, body);
+    return row;
+  }
+
+  function alertIn(row, msg) {
+    const n = note(msg);
+    row.append(n);
+    setTimeout(() => n.remove(), 5000);
+  }
+
+  // a new bug, idea or task, written by hand
+  function addForm(onAdded) {
+    const box = el('details', 'adm-card adm-add');
+    box.append(el('summary', null, 'Add a bug, idea or task'));
+    const form = el('form', 'adm-form');
+    const title = Object.assign(el('input'), { placeholder: 'What is it?', required: true, maxLength: 200, name: 'title' });
+    const kind = el('select');
+    kind.name = 'kind';
+    for (const k of ['bug', 'improvement', 'idea', 'task']) kind.append(Object.assign(el('option', null, k), { value: k }));
+    const impact = el('select');
+    impact.name = 'impact';
+    impact.append(Object.assign(el('option', null, 'Impact…'), { value: '' }));
+    for (const k of ['High', 'Med', 'Low']) impact.append(Object.assign(el('option', null, k), { value: k }));
+    const detail = Object.assign(el('textarea'), { placeholder: 'Details: where it happens, what should happen instead', rows: 3, name: 'detail' });
+    const go = el('button', 'adm-btn', 'Add');
+    const row = el('div', 'adm-search');
+    row.append(kind, impact, go);
+    form.append(title, detail, row);
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      go.disabled = true;
+      try {
+        await send('/work', 'POST', { title: title.value, kind: kind.value, impact: impact.value || null, detail: detail.value });
+        form.reset();
+        await onAdded();
+      } catch (err) { go.textContent = err.message; setTimeout(() => { go.textContent = 'Add'; }, 3000); }
+      go.disabled = false;
+    });
+    box.append(form);
+    return box;
+  }
+
+  async function workBoard(filter, source) {
+    if (!(filter in FILTERS)) filter = 'open';
+    const d = await api('/work');
+    const base = (f, s) => `#work/${f}` + (s ? '/' + part(s) : '');
+
+    const bar = el('div', 'adm-search');
+    for (const [k, label] of [['open', 'Open'], ['done', 'Done'], ['dismissed', "Won't do"], ['all', 'All']]) {
+      const a = el('a', 'adm-btn' + (k === filter ? ' on' : ''), label);
+      a.href = base(k, source);
+      bar.append(a);
+    }
+    const from = el('select');
+    from.setAttribute('aria-label', 'Where items came from');
+    from.append(Object.assign(el('option', null, 'Everywhere'), { value: '' }));
+    for (const [k, name] of [...Object.entries(d.sources), ['me', 'Mine']]) {
+      const o = Object.assign(el('option', null, name), { value: k });
+      if (k === source) o.selected = true;
+      from.append(o);
+    }
+    from.addEventListener('change', () => go(base(filter, from.value).slice(1)));
+    const find = Object.assign(el('input'), { type: 'search', placeholder: 'Find' });
+    find.setAttribute('aria-label', 'Find an item');
+    const sync = el('button', 'adm-btn', 'Sync ledgers');
+    sync.type = 'button';
+    bar.append(from, find, sync);
+
+    const stats = el('div', 'adm-stats adm-work-stats');
+    const list = el('ul', 'adm-works');
+    const card = el('section', 'adm-card');
+    const heading = el('h2');
+    const empty = note('');
+    card.append(heading, list, empty);
+    const syncNote = note('');
+    syncNote.classList.add('hidden');
+
+    const inSource = (it) => !source || it.source === source;
+    function recount() {
+      const n = {};
+      d.items.filter(inSource).forEach((it) => { n[it.status] = (n[it.status] || 0) + 1; });
+      stats.replaceChildren(...ORDER.map((k) => {
+        const a = el('a', 'adm-stat adm-stat-link st-' + k);
+        a.href = base(k === 'done' || k === 'dismissed' ? k : 'open', source);
+        a.append(el('b', null, String(n[k] || 0)), el('span', null, d.statuses[k]));
+        return a;
+      }));
+    }
+
+    function draw() {
+      const want = FILTERS[filter];
+      const q = find.value.trim().toLowerCase();
+      const shown = d.items
+        .filter((it) => inSource(it) && (!want || want.includes(it.status)))
+        .filter((it) => !q || [it.id, it.title, it.detail, it.area, it.notes].some((s) => s && s.toLowerCase().includes(q)))
+        .sort((a, b) => ORDER.indexOf(a.status) - ORDER.indexOf(b.status) ||
+          (IMPACT[a.impact] ?? 3) - (IMPACT[b.impact] ?? 3) ||
+          a.id.split('-')[0].localeCompare(b.id.split('-')[0]) || idNum(a.id) - idNum(b.id));
+      heading.textContent = `${plural(shown.length, 'item')}${q ? ` matching “${find.value.trim()}”` : ''}`;
+      list.replaceChildren(...shown.map((it) => workRow(it, d, recount)));
+      empty.textContent = shown.length ? '' : (d.items.length ? 'Nothing here.' : 'No items yet. Sync the ledgers, or add one.');
+    }
+    find.addEventListener('input', draw);
+
+    async function reload() {
+      Object.assign(d, await api('/work'));
+      recount();
+      draw();
+    }
+
+    sync.addEventListener('click', async () => {
+      sync.disabled = true;
+      sync.textContent = 'Syncing…';
+      try {
+        const r = (await send('/work/sync', 'POST')).results;
+        syncNote.textContent = r.map((x) => `${d.sources[x.source] || x.source}: ` + (x.error ? `couldn't read the ledger (${x.error})`
+          : `${plural(x.rows, 'row')}, ${x.added} new, ${x.moved} moved by the agent`)).join('. ') + '.';
+        await reload();
+      } catch (e) { syncNote.textContent = e.message; }
+      syncNote.classList.remove('hidden');
+      sync.disabled = false;
+      sync.textContent = 'Sync ledgers';
+    });
+
+    recount();
+    draw();
+    return [bar, syncNote, stats, addForm(reload), card,
+      note('Agent items come from their ledgers on GitHub, read every morning and when you press Sync. A status you set here stays until the agent reports a different one.')];
+  }
+
   /* ---------------- where you are ---------------- */
 
   async function show() {
@@ -530,7 +792,8 @@
     view.replaceChildren(note('Loading…'));
     try {
       let nodes;
-      if (tab === 'users') nodes = await users(rest[0] || '');
+      if (tab === 'work') nodes = await workBoard(rest[0] || 'open', rest[1] || '');
+      else if (tab === 'users') nodes = await users(rest[0] || '');
       else if (tab === 'activity') nodes = await activity(Number(rest[0]) || 30);
       else if (tab === 'errors') nodes = await errors(rest[0]);
       else if (tab === 'log') nodes = await log();
