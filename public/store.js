@@ -93,7 +93,8 @@ window.SCStore = (function () {
     const n = document.createElement('div');
     n.textContent = text;
     n.setAttribute('role', 'status');
-    n.style.cssText = 'position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:50;' +
+    // clear of an iPhone's status bar, over a page installed to the home screen
+    n.style.cssText = 'position:fixed;left:50%;top:calc(12px + env(safe-area-inset-top, 0px));transform:translateX(-50%);z-index:50;' +
       'max-width:calc(100vw - 24px);padding:10px 14px;border-radius:10px;font-size:14px;line-height:1.35;' +
       'background:var(--card,#1d2530);color:var(--txt,#eee);border:1px solid var(--gold,#c9a35a);' +
       'box-shadow:0 8px 20px var(--shadow,#0008);text-align:center';

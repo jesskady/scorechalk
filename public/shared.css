@@ -14,6 +14,10 @@
   --red:#c0392b;
   --gold:#e0b341;
   --pad: env(safe-area-inset-bottom, 0px);
+  /* the top's like it: an iPhone's status bar and notch, over a page
+     installed to the home screen (viewport-fit=cover, black-translucent),
+     which would otherwise sit under them; nothing elsewhere */
+  --top: env(safe-area-inset-top, 0px);
 }
 
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -36,7 +40,8 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
 /* ---------- Account bubble (every page) ---------- */
 /* z-index stays below the game overlays (10 and 20 in darts) so a win or
    confirm dialog is never floated over by the avatar. */
-.acct{position:fixed;top:8px;right:10px;z-index:5}
+/* clear of an iPhone's status bar (see --top) */
+.acct{position:fixed;top:calc(8px + var(--top));right:10px;z-index:5}
 .acct[hidden]{display:none}
 
 .acct-bubble{
@@ -205,7 +210,7 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
 /* Setup screens (#setup, and Magic's #formats) are menus, not play, so
    they can take a little more height than the game screens, which have to
    fit one phone screen without scrolling and are left alone. */
-#setup.screen,#formats.screen{gap:12px;padding-top:14px;padding-bottom:calc(24px + var(--pad))}
+#setup.screen,#formats.screen{gap:12px;padding-top:calc(14px + var(--top));padding-bottom:calc(24px + var(--pad))}
 #setup .brand,#formats .brand{padding:10px 0 6px}
 #setup .card,#formats .card{padding:14px;gap:12px}
 
@@ -215,7 +220,7 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
    cards, a larger heading — rather than sitting as a cramped strip. The
    game screens are left alone: they are laid out for one screen of play. */
 @media (min-width:900px){
-  #setup.screen,#formats.screen{max-width:680px;padding:36px 28px calc(64px + var(--pad));gap:20px}
+  #setup.screen,#formats.screen{max-width:680px;padding:calc(36px + var(--top)) 28px calc(64px + var(--pad));gap:20px}
   #setup .brand,#formats .brand{padding:10px 0 10px}
   #setup .brand h1,#formats .brand h1{font-size:38px}
   #setup .brand p,#formats .brand p{font-size:15.5px;margin-top:6px}

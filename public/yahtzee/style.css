@@ -4,7 +4,7 @@
 
 .screen{
   max-width:560px;margin:0 auto;
-  padding:10px 10px calc(10px + var(--pad));
+  padding:calc(10px + var(--top)) 10px calc(10px + var(--pad));
   display:flex;flex-direction:column;gap:8px;min-height:100%;
 }
 
@@ -48,7 +48,7 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
    The player tiles stay at the top while the sheet scrolls. */
 /* The game is one screen tall and the sheet takes what the top bar leaves;
    only a very short screen, where the rows hit their 26px floor, scrolls. */
-#game.screen{height:100dvh;min-height:0;gap:6px;padding-top:6px}
+#game.screen{height:100dvh;min-height:0;gap:6px;padding-top:calc(6px + var(--top))}
 /* Wider than the other screens when there are players to fit: about 96px a
    player beside the names, so a laptop shows ten without scrolling. A phone
    is narrower than this anyway, and scrolls past four as before. */

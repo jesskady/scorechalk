@@ -3,7 +3,7 @@
 
 body{-webkit-user-select:text;user-select:text;height:auto;min-height:100%}
 
-.adm{max-width:1100px;margin:0 auto;padding:14px 16px 40px;display:flex;flex-direction:column;gap:14px}
+.adm{max-width:1100px;margin:0 auto;padding:calc(14px + env(safe-area-inset-top, 0px)) 16px 40px;display:flex;flex-direction:column;gap:14px}
 
 .adm-head{display:flex;flex-direction:column;gap:4px}
 .adm-head h1{font-size:23px;letter-spacing:-.3px}

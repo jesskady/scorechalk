@@ -109,3 +109,35 @@ describe('game links', () => {
     await pg.close();
   });
 });
+
+/* An iPhone with Score Chalk on its home screen draws the page under its
+   status bar and notch (viewport-fit=cover, black-translucent): every page
+   keeps the way home and Sign in below it. The phone's safe area is
+   simulated here, as an iPhone with a notch has it. */
+describe('under an iPhone status bar', () => {
+  test('the way home and Sign in are below it, on every kind of page', async () => {
+    const pg = await phone();
+    const cdp = await pg.createCDPSession();
+    await cdp.send('Emulation.setSafeAreaInsetsOverride', { insets: { top: 59, bottom: 34 } });
+    const pages = [['/darts/'], ['/cribbage/', () => { setupNames = ['Ann', 'Bob', '']; setupN = 2; beginGame(); }],
+      ['/yahtzee/', () => openGame(newGame(['Ann', 'Bob']))], ['/builder/'], ['/magic/'], ['/bridge/'], ['/tournament/'],
+      ['/qwirkle-score-sheet/'], ['/games/'], ['/privacy/'], ['/account/']];
+    for (const [path, setup] of pages) {
+      await open(pg, path);
+      if (setup) { await pg.evaluate(setup); await wait(300); }
+      const at = await pg.evaluate(() => {
+        const back = [...document.querySelectorAll('.backlink')].map((x) => x.getBoundingClientRect()).find((r) => r.height > 0);
+        // Sign in, as it shows signed out (the test server has no sign-in to offer)
+        const acct = document.querySelector('.acct');
+        if (acct) { acct.hidden = false; if (!acct.innerHTML) acct.innerHTML = '<a class="acct-pill" href="#">Sign in</a>'; }
+        // (in a game it gives way to the game's own buttons: nothing to place)
+        const shown = acct && getComputedStyle(acct).display !== 'none';
+        return { back: back ? back.top : null, acct: shown ? acct.getBoundingClientRect().top : null };
+      });
+      assert.ok(at.back >= 59, `${path}: the way home is under the status bar (${at.back})`);
+      if (at.acct !== null) assert.ok(at.acct >= 59, `${path}: Sign in is under the status bar (${at.acct})`);
+    }
+    assert.deepEqual(pg.errors, []);
+    await pg.close();
+  });
+});

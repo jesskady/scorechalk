@@ -4,7 +4,7 @@ body.guide{
   background:var(--bg,#1c2723);color:var(--txt,#ecebe3);
   -webkit-user-select:text;user-select:text;
 }
-.guide main{max-width:720px;margin:0 auto;padding:18px 18px 56px;line-height:1.6;font-size:16.5px}
+.guide main{max-width:720px;margin:0 auto;padding:calc(18px + env(safe-area-inset-top, 0px)) 18px 56px;line-height:1.6;font-size:16.5px}
 .guide .backlink{color:var(--dim,#a7b0a9);font-size:14px;text-decoration:none}
 .guide a{color:var(--gold,#c9a35a)}
 
