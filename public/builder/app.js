@@ -1080,19 +1080,11 @@ function toPayload() {
   };
 }
 
-async function saveToProfile(r) {
-  const note = $('winSave');
-  note.textContent = '';
-  note.onclick = null;
-  if (!me) return;                    // signed out: nothing to save to
-  note.textContent = 'Saving to your profile…';
-  try {
-    await SCCloud.now(cloudGame);
-    note.textContent = 'Saved to your profile';
-  } catch (e) {
-    note.textContent = 'Could not save to your profile. Tap to try again.';
-    note.onclick = () => saveToProfile(r);
-  }
+/* The finished game on the profile, saved at once and saying so; signed
+   out, the offer to sign in and keep it (see /cloud.js). In a game of
+   teams the players are the teams, and you are your side. */
+function saveToProfile() {
+  SCCloud.offer($('winSave'), { build: cloudGame, me: S.me, pick: (i) => { S.me = i; save(); } });
 }
 
 /* ---------------- My games ---------------- */
@@ -2307,7 +2299,7 @@ function showWin(r) {
   S.winnerIdx = r.winners && r.winners.length === 1 ? r.winners[0] : null;
   SCSeries.show($('winSeries'), c.names, S.series && SCSeries.add(S.series, S.winnerIdx));
   SCStore.put(TYPE, S, true);
-  saveToProfile(r);
+  saveToProfile();
 }
 
 $('rematchBtn').onclick = () => {
@@ -2370,7 +2362,12 @@ async function openFromUrl() {
   const at = SCStore.urlId();
   if (at && !location.hash) {
     const st = await SCStore.open(TYPE, at.id, at.fresh);
-    if (st && st.cfg) { openGame(st); return; }
+    if (st && st.cfg) {
+      openGame(st);
+      // back from signing in to keep it: its result again, as it saves
+      if (S.endedAt && SCCloud.claiming(S.id)) showWin(result() || { ...best(Math.max), final: !S.cfg.finishWins });
+      return;
+    }
     SCStore.leave();
     SCStore.notice("That game isn't on this device. Sign in to open games saved to your profile.");
   }

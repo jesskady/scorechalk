@@ -223,7 +223,9 @@ export async function callbackGoogle(request, env, url) {
   return new Response(null, {
     status: 302,
     headers: {
-      Location: typeof pending.next === 'string' && pending.next.startsWith('/') ? pending.next : '/',
+      // back to a page of this site only: '//host' and '/\host' are
+      // addresses on other sites, as browsers read them
+      Location: typeof pending.next === 'string' && /^\/(?![\/\\])/.test(pending.next) ? pending.next : '/',
       // one Set-Cookie per header line: the session in, the pending state out
       'Set-Cookie': await sessionCookie(uid, env, secure),
     },

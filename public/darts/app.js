@@ -448,7 +448,12 @@ async function openFromUrl() {
   const at = SCStore.urlId();
   if (!at) return;
   const st = await SCStore.open(TYPE, at.id, at.fresh, window.SCSync ? (id) => window.SCSync.load(id) : null);
-  if (st) { openGame(st); return; }
+  if (st) {
+    openGame(st);
+    // back from signing in to keep it: its result again, as it saves
+    if (S.over && SCCloud.claiming(S.id)) showWin();
+    return;
+  }
   SCStore.leave();
   SCStore.notice("That game isn't on this device. Sign in to open games saved to your profile.");
 }
@@ -862,9 +867,8 @@ function endGame() {
   S.over = true;
   S.winner = G.winner;
   save();
-  // at the end of a game, to the profile at once rather than a moment later
-  if (window.SCCloud) SCCloud.now(cloudGame).catch(() => {});
   render();
+  // the result screen saves it to the profile at once, or offers to
   showWin();
 }
 
@@ -1134,6 +1138,13 @@ function showWin() {
   SCSeries.show($('winSeries'), S.names, S.series && SCSeries.add(S.series, S.winner));
   $('newBtn').classList.toggle('hidden', !!tid());
   $('winOverlay').classList.remove('hidden');
+  saveToProfile();
+}
+
+/* The finished game on the profile, saved at once and saying so; signed
+   out, the offer to sign in and keep it (see /cloud.js). */
+function saveToProfile() {
+  SCCloud.offer($('winSave'), { build: cloudGame, me: S.me, pick: (i) => { S.me = i; save(); } });
 }
 
 /* ---------------- render ---------------- */

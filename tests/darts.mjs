@@ -4,7 +4,7 @@
 
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { phone, open, startGame, share, join, settle, wait, drag, editPress } from './helpers.mjs';
+import { phone, open, startGame, share, join, settle, wait, drag, editPress, account, sql, U } from './helpers.mjs';
 
 const look = (pg) => pg.evaluate(() => ({
   up: S.names[S.cur],
@@ -250,6 +250,57 @@ describe('Darts, a series of rematches', () => {
     await pg.click('#newBtn'); await wait(600);
     await pg.click('#startBtn'); await wait(300);
     assert.equal(await pg.evaluate(() => S.series), undefined);
+    assert.deepEqual(pg.errors, []);
+    await pg.close();
+  });
+});
+
+/* Signed out at the end of a game: the result offers to sign in and keep
+   it, and coming back signed in saves that game, with the player you said
+   you were. Google is skipped: the test signs in as its callback would. */
+describe('Darts, signing in at the end to keep the game', () => {
+  test('the offer, who you were, and the game saved on the way back', async () => {
+    const pg = await phone();
+    await open(pg, '/darts/');
+    await pg.evaluate(() => openGame(newGame(['Ann', 'Bob'], 40, { doubleOut: true })));
+    await wait(300);
+    await pg.evaluate(() => { addDart(0); submitTurn(); });
+    await pg.click('.mult[data-m="2"]');
+    await pg.evaluate(() => [...document.querySelectorAll('#numgrid .key')].find((b) => b.textContent === '20').click());
+    await pg.click('#submitBtn'); await wait(300);
+    await pg.click('#winBarBtn'); await wait(500);
+
+    assert.match(await pg.$eval('#winSave', (e) => e.textContent), /^Keep this game\?/);
+    await pg.evaluate(() => [...document.querySelectorAll('#winSave .keep-who .seg')].find((b) => b.textContent === 'Bob').click());
+    assert.equal(await pg.evaluate(() => SCStore.get(S.id).state.me), 1, 'who you were is kept with the game');
+
+    // Sign in: the link goes to Google, coming back to this game
+    const next = await pg.evaluate(() => {
+      const go = document.querySelector('#winSave .keep-go');
+      go.addEventListener('click', (e) => e.preventDefault());
+      go.click();
+      return new URL(go.href).searchParams.get('next');
+    });
+    const id = await pg.evaluate(() => S.id);
+    assert.equal(next, `/darts/?g=${id}`);
+
+    const me = account('keeper@test.local', 'Bob');
+    const [name, value] = me.cookie.split('=');
+    await pg.setCookie({ name, value, url: U });
+    await open(pg, next);
+    await wait(800);
+    assert.equal(await pg.evaluate(() => winOverlay.classList.contains('hidden')), false, 'back on the result');
+    assert.equal(await pg.$eval('#winSave', (e) => e.textContent), 'Signed in, and this game is saved to your profile');
+    const [g] = sql(`SELECT me_idx, winner_idx, ended_at FROM games WHERE id = '${id}' AND owner_user_id = '${me.id}'`);
+    assert.equal(g.me_idx, 1);
+    assert.equal(g.winner_idx, 1);
+    assert.ok(g.ended_at);
+    assert.equal(await pg.evaluate(() => localStorage.getItem('sc-keep')), null, 'the note is gone once it is saved');
+
+    // seen again later, it just says it is saved
+    await pg.click('#keepBtn'); await wait(200);
+    await pg.click('#winBarBtn'); await wait(500);
+    assert.equal(await pg.$eval('#winSave', (e) => e.textContent), 'Saved to your profile');
     assert.deepEqual(pg.errors, []);
     await pg.close();
   });

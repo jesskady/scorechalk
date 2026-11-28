@@ -174,6 +174,28 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
 .win-series{font-weight:700;font-size:14.5px;color:var(--gold)}
 .win-series[hidden]{display:none}
 
+/* ---------- The profile, on a game's result (/cloud.js, offer) ----------
+   Signed in, one quiet line: saved. Signed out, an offer to sign in and
+   keep the game, with which player you were when that isn't known. */
+.win-save{font-size:12.5px}
+.win-save:empty{display:none}
+.win-save a:not(.keep-go){color:inherit;text-decoration:underline}
+.win-card .win-save.keep{
+  display:flex;flex-direction:column;gap:10px;padding:14px;text-align:left;
+  border:1px solid var(--line);border-radius:12px;background:var(--bg2);
+  font-size:14px !important;line-height:1.4;color:var(--dim);
+}
+.keep-lede b{color:var(--txt)}
+.keep-who{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.keep-ask{font-size:13px;margin-right:2px}
+.keep-ask.is-asking{color:var(--gold);font-weight:700}
+.keep-who .seg{padding:7px 12px;font-size:14px}
+.keep-go{
+  display:flex;align-items:center;justify-content:center;gap:8px;padding:11px 14px;
+  border-radius:10px;background:var(--green-d);border:1px solid var(--green);
+  color:#fff;font-weight:700;text-decoration:none;
+}
+
 /* ---------- Edit game (/editgame.js) ----------
    A sheet over the game, on the game's own .overlay and .win-card: the
    players' list in it is the .roster above. Ten players scroll inside it,

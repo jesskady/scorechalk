@@ -77,7 +77,6 @@ const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
 let S = null;            // the game; null on the setup screen
-let me = null;           // the signed-in user, for saving to the profile
 let msgTimer = null;
 
 /* ---------------- state ----------------
@@ -1244,25 +1243,12 @@ function toPayload() {
   };
 }
 
-async function saveToProfile() {
-  const note = $('winSave');
-  note.textContent = '';
-  note.onclick = null;
-  if (!me) return;
-  note.textContent = 'Saving to your profile…';
-  try {
-    await SCCloud.now(cloudGame);
-    note.textContent = 'Saved to your profile';
-  } catch (e) {
-    note.textContent = 'Could not save to your profile. Tap to try again.';
-    note.onclick = saveToProfile;
-  }
+/* The finished game on the profile, saved at once and saying so; signed
+   out, the offer to sign in and keep it (see /cloud.js). */
+function saveToProfile() {
+  SCCloud.offer($('winSave'), { build: cloudGame, me: S.me, pick: (i) => { S.me = i; save(); } });
 }
 
-fetch('/api/me', { headers: { accept: 'application/json' } })
-  .then((r) => (r.ok ? r.json() : null))
-  .then((d) => { me = (d && d.user) || null; })
-  .catch(() => {});
 
 /* ---------------- boot ---------------- */
 
