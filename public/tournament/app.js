@@ -54,8 +54,10 @@ const GAMES = {
       new: id, t: T.id, tn: T.name, a: T.players[m.a], b: T.players[m.b],
       start: T.opts.start, din: T.opts.doubleIn ? 1 : 0, dout: T.opts.doubleOut ? 1 : 0,
     }),
+    // each player's points and turns, as the game last saved them (sum); a
+    // game kept in darts' first shape has them on its players
     result: (st) => (st.over && st.winner != null
-      ? { winner: st.winner, stats: st.players.map((p) => ({ points: p.points, turns: p.turns })) }
+      ? { winner: st.winner, stats: (st.sum || st.players || []).map((p) => ({ points: p.points, turns: p.turns })) }
       : null),
     // three-dart average over every match played
     tiebreak: {

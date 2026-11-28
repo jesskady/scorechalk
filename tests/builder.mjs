@@ -232,6 +232,42 @@ describe('Builder, live', () => {
     await pg.close();
   });
 
+  test('Qwirkle: tiles on 1, 5 and 10, a Qwirkle, the end bonus, and Finish naming the winner', async () => {
+    const pg = await phone();
+    await open(pg, '/builder/#qwirkle');
+    assert.match(await pg.evaluate(() => rulesText.textContent), /Highest wins at Finish · keys 1, 5, 10, Qwirkle 12, Went out 6/);
+    await pg.evaluate(() => { cfg.names = ['Ann', 'Bob']; saveCfg(); renderSetup(); });
+    await startGame(pg);
+    await pg.click('#viewRow [data-view="sheet"]'); await wait(300);    // on the sheet, whichever was picked
+    // a key as it reads: +1, +5, +10, or a named one by its name
+    const turn = async (p, keys) => {
+      await pg.click(`#sheet button.cell.open[data-p="${p}"]`); await wait(250);
+      for (const k of keys) {
+        await pg.evaluate((k) => [...document.querySelectorAll('#quickpad .key')]
+          .find((x) => (x.querySelector('b') ? x.querySelector('b').textContent : x.textContent.trim()) === k).click(), k);
+      }
+      // a moment between turns, as at a table: a second Enter within 0.7s is
+      // taken for a double tap and ignored (see commitBtn in the Builder)
+      await pg.click('#commitBtn'); await wait(800);
+    };
+    assert.equal(await pg.evaluate(() => signRow.classList.contains('hidden')), true, 'scores only go up: no minus');
+    await turn(0, ['+10', '+1', '+1', '+1']);            // Ann: 13 tiles' worth
+    await turn(1, ['Qwirkle', '+1', '+1', '+1']);         // Bob: a Qwirkle, and a line of three
+    await turn(0, ['Went out']);                          // Ann ends the game
+    assert.deepEqual(await pg.evaluate(() => S.scores), [19, 15]);
+    assert.match(await pg.evaluate(() => S.log[1].parts.map((x) => x.label).join(' ')), /Qwirkle/, 'the sheet says it was a Qwirkle');
+    // no target: Finish ends it, and the highest wins, named
+    await pg.click('#finishBtn'); await wait(300);
+    assert.equal(await pg.$eval('#confirmText', (p) => p.textContent), 'End the game here? The highest score wins.');
+    await pg.click('#confirmYes'); await wait(300);
+    assert.equal(await pg.$eval('#winName', (h) => h.textContent), 'Ann wins!');
+    assert.deepEqual(await pg.$$eval('#winTable li', (ls) => ls.map((l) => l.textContent)), ['Ann19', 'Bob15']);
+    assert.equal(await pg.evaluate(() => S.winnerIdx), 0);
+    assert.equal(await pg.$eval('#gameGuide', (a) => a.getAttribute('href')), '/qwirkle-score-sheet/');
+    assert.deepEqual(pg.errors, []);
+    await pg.close();
+  });
+
   test('UNO and Euchre: tap who scored, then what they made', async () => {
     const tapNamed = (pg, label) => pg.evaluate((l) => [...document.querySelectorAll('#quickpad .key b')]
       .find((b) => b.textContent === l).closest('.key').click(), label);

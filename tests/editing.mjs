@@ -6,7 +6,7 @@
 
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { phone, open, startGame, wait, drag, editNames, editRename, editPress } from './helpers.mjs';
+import { phone, open, startGame, share, wait, drag, editNames, editRename, editPress } from './helpers.mjs';
 
 const LIST = '.edit-game .roster';
 const grips = (pg) => pg.evaluate(() => document.querySelectorAll('.edit-game .roster-grip').length);
@@ -24,7 +24,7 @@ describe('Setting the order before the game', () => {
     assert.deepEqual(await pg.evaluate(() => [1, 2, 3].map((n) => $('name' + n).value)), ['Cy', 'Ann', 'Bob']);
     assert.equal(await pg.$eval('#meSel .is-on', (b) => b.textContent), 'Cy');
     await pg.click('#startBtn'); await wait(500);
-    assert.deepEqual(await pg.evaluate(() => [S.players.map((p) => p.name), S.meIdx]), [['Cy', 'Ann', 'Bob'], 0]);
+    assert.deepEqual(await pg.evaluate(() => [S.names, S.me]), [['Cy', 'Ann', 'Bob'], 0]);
     assert.deepEqual(pg.errors, []);
     await pg.close();
   });
@@ -39,7 +39,7 @@ describe('Setting the order before the game', () => {
     assert.equal(await on('youRow'), 'Bob');
     assert.equal(await on('dealRow'), 'Cy');
     await startGame(pg);
-    assert.deepEqual(await pg.evaluate(() => [S.names, S.names[S.dealer], S.names[S.me]]), [['Bob', 'Cy', 'Ann'], 'Cy', 'Bob']);
+    assert.deepEqual(await pg.evaluate(() => [S.names, S.names[play().dealer], S.names[S.me]]), [['Bob', 'Cy', 'Ann'], 'Cy', 'Bob']);
     assert.deepEqual(pg.errors, []);
     await pg.close();
   });
@@ -60,7 +60,7 @@ describe('Edit game', () => {
   test('Darts: scores, the turn, Undo and You go with each player', async () => {
     const pg = await phone();
     await open(pg, '/darts/');
-    await pg.evaluate(() => openGame(newGame(['Ann', 'Bob', 'Cy'], 101, { meIdx: 2 })));
+    await pg.evaluate(() => openGame(newGame(['Ann', 'Bob', 'Cy'], 101, { me: 2 })));
     await wait(300);
     const turn = (...ds) => pg.evaluate((ds) => { for (const n of ds) addDart(n); submitTurn(); }, ds);
     await turn(20, 20, 20);          // Ann 41
@@ -74,10 +74,9 @@ describe('Edit game', () => {
     await editPress(pg, 'Save');
 
     const look = () => pg.evaluate(() => ({
-      names: S.players.map((p) => p.name), scores: S.players.map((p) => p.score),
-      up: S.players[S.cur].name, me: toPayloadMe(), darts: S.darts.length,
+      names: S.names, scores: play().players.map((p) => p.score),
+      up: S.names[S.cur], me: toPayload().me_idx, darts: S.darts.length,
     }));
-    await pg.evaluate(() => { window.toPayloadMe = () => SCSync.toPayload(S).me_idx; });
     assert.deepEqual(await look(), { names: ['Bobby', 'Cy', 'Ann'], scores: [86, 101, 41], up: 'Cy', me: 1, darts: 1 },
       'Cy keeps the turn and the dart thrown, and is still you');
 
@@ -106,7 +105,7 @@ describe('Edit game', () => {
     await drag(pg, LIST, 0, 2);
     await editPress(pg, 'Save');
     const look = () => pg.evaluate(() => ({
-      names: S.names, scores: S.scores, dealer: S.names[S.dealer], me: toPayload().me_idx,
+      names: S.names, scores: play().scores, dealer: S.names[play().dealer], me: toPayload().me_idx,
     }));
     assert.deepEqual(await look(), { names: ['Bob', 'Cy', 'Ann'], scores: [3, 4, 2], dealer: 'Ann', me: 1 });
     assert.equal(await pg.evaluate(() => document.getElementById('peg2').getAttribute('fill')), red, "Ann's peg is still red");
@@ -254,7 +253,10 @@ describe('Reordering part-way through a round', () => {
     };
     await fill(0, 'ones', '1');                      // Cy
     assert.equal(await up(), 'Dee', 'Ann is passed over: she has played this round');
-    assert.equal(await pg.evaluate(() => document.querySelector('.topbar h1').textContent), 'Ann already played this round: Dee’s turn');
+    // said in full where it can be read, not squeezed into the title
+    assert.deepEqual(await pg.evaluate(() => [toast.hidden, toast.textContent]), [false, 'Ann already played this round: Dee’s turn']);
+    await pg.click('#toast'); await wait(100);
+    assert.equal(await pg.evaluate(() => toast.hidden), true, 'a tap puts it away');
     await fill(2, 'ones', '4');                      // Dee: the round is done
     assert.equal(await up(), 'Cy', 'the next round starts at the top of the new list');
     assert.deepEqual(await pg.evaluate(() => S.names.map((_, p) => boxesFilled(p))), [1, 1, 1, 1], 'one box each');
@@ -268,7 +270,7 @@ describe('Reordering part-way through a round', () => {
     await pg.evaluate(() => openGame(newGame(['Ann', 'Bob', 'Cy', 'Dee'], 501, {})));
     await wait(300);
     const turn = () => pg.evaluate(() => { addDart(20); submitTurn(); });
-    const up = () => pg.evaluate(() => S.players[S.cur].name);
+    const up = () => pg.evaluate(() => S.names[S.cur]);
     await turn(); await turn();                      // Ann, Bob
     await pg.click('#editBtn'); await wait(300);
     await reorder(pg);
@@ -281,7 +283,7 @@ describe('Reordering part-way through a round', () => {
     assert.equal(await pg.evaluate(() => $('msg').textContent), 'Ann already played this round: Dee’s turn');
     await turn();
     assert.equal(await up(), 'Cy');
-    assert.deepEqual(await pg.evaluate(() => S.players.map((p) => p.turns)), [1, 1, 1, 1]);
+    assert.deepEqual(await pg.evaluate(() => play().players.map((p) => p.turns)), [1, 1, 1, 1]);
     assert.deepEqual(pg.errors, []);
     await pg.close();
   });
@@ -310,6 +312,147 @@ describe('Reordering part-way through a round', () => {
     await editPress(pg, 'Save');
     assert.equal(await pg.$('.edit-game'), null, 'saved straight away');
     assert.deepEqual(await pg.evaluate(() => S.cfg.names), ['Bob', 'Cy', 'Ann', 'Dee']);
+    assert.deepEqual(pg.errors, []);
+    await pg.close();
+  });
+});
+
+/* History, in Edit: the game's whole history, newest first, scrolling in
+   the sheet; Back returns to the list. It shows in a locked game too,
+   since looking changes nothing. */
+describe('History in Edit', () => {
+  const rows = (pg) => pg.evaluate(() => [...document.querySelectorAll('.edit-history li')].map((li) =>
+    [...li.querySelectorAll('.hwho, small, b')].map((x) => x.textContent.trim()).join(' | ')));
+
+  test('Yahtzee: every box, newest first; Back returns to the players', async () => {
+    const pg = await phone();
+    await open(pg, '/yahtzee/');
+    await pg.evaluate(() => { S = newGame(['Ann', 'Bob']); openGame(S); setBox(0, 'threes', 9); setBox(1, 'full', 25); setBox(0, 'small', 0); setBox(1, 'full', 0); save(); render(); });
+    await wait(300);
+    await pg.click('#editBtn'); await wait(300);
+    await editPress(pg, 'History');
+    assert.equal(await pg.$eval('.edit-game h2', (h) => h.textContent), 'History');
+    assert.deepEqual(await rows(pg), [
+      'BobFull house changed |  | 25 → scratched',
+      'AnnSm. straight | turn 2 | scratched',
+      'BobFull house | turn 1 | 25',
+      'AnnThrees | turn 1 | 9',
+    ]);
+    await editPress(pg, 'Back');
+    assert.deepEqual(await editNames(pg), ['Ann', 'Bob'], 'back to the players');
+    assert.deepEqual(pg.errors, []);
+    await pg.close();
+  });
+
+  test('Magic: a run of taps on one counter is one line', async () => {
+    const pg = await phone();
+    await open(pg, '/magic/');
+    await pg.evaluate(() => {
+      S = newGame('commander', ['Ann', 'Bob'], 40);
+      for (let i = 0; i < 4; i++) change(0, 'life', -1);
+      change(1, 'cmdr', 6, 0);
+      save(); SCStore.show(S.id, '#play'); route();
+    });
+    await wait(500);
+    await pg.click('#hubBtn'); await wait(200);
+    await pg.click('#editBtn'); await wait(300);
+    await editPress(pg, 'History');
+    assert.deepEqual(await rows(pg), ['Bobfrom Ann’s commander |  | +6', 'Annlife |  | −4']);
+    assert.deepEqual(pg.errors, []);
+    await pg.close();
+  });
+
+  test('a shared game: locked for editing, its history still there to read', async () => {
+    const pg = await phone();
+    await open(pg, '/darts/');
+    await pg.evaluate(() => openGame(newGame(['Ann', 'Bob'], 101, {})));
+    await wait(300);
+    await pg.evaluate(() => { for (const n of [20, 20, 1]) addDart(n); submitTurn(); });
+    await share(pg);
+    await pg.click('#editBtn'); await wait(300);
+    assert.match(await pg.evaluate(() => document.querySelector('.edit-game p').textContent), /shared/);
+    await editPress(pg, 'History');
+    assert.deepEqual(await rows(pg), ['Ann20 20 1 | 101 → 60 | 41']);
+    await editPress(pg, 'Back');
+    await editPress(pg, 'OK');
+    assert.equal(await pg.$('.edit-game'), null);
+    assert.deepEqual(pg.errors, []);
+    await pg.close();
+  });
+});
+
+/* Changing a score from History: the row opens the game's own way of
+   changing it; the turn stays where it was; the history keeps the change;
+   Undo takes it back. Yahtzee, the Builder and Bridge. */
+describe('Changing a score from History', () => {
+  const openHistory = async (pg) => { await pg.click('#editBtn'); await wait(300); await editPress(pg, 'History'); };
+  const tapRow = (pg, text) => pg.evaluate((t) => {
+    const li = [...document.querySelectorAll('.edit-history li.fix')].find((x) => x.textContent.includes(t));
+    if (!li) throw new Error('no row to change: ' + t);
+    li.click();
+  }, text);
+  const fixable = (pg) => pg.evaluate(() => [...document.querySelectorAll('.edit-history li')].map((li) => li.classList.contains('fix')));
+
+  test('Yahtzee: a box put right, the turn left alone', async () => {
+    const pg = await phone();
+    await open(pg, '/yahtzee/');
+    await pg.evaluate(() => { S = newGame(['Ann', 'Bob']); openGame(S); setBox(0, 'threes', 9); setBox(1, 'full', 25); save(); render(); });
+    await wait(300);
+    await openHistory(pg);
+    await tapRow(pg, 'Threes'); await wait(300);
+    assert.equal(await pg.$('.edit-game'), null, 'the sheet makes way');
+    assert.equal(await pg.$eval('#entryWho', (x) => x.textContent), "Changing Ann's Threes");
+    await pg.evaluate(() => [...document.querySelectorAll('#entryBody button')].find((b) => b.textContent === '12').click());
+    await wait(300);
+    assert.deepEqual(await pg.evaluate(() => [S.cells[0].threes, S.names[S.cur]]), [12, 'Ann'], "Ann's turn still, her Threes now 12");
+    // the history keeps both; only the latest line for the box can be changed
+    await openHistory(pg);
+    assert.deepEqual(await fixable(pg), [true, true, false]);
+    assert.match(await pg.evaluate(() => document.querySelector('.edit-history li').textContent), /Threes changed.*9 → 12/);
+    await editPress(pg, 'Back'); await editPress(pg, 'Cancel');
+    await pg.click('#undoBtn'); await wait(300);
+    assert.equal(await pg.evaluate(() => S.cells[0].threes), 9, 'Undo puts the 9 back');
+    assert.deepEqual(pg.errors, []);
+    await pg.close();
+  });
+
+  test('The Builder: the same bubble as the sheet, asked first', async () => {
+    const pg = await phone();
+    await open(pg, '/builder/');
+    await pg.evaluate(() => { Object.assign(cfg, { mode: 'up', start: 0, win: 'none', turns: true, useRounds: false, teams: false, names: ['Jess', 'Alex'] }); cfg.players = 2; saveCfg(); renderSetup(); });
+    await startGame(pg);
+    await pg.evaluate(() => { commit(5); commit(7); });   // Jess 5, Alex 7: Jess is up
+    await openHistory(pg);
+    await tapRow(pg, 'Jess'); await wait(300);
+    assert.match(await pg.$eval('#entryTitle', (x) => x.textContent), /change the score/);
+    await pg.evaluate(() => [...document.querySelectorAll('#quickpad .key')].find((k) => k.textContent === '+5').click());
+    await pg.click('#commitBtn'); await wait(300);
+    await pg.click('#confirmYes'); await wait(400);
+    assert.deepEqual(await pg.evaluate(() => [S.scores, S.cfg.names[S.cur]]), [[10, 7], 'Jess']);
+    assert.deepEqual(pg.errors, []);
+    await pg.close();
+  });
+
+  test('Bridge: a hand put right; the pad follows; Undo takes the change back', async () => {
+    const pg = await phone();
+    await open(pg, '/bridge/');
+    for (const [i, n] of ['Ann', 'Bob', 'Cy', 'Dee'].entries()) await pg.type(`#n${i}`, n);
+    await pg.click('#startBtn'); await wait(400);
+    await pg.evaluate(() => { S.hands.push({ decl: 0, level: 4, strain: 'S', dbl: 0, tricks: 11, honors: 0, honorsSide: 0 }); save(); render(); });
+    const totals = () => pg.evaluate(() => score(S.hands, S.ended).totals);
+    assert.deepEqual(await totals(), [150, 0]);
+    await openHistory(pg);
+    await tapRow(pg, '4♠ by Ann'); await wait(300);
+    assert.equal(await pg.$eval('#handTitle', (x) => x.textContent), 'Changing hand 1');
+    await pg.click('#tMinus'); await pg.click('#tMinus'); await wait(100);   // 9 tricks: down one
+    await pg.click('#enterBtn'); await wait(300);
+    assert.deepEqual(await totals(), [0, 50], 'down one, to They');
+    await openHistory(pg);
+    assert.match(await pg.evaluate(() => document.querySelector('.edit-history li').textContent), /Hand 1 changed.*was 4♠ by Ann, made, 1 over/);
+    await editPress(pg, 'Back'); await editPress(pg, 'Cancel');
+    await pg.click('#undoBtn'); await wait(300);
+    assert.deepEqual(await totals(), [150, 0], 'Undo takes the change back');
+    assert.equal(await pg.evaluate(() => S.hands.length), 1, 'and only the change');
     assert.deepEqual(pg.errors, []);
     await pg.close();
   });

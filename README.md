@@ -4,7 +4,7 @@ Mobile-first scorekeeping for the games I play. The home page is a chooser; each
 
 **Darts** is the first one: countdown scoring (501, 301, or any starting score you like), head to head or solo for practice.
 
-**Cribbage** is for two or three players, first to 121, on a pegboard drawn at the top of the screen with a back peg showing each last move. A hand has two phases. In the **play**, every tap scores at once under the player who scored it: Go, 31, fifteens, pairs, runs, and Heels for the dealer. In the **count**, each hand is scored on its own in counting order (players left of the dealer, then the dealer's hand, then the crib), and submitted before the next. A hand is entered one of two ways, switched on the hand card and remembered on the device: **Cards** (the default), where you tap the five ranks and the app scores the hand itself, asking about suits only when a flush or knobs is actually possible; or **Buttons**, where you tap what the hand holds (fifteens, pairs, runs, and shortcuts for double, triple and double-double runs) or type the total. The game ends the instant anyone reaches 121, even mid-play or mid-count, so whoever is still to count never does. Impossible hand totals (19, 25, 26, 27, over 29) are refused. Skunks are called on the win screen, and the loser deals first in a rematch.
+**Cribbage** is for two or three players, first to 121, on a pegboard drawn at the top of the screen with a back peg showing each last move. A hand has two phases. In the **play**, every tap scores at once under the player who scored it: Go, 31, fifteens, pairs, runs, and Heels for the dealer. In the **count**, each hand is scored on its own in counting order (players left of the dealer, then the dealer's hand, then the crib), and submitted before the next. A hand is entered one of two ways, switched on the hand card and remembered on the device: **Cards** (the default), where you tap the five ranks and the app scores the hand itself, asking about suits only when a flush or knobs is actually possible; or **Buttons**, where you tap what the hand holds (fifteens, pairs, runs, and shortcuts for double, triple and double-double runs) or type the total. Reaching 121 ends the game, even mid-play or mid-count, so whoever is still to count never does; it is offered first, as every game's win is: a bar says who got there, **End game** ends it, and Undo takes it back if it was a mis-tap. Any score can be put right from **Edit → History**: a peg by tapping what it should have been, under whoever scored it, or removed; a hand or crib on its card, as it was counted. The board follows, and so does who reached 121 first. Impossible hand totals (19, 25, 26, 27, over 29) are refused. Skunks are called on the win screen, and the loser deals first in a rematch.
 
 **Yahtzee** is the pen-and-paper scoresheet for one to ten players: players across the top (past four, the player columns scroll sideways under the box names), boxes down the side, totals and the 35 upper bonus worked out as you go. Tapping a player highlights their column — green where they have scored, yellow where they still can — and the box names to match. Tapping a box offers only what it can take: the five possible scores for Aces to Sixes, a typed dice total for the of-a-kinds and Chance, the fixed value for the rest, or a scratch. Filling a box passes the turn; the game ends when the sheet is full.
 
@@ -34,7 +34,7 @@ When the score can be finished with the darts left in the turn, the bar under th
 
 If the score is low enough to be finishable in principle but has no path — the bogey numbers 169, 168, 166, 165, 163, 162 and 159 — it says so instead. Above that, where no finish is on yet, the bar says so quietly rather than sitting blank.
 
-When a number has more than one route, an arrow on the right pages to the next one, and a back arrow appears once you've paged over. Only routes using the same number of darts are offered — if a leg closes in one dart, three-dart paths to it aren't alternatives — and routes differing only in the order of their setup darts are treated as one. The first suggestion is always the chart answer; paging is there for when you'd rather leave yourself a different double.
+When a number has more than one route, an arrow on the right pages to the next one, and a back arrow appears once you've paged over. The routes in the fewest darts come first, then those taking one dart more, up to the darts left in the turn — on 101 with three darts and double out, `T17 D25` first, then `T20 1 D20`, `T20 9 D16` and the like — a few of each. Routes differing only in the order of their setup darts are treated as one, and without double out, routes differing only in the order of any of their darts (`T17 D25` and `D25 T17`). The first suggestion is always the chart answer; paging is there for when you'd rather leave yourself a different double.
 
 The suggestions are searched, not looked up in a table: the board only has 62 distinct throws, so every route is enumerated and ranked by what a player would actually choose (aim big first, avoid setting up on a double or the bull, finish on a friendly double). This reproduces the standard checkout chart — 170 as `T20 T20 Bull`, 141 as `T20 T19 D12`, 60 as `20 D20` — while adapting to darts remaining and the rule switches, which a fixed table couldn't.
 
@@ -46,7 +46,9 @@ Pick **Practice** in setup for a solo game: one wide score card, no turn switchi
 
 - Turn totals are capped at 180.
 - Going below zero is a **bust** — the score is left untouched and the turn passes.
-- Landing exactly on zero wins.
+- Landing exactly on zero checks out. The checkout is **offered**, not
+  declared: a bar says who checked out, **End game** ends the game with the
+  result, and **Undo turn** takes it back if that wasn't the finish.
 
 Both optional rules below are off by default, and each shows a badge during the game when it's on.
 
@@ -69,7 +71,8 @@ Because every turn is entered dart by dart, both rules are checked against the a
 - Assets are referenced as `style.css?v=N` / `app.js?v=N`. **Bump `N` in `index.html` whenever you change either file** — each file is cached independently at the edge, so without it a fresh `index.html` can load against a stale `app.js`.
 - Running turn count and three-dart average for each player.
 - **Bust** voids the turn: it scores nothing, whatever darts have been entered, and play passes. The app already busts a turn automatically when the arithmetic says so — this is for the cases it can't see, like a bounce-out, a mis-entry, or a throw out of turn. The turn still counts toward the player's turn count and average, exactly as an automatic bust does. No confirmation, since **Undo turn** reverses it cleanly.
-- **Undo turn** rolls back the last completed turn (or clears a turn in progress). **Undo turn** and **New game** both ask for confirmation first, naming exactly what's about to be lost.
+- **Undo turn** rolls back the last completed turn (or clears a turn in progress, or takes back a change made to a turn). **Undo turn** and **New game** both ask for confirmation first, naming exactly what's about to be lost.
+- A turn already thrown can be changed from **Edit → History**: the pad takes that turn's darts, and the bar over it says whose turn is being changed and where it now goes. Saved, the rest of the game follows — a later turn may now bust, or the change may be the checkout. It works after **End game** too (**Back to the board** on the result): the result follows the change, and a game no one has checked out of any more opens again.
 - Tap the other player's card to switch whose turn it is if you mis-tapped (two-player games).
 - The game is saved to `localStorage`, so closing the tab won't lose it — you'll be offered **Resume** next time.
 
@@ -85,7 +88,7 @@ public/
   themes.css      the rooms a game is played in: Parlor, Living Room, Workshop
   account.js      account bubble, injected into every page
   roster.js       dragging a players' list into order: every setup but Bridge's
-  editgame.js     Edit game: a started game's players moved and renamed, in a sheet; every game
+  editgame.js     Edit game, in every game: a started game's players moved and renamed, and its history, in a sheet
   account/
     index.html    your profile: darts statistics, game history, My games
     profile.js
@@ -101,7 +104,7 @@ public/
     index.html
     app.js
     style.css
-    sync.js       saving games to a profile
+    sync.js       opening games from a profile, and the setup's list of them
   magic/
     index.html
     app.js        formats, the split-screen table, life, poison, commander damage
@@ -132,6 +135,7 @@ worker/
   stats.js        /api/stats: lifetime darts figures, in SQL
   custom-games.js /api/custom-games: My games, saved builder rules
   admin.js        /api/admin: the tables, users, and deleting (see Admin)
+  work.js         /api/admin/work: the work board, and reading the agents' ledgers
 migrations/
   0001_init.sql   users, games, game_players, turns
 
@@ -143,6 +147,7 @@ darts, so a second game does not inherit a column named after the first.
   0004_...sql     turns.darts -> turns.detail
   0005_...sql     custom_games: My games
   0010_...sql     admin_log: what admins have deleted
+  0011_...sql     work_items, work_log: the work board
 ```
 
 `public/` is what gets published and nothing outside it is, so
@@ -171,6 +176,33 @@ kept with `SCStore.put` (see `public/store.js`) can also be listed under *Pick
 up where you left off* by adding a line for its type to `SPEC` in `home.js`. Games share `shared.css` — the palette and the reset — and nothing
 else, so one game's layout can never break another's. Keep game-specific rules
 in that game's own stylesheet.
+
+## How a game keeps its state
+
+Every game keeps the same kind of state, so a change made to games in general
+works the same way in each:
+
+- **What was done is the record.** The turns or scores as they were entered
+  (`log`), with who did each (`p`), are what is kept; totals, who is in,
+  busts and winners are worked out from them — Darts' and Cribbage's
+  `play()`, Bridge's `score()`, the Builder's rule scoring, Yahtzee's
+  totals. A step that isn't a score goes in the log too: Cribbage's
+  `{ kind: 'count' }`, the play done and the count begun.
+- **Undo takes the last thing off**, and a **change** to a past score is kept
+  in `edits` (`{ i, p, from, to, after }`, `after` placing it among the
+  turns) for the history to show and Undo to take back.
+- **`names`, `cur`, `me`** are the players in order, whose turn it is, and
+  which one is you (`me_idx` on the profile).
+- **`save()`** keeps the game on the device (`SCStore.put`) and, signed in, on
+  the profile (`SCCloud.keep(cloudGame)`), the game's `toPayload()` giving its
+  turns for the profile's history and statistics.
+- **Shared by seat**, each cell is one player's turn (`'<p>:<n>'`), and
+  `fromCells` rebuilds the game from them; a cell that changed is an edit.
+- **Edit game** (`public/editgame.js`) moves players with `SCEditGame.moves`,
+  and the turn passes with `SCEditGame.nextTurn`.
+- A game kept in an **older shape** (so far, Darts' and Cribbage's first) is
+  brought up to date when it is opened, by the game's own `upgrade()`, so games on a
+  device, on the profile, in a shared link or a tournament keep working.
 
 ## Running locally
 
@@ -202,13 +234,13 @@ each other every few seconds, and the tests wait as a person would.
 
 | File | Covers |
 | --- | --- |
-| `links.mjs` | games by id and link; several of a kind at once; the old keys moving in |
-| `builder.mjs` | the setup's steps, rounds under Take turns; the sheet, scoring in its bubble, changing a score and undoing it, flip, the board's rows; counters: taps, Undo, Out at and Wins at, setup; live scoring, with and without buttons |
+| `links.mjs` | games by id and link; several of a kind at once; the old keys moving in; under an iPhone status bar, the way home and Sign in below it |
+| `builder.mjs` | the setup's steps, rounds under Take turns; the sheet, scoring in its bubble, changing a score and undoing it, flip, the board's rows; counters: taps, Undo, Out at and Wins at, setup; live scoring, with and without buttons; Qwirkle's keys, no minus, and Finish |
 | `sharing.mjs` | joining by seat, scoring only your own, scoring at once, the same cell from two phones, counters and live scores between phones, watching, Yahtzee |
-| `darts.mjs` | turns round the table by seat, darts mid-turn kept, a win reaching every phone |
-| `cribbage.mjs` | pegging by seat and at once, counting your own hand |
+| `darts.mjs` | turns round the table by seat, darts mid-turn kept, a checkout reaching every phone; a game in the first shape opening as it was; a turn changed from History, a later turn busting or checking out, and after End game, the game opening again; a checkout offered, undone and ended; checkout suggestions, the fewest darts first, then three-dart routes |
+| `cribbage.mjs` | pegging by seat and at once, counting your own hand; a shared game is its scores, nothing else; a game in the first shape opening as it was; a peg moved, removed, a count changed from History, and Undo; 121 offered, undone, ended, and changed after |
 | `yahtzee.mjs` | the players put in order at the setup, and moved and renamed mid-game with Edit: their scores, the turn, Undo and You going with them |
-| `editing.mjs` | the order set at the setup in Darts, Cribbage and Magic; Edit in those, the Builder (teams too) and Bridge: what moves with a player, and where the order stays put; a new order part-way through a round: the warning on Save, and no one playing twice in a round |
+| `editing.mjs` | the order set at the setup in Darts, Cribbage and Magic; Edit in those, the Builder (teams too) and Bridge: what moves with a player, and where the order stays put; a new order part-way through a round: the warning on Save, and no one playing twice in a round; History in Edit, newest first, in a locked game too; a score changed from History in Yahtzee, the Builder and Bridge, and Undo taking the change back |
 | `server.mjs` | who may write, link cards, error reports, the daily job, the policy pages |
 | `offline.mjs` | every game opening with no signal, a game in progress by its link |
 | `tournament.mjs` | the draw, a match played in darts and its result read back, an undo, results set by hand, the home page |
@@ -218,11 +250,11 @@ each other every few seconds, and the tests wait as a person would.
 Signing in is **optional** — every game works signed out, exactly as it did
 before accounts existed. Signing in adds a stored history of your games.
 
-A finished game is written to your profile automatically. An unfinished one is
-written when you press **Save** during play, which is what lets you pick it up
-later or on another device — the setup screen then offers *Resume from
-profile* alongside the local resume. Both are offered when both exist, rather
-than one silently winning: they are usually different games.
+Signed in, a game is kept on your profile as it is played, a moment after
+each change (see `public/cloud.js`), and right away when it ends. That is what
+lets you pick it up later or on another device — Darts' setup screen offers
+*Resume from profile* alongside the local resume. Both are offered when both
+exist, rather than one silently winning: they are usually different games.
 
 `localStorage` remains the live state throughout. Nothing on the scoring path
 waits on the network, so a game plays identically with no signal.
@@ -307,6 +339,21 @@ session ever needs revoking.
 
 - **Overview**: every table and how many rows it holds, and the database's
   size against `DB_CEILING_MB`.
+- **Work**: one list of everything there is to do on the site. The scheduled
+  agents' suggestions are read from their ledgers on GitHub
+  (`qa/seo/ledger.md` on the `qa/seo` branch) by the daily job and by
+  **Sync ledgers**. Bugs, improvements and ideas can be added by hand
+  (`W-001`, …). Each item has a status (New, To do, In progress, Done, Won't
+  do), notes of your own, and a history. A status set here stays until the
+  agent's ledger reports a different one, which then wins once. An agent's
+  item can't be deleted (the next sync would bring it back), only marked
+  Won't do. A new agent is one entry in `SOURCES` in `worker/work.js`, so
+  long as its ledger has the same columns. Kept in `work_items` and
+  `work_log` (`migrations/0011`). The same board answers at `/api/work` to a
+  token instead of a cookie. The token is the `WORK_TOKEN` secret. The audit
+  reads the board through it before each run, and `npm run work`
+  (`scripts/work.mjs`, with the token in `.work-token`) uses it from a
+  terminal.
 - **Activity**: sign-ups, games started and finished, and games shared, a
   bar a day over 7, 30 or 90 days or a year (UTC days), with which games are
   played — and the same numbers as a table.

@@ -1,7 +1,7 @@
 {
   "name": "Score Chalk",
   "short_name": "Score Chalk",
-  "description": "Scorekeeping for the games you play — at the bar, or at the kitchen table.",
+  "description": "Easy scorekeeping, even for the trickiest games.",
   "id": "/",
   "start_url": "/",
   "scope": "/",

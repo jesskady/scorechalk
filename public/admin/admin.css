@@ -3,7 +3,7 @@
 
 body{-webkit-user-select:text;user-select:text;height:auto;min-height:100%}
 
-.adm{max-width:1100px;margin:0 auto;padding:14px 16px 40px;display:flex;flex-direction:column;gap:14px}
+.adm{max-width:1100px;margin:0 auto;padding:calc(14px + env(safe-area-inset-top, 0px)) 16px 40px;display:flex;flex-direction:column;gap:14px}
 
 .adm-head{display:flex;flex-direction:column;gap:4px}
 .adm-head h1{font-size:23px;letter-spacing:-.3px}
@@ -133,4 +133,58 @@ details.adm-card[open] summary{margin-bottom:10px}
 .adm-err pre{
   margin-top:6px;padding:8px 10px;border-radius:8px;background:var(--bg2);font-size:11.5px;
   white-space:pre-wrap;word-break:break-all;max-height:300px;overflow:auto;
+}
+
+/* ---------- the work board ---------- */
+
+.adm-stat-link{color:var(--txt);text-decoration:none;border-left-width:3px}
+.adm-stat-link.st-doing{border-left-color:var(--gold)}
+.adm-stat-link.st-new{border-left-color:#7fb2e0}
+.adm-stat-link.st-todo{border-left-color:var(--dim)}
+.adm-stat-link.st-done{border-left-color:var(--green)}
+.adm-stat-link.st-dismissed{border-left-color:var(--line)}
+
+.adm-add summary{font-weight:600}
+.adm-form{display:flex;flex-direction:column;gap:8px}
+.adm-form input,.adm-form textarea,.adm-form select,.adm-notes,.adm-status{
+  font:inherit;font-size:14px;color:var(--txt);background:var(--bg2);
+  border:1px solid var(--line);border-radius:9px;padding:7px 10px;min-width:0;width:100%;
+}
+.adm-form select,.adm-status{width:auto}
+.adm-form textarea,.adm-notes{resize:vertical;line-height:1.45}
+
+.adm-works{list-style:none;display:flex;flex-direction:column}
+.adm-work{display:flex;flex-direction:column;gap:6px;padding:12px 0 12px 12px;border-top:1px solid var(--line);
+  border-left:3px solid transparent;margin-left:-14px;padding-left:11px}
+.adm-work:first-child{border-top:none}
+.adm-work[data-status="doing"]{border-left-color:var(--gold)}
+.adm-work[data-status="new"]{border-left-color:#7fb2e0}
+.adm-work[data-status="done"] .adm-work-title{color:var(--dim)}
+.adm-work[data-status="dismissed"] .adm-work-title{color:var(--dim);text-decoration:line-through}
+.adm-work-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.adm-work-facts{display:flex;gap:6px;align-items:center;flex-wrap:wrap;min-width:0}
+.adm-work-facts small{color:var(--dim);font-size:12.5px;overflow-wrap:anywhere}
+.adm-work-id{font-size:12.5px;font-weight:700}
+.adm-badge.imp-high{color:var(--gold);border-color:var(--gold)}
+.adm-work-title{
+  all:unset;cursor:pointer;font-size:15px;font-weight:600;line-height:1.4;overflow-wrap:anywhere;
+}
+.adm-work-title:focus-visible{outline:2px solid var(--green);outline-offset:2px;border-radius:4px}
+.adm-work-body{display:flex;flex-direction:column;gap:8px;padding:4px 0 2px}
+.adm-work-body > small{color:var(--dim);font-size:12.5px}
+.adm-work-body details summary{cursor:pointer;color:var(--dim);font-size:12.5px}
+.adm-work-body details .adm-md{margin-top:6px;color:var(--dim)}
+.adm-md{font-size:13.5px;line-height:1.55;overflow-wrap:anywhere;white-space:pre-wrap}
+.adm-md code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12.5px;background:var(--bg2);padding:1px 4px;border-radius:4px}
+.adm-hist{list-style:none;display:flex;flex-direction:column;gap:3px;font-size:12.5px}
+.adm-hist small{color:var(--dim)}
+.adm-badge.kind-bug{color:#e2857a;border-color:#5a302a}
+
+/* five counts in a row, small enough on a phone to leave the list in view */
+.adm-work-stats{grid-template-columns:repeat(5,minmax(0,1fr))}
+@media (max-width:600px){
+  .adm-work-stats{gap:6px}
+  .adm-work-stats .adm-stat{padding:8px 8px}
+  .adm-work-stats .adm-stat b{font-size:19px}
+  .adm-work-stats .adm-stat span{font-size:11px;line-height:1.2}
 }

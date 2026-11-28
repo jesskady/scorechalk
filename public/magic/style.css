@@ -21,7 +21,7 @@ body[data-game="magic"]{background:radial-gradient(120% 60% at 50% 0%, #3d3226 0
 
 .screen{
   max-width:520px;margin:0 auto;
-  padding:10px 10px calc(10px + var(--pad));
+  padding:calc(10px + var(--top)) 10px calc(10px + var(--pad));
   display:flex;flex-direction:column;gap:8px;min-height:100%;
 }
 .brand{text-align:center;padding:8px 0 2px}
@@ -70,7 +70,7 @@ body.playing{overflow:hidden}
 .table{position:fixed;inset:0;height:100dvh;background:var(--table,#0b0e12)}
 .panels{
   position:absolute;inset:0;display:grid;gap:5px;
-  padding:5px 5px calc(5px + var(--pad));
+  padding:calc(5px + var(--top)) 5px calc(5px + var(--pad));
 }
 .panels.n1{grid-template:1fr / 1fr}
 .panels.n2{grid-template:1fr 1fr / 1fr}

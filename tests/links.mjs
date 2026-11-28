@@ -32,7 +32,7 @@ describe('game links', () => {
     await open(pg, '/cribbage/');
     await startGame(pg);
     const first = await pg.evaluate(() => S.id);
-    await pg.evaluate(() => { S.scores[0] = 6; S.log.push({ p: 0, kind: 'play', pts: 6, after: 6, hand: 1, label: 'x' }); save(); });
+    await pg.evaluate(() => { score(0, 6, 'play', 'x'); save(); });
     assert.ok((await pg.evaluate(() => location.search)).includes(first), 'the address carries the game');
 
     await pg.reload({ waitUntil: 'domcontentloaded' }); await wait(900);
@@ -81,6 +81,14 @@ describe('game links', () => {
     await open(pg, '/games/');
     const rows = await pg.$$eval('#list a', (as) => as.map((a) => a.getAttribute('href')));
     for (const h of home) assert.ok(rows.includes(h), `${h} is on /games/`);
+    // and every game with a scoring guide links to it, under its row
+    const guides = await pg.$$eval('#list li', (lis) => lis.map((li) => [li.querySelector('b').textContent,
+      li.querySelector('a.guide') && li.querySelector('a.guide').getAttribute('href')]));
+    for (const [name, href] of guides) {
+      if (name === 'Bridge') continue;                 // no guide yet
+      assert.ok(href, `${name} links to its guide`);
+      assert.equal((await fetch(new URL(href, pg.url()))).status, 200, href);
+    }
     // a phone's width, with no sideways scroll
     assert.ok(await pg.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
 
@@ -105,6 +113,38 @@ describe('game links', () => {
     await open(pg, '/');
     await Promise.all([pg.waitForNavigation(), pg.click('.shelf a[href="/yahtzee/"]')]);
     assert.equal(await pg.$eval('#setup .crumb', (a) => a.hidden), true);
+    assert.deepEqual(pg.errors, []);
+    await pg.close();
+  });
+});
+
+/* An iPhone with Score Chalk on its home screen draws the page under its
+   status bar and notch (viewport-fit=cover, black-translucent): every page
+   keeps the way home and Sign in below it. The phone's safe area is
+   simulated here, as an iPhone with a notch has it. */
+describe('under an iPhone status bar', () => {
+  test('the way home and Sign in are below it, on every kind of page', async () => {
+    const pg = await phone();
+    const cdp = await pg.createCDPSession();
+    await cdp.send('Emulation.setSafeAreaInsetsOverride', { insets: { top: 59, bottom: 34 } });
+    const pages = [['/darts/'], ['/cribbage/', () => { setupNames = ['Ann', 'Bob', '']; setupN = 2; beginGame(); }],
+      ['/yahtzee/', () => openGame(newGame(['Ann', 'Bob']))], ['/builder/'], ['/magic/'], ['/bridge/'], ['/tournament/'],
+      ['/qwirkle-score-sheet/'], ['/games/'], ['/privacy/'], ['/account/']];
+    for (const [path, setup] of pages) {
+      await open(pg, path);
+      if (setup) { await pg.evaluate(setup); await wait(300); }
+      const at = await pg.evaluate(() => {
+        const back = [...document.querySelectorAll('.backlink')].map((x) => x.getBoundingClientRect()).find((r) => r.height > 0);
+        // Sign in, as it shows signed out (the test server has no sign-in to offer)
+        const acct = document.querySelector('.acct');
+        if (acct) { acct.hidden = false; if (!acct.innerHTML) acct.innerHTML = '<a class="acct-pill" href="#">Sign in</a>'; }
+        // (in a game it gives way to the game's own buttons: nothing to place)
+        const shown = acct && getComputedStyle(acct).display !== 'none';
+        return { back: back ? back.top : null, acct: shown ? acct.getBoundingClientRect().top : null };
+      });
+      assert.ok(at.back >= 59, `${path}: the way home is under the status bar (${at.back})`);
+      if (at.acct !== null) assert.ok(at.acct >= 59, `${path}: Sign in is under the status bar (${at.acct})`);
+    }
     assert.deepEqual(pg.errors, []);
     await pg.close();
   });

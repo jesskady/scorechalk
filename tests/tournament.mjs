@@ -27,13 +27,21 @@ async function setUp(pg, names) {
 const matches = (pg) => pg.$$eval('.match', (ms) => ms.map((m) => m.textContent));
 const table = (pg) => pg.$$eval('#standings tr', (rs) => rs.map((r) => [...r.cells].map((c) => c.textContent)));
 
-// Win the darts game on screen for player `p` (0 or 1): leave them on 40,
-// then D20 and submit, as a person would throw it.
+// Win the darts game on screen for player `p` (0 or 1): five turns down to
+// 40 (the game is its turns: see play() in darts), then D20 and submit, as
+// a person would throw it, and End game, as the checkout is offered.
 async function win(pg, p) {
-  await pg.evaluate((p) => { S.cur = p; S.players[p].score = 40; S.players[p].points = 301 - 40; S.players[p].turns = 5; save(); render(); }, p);
+  await pg.evaluate((p) => {
+    const d = (label, val) => ({ label, val, dbl: false });
+    for (let k = 0; k < 4; k++) S.log.push({ p, darts: [d('T20', 60)] });
+    S.log.push({ p, darts: [d('20', 20), d('1', 1)] });
+    S.cur = p; save(); render();
+  }, p);
   await pg.click('.mult[data-m="2"]');
   await pg.evaluate(() => [...document.querySelectorAll('#numgrid .key')].find((b) => b.textContent === '20').click());
   await pg.click('#submitBtn');
+  await wait(300);
+  await pg.click('#winBarBtn');
   await wait(400);
 }
 

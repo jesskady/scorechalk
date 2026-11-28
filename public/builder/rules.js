@@ -53,6 +53,10 @@ function defaultRules() {
     // ROUND_RULES, a game's own scoring: what happened is entered and the
     // rule scores it. Only the games made for one have one (Spades, Skyjo…).
     rule: '',
+    // A game with no ending of its own ends with Finish. Off, that shows the
+    // final scores, as for a tally; on, the highest wins and is named, as
+    // in Rummikub and Qwirkle, played until someone goes out.
+    finishWins: false,
   };
 }
 
@@ -321,8 +325,20 @@ const TEMPLATES = [
   // lose theirs. Played for as many rounds as the table likes, then Finish.
   { id: 'rummikub', label: 'Rummikub',
     rules: {
-      ...defaultRules(), name: 'Rummikub', win: 'none', rule: 'rummikub',
+      ...defaultRules(), name: 'Rummikub', win: 'none', rule: 'rummikub', finishWins: true,
       typed: false, signs: false, turns: true, players: 4,
+      theme: 'living',
+    } },
+  // Qwirkle: a point for every tile in each line a turn makes or adds to,
+  // counted on 1, 5 and 10, or typed for a big turn. A Qwirkle (a line of
+  // all six) is 12 with its bonus, and the player who ends the game by
+  // going out takes 6; both are named, so the sheet says what happened. No
+  // target: the bag runs out, someone goes out, and Finish names the
+  // highest the winner. Points only go up, so no minus.
+  { id: 'qwirkle', label: 'Qwirkle',
+    rules: {
+      ...defaultRules(), name: 'Qwirkle', win: 'none', finishWins: true,
+      quick: '1, 5, 10, Qwirkle 12, Went out 6', typed: true, signs: false, turns: true,
       theme: 'living',
     } },
 ];
@@ -335,7 +351,7 @@ const GUIDES = {
   euchre: '/euchre-score-keeper/', hearts: '/hearts-score-keeper/', 'rummy-500': '/rummy-500-score-keeper/',
   'five-crowns': '/five-crowns-score-keeper/', 'phase-10': '/phase-10-score-keeper/',
   spades: '/spades-score-keeper/', 'oh-hell': '/oh-hell-score-keeper/', skyjo: '/skyjo-score-keeper/',
-  rummikub: '/rummikub-score-sheet/',
+  rummikub: '/rummikub-score-sheet/', qwirkle: '/qwirkle-score-sheet/',
 };
 function guideOf(src) {
   const t = TEMPLATES.find((x) => x.id === src);
@@ -383,7 +399,7 @@ function describeRules(c) {
   const r = roundsOn(c);
   // a counter that wins the game is the finish line: it's said with the counters
   const counterWins = (c.counters || []).some((k) => k.end === 'win');
-  if (c.win === 'none' && (r || !counterWins)) parts.push(r ? `${c.rounds} rounds, highest wins` : 'Just keep score');
+  if (c.win === 'none' && (r || !counterWins)) parts.push(r ? `${c.rounds} rounds, highest wins` : c.finishWins ? 'Highest wins at Finish' : 'Just keep score');
   if (c.win === 'target') parts.push(`First to ${num(c.target)}`);
   if (c.win === 'low') parts.push(r ? `${c.rounds} rounds, lowest wins` : `Ends at ${num(c.target)}, lowest wins`);
   if (c.win === 'zero') parts.push(`Start at ${num(c.start)}, out at 0`);

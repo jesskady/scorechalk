@@ -224,12 +224,18 @@ function renderPad(r) {
 }
 
 // Every hand, newest first: the contract, by whom, how it went, and what it scored.
+// What hand i scored for each side, below the line and above it.
+function handPoints(r, i) {
+  return [0, 1].map((s) => ({
+    below: r.games.reduce((t, g) => t + g.below[s].filter((e) => e.h === i).reduce((u, e) => u + e.pts, 0), 0),
+    above: r.above[s].filter((e) => e.h === i).reduce((u, e) => u + e.pts, 0),
+  }));
+}
+
 function renderHands(r) {
   $('hands').innerHTML = S.hands.map((h, i) => {
     const side = h.decl % 2;
-    const pts = [0, 1].map((s) => {
-      const below = r.games.reduce((t, g) => t + g.below[s].filter((e) => e.h === i).reduce((u, e) => u + e.pts, 0), 0);
-      const above = r.above[s].filter((e) => e.h === i).reduce((u, e) => u + e.pts, 0);
+    const pts = handPoints(r, i).map(({ below, above }, s) => {
       const bits = [below && `${fmt(below)} below`, above && `${fmt(above)} above`].filter(Boolean);
       return bits.length ? `${s ? 'They' : 'We'} ${bits.join(', ')}` : '';
     }).filter(Boolean).join(' · ');
@@ -258,7 +264,9 @@ function opt(label, on, onTap, cls = '') {
 }
 function fill(row, items) { const el = $(row); el.innerHTML = ''; items.forEach((b) => el.appendChild(b)); }
 
-let step = 'bid';   // which half of the card is showing: 'bid' or 'score'
+// which half of the card is showing: 'bid' or 'score', or 'fix' for both,
+// changing a hand already entered (see fixHand)
+let step = 'bid';
 
 function openHand(which) {
   const b = S.bid;
@@ -271,6 +279,21 @@ function openHand(which) {
   renderHand();
 }
 $('handBtn').onclick = () => openHand(S.bid ? 'score' : 'bid');
+
+/* Changing a hand already entered, from Edit's History: the card with all
+   of it at once, the bid and the tricks, as it was entered. Saved, the
+   hand is replaced where it was, and the pad, vulnerability and games
+   follow, as they are worked out again from every hand. The change is
+   kept (S.changes) for the history to show and Undo to take back. */
+function fixHand(i) {
+  H = { ...S.hands[i], fix: i };
+  step = 'fix';
+  $('honorsBox').open = !!H.honors;
+  $('handTitle').textContent = `Changing hand ${i + 1}`;
+  $('handOverlay').classList.remove('hidden');
+  renderHand();
+}
+const sameHand = (a, b) => ['decl', 'level', 'strain', 'dbl', 'tricks', 'honors', 'honorsSide'].every((k) => a[k] === b[k]);
 $('nowEdit').onclick = () => openHand('bid');
 
 // The bid is made: it goes on show over the pad while the hand is played.
@@ -285,9 +308,14 @@ $('handClose').onclick = closeHand;
 $('handOverlay').addEventListener('click', (e) => { if (e.target === $('handOverlay')) closeHand(); });
 
 function renderHand() {
-  const r = score(S.hands, S.ended);
-  $('bidPart').classList.toggle('hidden', step !== 'bid');
-  $('scorePart').classList.toggle('hidden', step !== 'score');
+  const fixing = step === 'fix';
+  // who is vulnerable for this hand: now, or, changing one, as it was then
+  const r = fixing ? score(S.hands.slice(0, H.fix), false) : score(S.hands, S.ended);
+  $('bidPart').classList.toggle('hidden', step !== 'bid' && !fixing);
+  $('scorePart').classList.toggle('hidden', step !== 'score' && !fixing);
+  $('playBtn').classList.toggle('hidden', fixing);
+  $('cardContract').classList.toggle('hidden', fixing);
+  $('enterBtn').textContent = fixing ? 'Save the change' : 'Enter the hand';
   $('playBtn').disabled = H.decl === null || !H.level || !H.strain;
   if (H.level && H.strain) $('cardContract').innerHTML = `${contractHtml(H)} <small>by ${esc(S.names[H.decl] || '')}</small>`;
   fill('declRow', [0, 2, 1, 3].map((p) => opt(
@@ -309,8 +337,19 @@ function renderHand() {
   $('tPlus').disabled = H.tricks === null || H.tricks >= 13;
 
   const ready = H.decl !== null && H.level && H.strain && H.tricks !== null;
-  $('enterBtn').disabled = !ready;
+  $('enterBtn').disabled = !ready || (fixing && sameHand(H, S.hands[H.fix]));
   if (!ready) { $('preview').textContent = 'Who declared, the contract, and the tricks taken.'; return; }
+  if (fixing) {
+    // what the change does to each side's total
+    const hands = S.hands.slice();
+    hands[H.fix] = H;
+    const before = score(S.hands, S.ended), after = score(hands, S.ended);
+    const diff = [0, 1].map((s) => after.totals[s] - before.totals[s]);
+    $('preview').innerHTML = diff.some(Boolean)
+      ? [0, 1].filter((s) => diff[s]).map((s) => `${s ? 'They' : 'We'} <b>${diff[s] > 0 ? '+' : '−'}${fmt(Math.abs(diff[s]))}</b>`).join(' · ')
+      : 'No change to the totals yet.';
+    return;
+  }
   // what this hand would add to each side, as it would go on the pad
   const before = score(S.hands, false), after = score([...S.hands, H], false);
   const add = [0, 1].map((s) => after.totals[s] - before.totals[s]);
@@ -323,6 +362,7 @@ $('tMinus').onclick = () => { if (H.tricks > 0) { H.tricks--; H.touched = true; 
 $('tPlus').onclick = () => { if (H.tricks < 13) { H.tricks++; H.touched = true; renderHand(); } };
 
 $('enterBtn').onclick = () => {
+  if (step === 'fix') { saveFix(); return; }
   const { touched, ...hand } = H;
   S.hands.push(hand);
   S.bid = null;
@@ -333,6 +373,20 @@ $('enterBtn').onclick = () => {
   if (r.over) showWin(r);
 };
 
+function saveFix() {
+  const { touched, fix: i, ...hand } = H;
+  const was = S.hands[i];
+  if (sameHand(hand, was)) { closeHand(); return; }
+  if (!S.changes) S.changes = [];
+  S.changes.push({ i, was, to: hand, after: S.hands.length });
+  S.hands[i] = hand;
+  closeHand();
+  save(); render();
+  flash(`Hand ${i + 1} is now ${contractText(hand)} by ${S.names[hand.decl]}: ${resultText(hand)}`);
+  const r = score(S.hands, S.ended);
+  if (r.over) showWin(r); else $('winOverlay').classList.add('hidden');
+}
+
 /* ---------------- editing the rubber ----------------
 
    The players can be renamed once the rubber has started (see
@@ -340,8 +394,28 @@ $('enterBtn').onclick = () => {
    East and West the other, and every hand is scored for the side its
    declarer sat on, so moving a player would move their scores with them. */
 
+/* The rubber's history for Edit's History (see /editgame.js): every hand,
+   who declared it, how it went, and what it scored each side. */
+function historyRows() {
+  const r = score(S.hands, S.ended), rows = [];
+  // a change made to a hand, in its place: after the hands there were then
+  const changes = (n) => (S.changes || []).filter((c) => c.after === n).map((c) => ({
+    who: `Hand ${c.i + 1} changed`,
+    what: `was ${contractText(c.was)} by ${S.names[c.was.decl]}, ${resultText(c.was)}`,
+  }));
+  S.hands.forEach((h, i) => {
+    const side = h.decl % 2;
+    const pts = handPoints(r, i).map(({ below, above }, s) => (below + above ? `${s ? 'They' : 'We'} +${fmt(below + above)}` : ''))
+      .filter(Boolean).join(' · ');
+    rows.push({ who: `${contractText(h)} by ${S.names[h.decl]}`, what: side ? 'They' : 'We', when: `hand ${i + 1}, ${resultText(h)}`, pts, edit: () => fixHand(i) });
+    rows.push(...changes(i + 1));
+  });
+  return rows;
+}
+
 $('editBtn').onclick = async () => {
   const got = await SCEditGame.open({
+    history: historyRows,
     names: S.names,
     labels: SEATS.map((seat) => seat[0]),
     fixed: 'Everyone keeps their seat, as the seats make the sides.',
@@ -357,8 +431,22 @@ $('editBtn').onclick = async () => {
 $('undoBtn').onclick = () => {
   if (S.ended) { S.ended = false; save(); render(); flash('The rubber is open again'); return; }
   if (S.bid) { const b = S.bid; S.bid = null; save(); render(); flash(`Took back the bid of ${contractText(b)}`); return; }
+  // a change made to a hand since the last hand went in comes off first
+  const ch = S.changes && S.changes[S.changes.length - 1];
+  if (ch && ch.after === S.hands.length) {
+    S.changes.pop();
+    S.hands[ch.i] = ch.was;
+    $('winOverlay').classList.add('hidden');
+    save(); render();
+    flash(`Took back the change to hand ${ch.i + 1}`);
+    const r = score(S.hands, S.ended);
+    if (r.over) showWin(r);
+    return;
+  }
   const h = S.hands.pop();
   if (!h) { flash('Nothing to undo'); return; }
+  // a change kept for a hand no longer there goes with it
+  if (S.changes) S.changes = S.changes.filter((c) => c.i < S.hands.length && c.after <= S.hands.length);
   $('winOverlay').classList.add('hidden');
   save(); render();
   flash(`Took back ${contractText(h)} by ${S.names[h.decl]}`);

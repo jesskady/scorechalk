@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1c2723">
-<title>All Games — Free Score Keepers for Card, Dice &amp; Pub Games | Score Chalk</title>
+<title>Game Night Score Keepers — Free for Every Card, Dice &amp; Tile Game | Score Chalk</title>
 <!-- visits, and errors on these pages: see /report.js -->
 <script src="/report.js?v=1"></script>
 <!-- Score Chalk as an app: installable, and working offline (see /pwa.js) -->
@@ -12,13 +12,13 @@
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-title" content="Score Chalk">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="description" content="Every free score keeper on Score Chalk in one list: darts, cribbage, Yahtzee, Magic, Canasta, Euchre, UNO, Farkle, Hearts, Spades, Oh Hell, Rummy 500, Rummikub, Five Crowns, Phase 10 and Skyjo, or build one for any other game.">
+<meta name="description" content="Free score keepers for game night: UNO, Skyjo, Hearts, Spades, Euchre, Phase 10, Five Crowns, Yahtzee, Farkle, cribbage, darts and more, each with how it's scored.">
 <link rel="canonical" href="https://scorechalk.com/games/">
 <meta property="og:site_name" content="Score Chalk">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://scorechalk.com/games/">
-<meta property="og:title" content="All games — Score Chalk">
-<meta property="og:description" content="Every free score keeper on Score Chalk in one list, or build one for any other game.">
+<meta property="og:title" content="Score keepers for game night — Score Chalk">
+<meta property="og:description" content="Every card, dice, tile and pub game in one list, each with how it's scored. One phone keeps score for the whole table.">
 <meta property="og:image" content="https://scorechalk.com/og/home.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -28,10 +28,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredericka+the+Great&family=Josefin+Sans:wght@400;600;700&family=Bree+Serif&family=Kalam:wght@400;700&family=Karla:wght@400;500;700&display=swap">
-<link rel="stylesheet" href="/shared.css?v=41">
+<link rel="stylesheet" href="/shared.css?v=43">
 <!-- the home page's rooms (their colours, type and drawings), and this page's list -->
-<link rel="stylesheet" href="/rooms.css?v=14">
-<link rel="stylesheet" href="/games.css?v=1">
+<link rel="stylesheet" href="/rooms.css?v=15">
+<link rel="stylesheet" href="/games.css?v=2">
 <script type="speculationrules">{"prefetch":[{"where":{"href_matches":["/builder/*","/darts/","/cribbage/","/yahtzee/","/magic/"]},"eagerness":"moderate"}]}</script>
 </head>
 <body class="home-rooms games-page">
@@ -46,8 +46,9 @@
   <div class="board-in">
     <a class="backlink mark" href="/" aria-label="Home"><span class="arrow" aria-hidden="true">&lsaquo;</span><img src="/favicon.svg?v=2" alt="" width="30" height="30"></a>
     <div class="games-head">
-      <span class="kicker">Score Chalk</span>
-      <h1>All games</h1>
+      <span class="kicker">All games</span>
+      <h1>Score keepers for game night</h1>
+      <p class="games-intro">Every bid, bonus and running total, added up for you. Tap a game to start keeping score, or see how it's scored first. One phone keeps score for the whole table, with nothing to install.</p>
     </div>
     <!-- works without script too: it's a plain list underneath (see games.js) -->
     <form class="find" role="search" action="/games/" onsubmit="return false">
@@ -62,7 +63,8 @@
      Every game, A to Z, the Builder last. A new game is a row here as well
      as its card on the home page (the home page shows four a room). The
      tile is drawn in the game's room; data-also is what else it should be
-     found by. -->
+     found by. Under each row, a link to its scoring guide: the guides are
+     the pages search finds, and the row itself stays the way into the game. -->
 <main class="games">
   <ul class="game-list" id="list">
     <li data-also="contract rubber bridge bid tricks above below line vulnerable slam partners">
@@ -89,6 +91,7 @@
         <span class="what"><b>Canasta</b><small>Two teams of two, first to 5,000. Buttons for canastas, red threes and going out.</small></span>
         <span class="room-tag parlor-tag">Cards · Teams</span>
       </a>
+      <a class="guide" href="/canasta-score-keeper/">How to score Canasta</a>
     </li>
     <li data-also="peg pegboard 121 skunk">
       <a class="game-row" href="/cribbage/">
@@ -102,6 +105,7 @@
         <span class="what"><b>Cribbage</b><small>Two or three to 121, on a pegboard, with the hands counted for you.</small></span>
         <span class="room-tag living-tag">Cards</span>
       </a>
+      <a class="guide" href="/cribbage-score-keeper/">How to score cribbage</a>
     </li>
     <li data-also="501 301 cricket checkout pub bar tournament">
       <a class="game-row" href="/darts/">
@@ -114,6 +118,7 @@
         <span class="what"><b>Darts</b><small>501, 301 or your own number. One to four players, with checkout help, and round-robin tournaments.</small></span>
         <span class="room-tag parlor-tag">Pub</span>
       </a>
+      <a class="guide" href="/darts-scorer/">How to score darts</a>
     </li>
     <li data-also="euchre trump loner march">
       <a class="game-row" href="/builder/#euchre">
@@ -126,6 +131,7 @@
         <span class="what"><b>Euchre</b><small>Two teams of two, first to 10. One tap for a point, a march or a loner.</small></span>
         <span class="room-tag parlor-tag">Cards · Teams</span>
       </a>
+      <a class="guide" href="/euchre-score-keeper/">How to score Euchre</a>
     </li>
     <li data-also="dice 10000 10,000 hot">
       <a class="game-row" href="/builder/#farkle">
@@ -139,6 +145,7 @@
         <span class="what"><b>Farkle</b><small>First to 10,000. One tap for a farkle.</small></span>
         <span class="room-tag living-tag">Dice</span>
       </a>
+      <a class="guide" href="/farkle-score-sheet/">How to score Farkle</a>
     </li>
     <li data-also="5 crowns rummy rounds wild joker">
       <a class="game-row" href="/builder/#five-crowns">
@@ -150,6 +157,7 @@
         <span class="what"><b>Five Crowns</b><small>Eleven rounds, threes to kings. Wilds and Jokers count against you, and the lowest total wins.</small></span>
         <span class="room-tag living-tag">Cards</span>
       </a>
+      <a class="guide" href="/five-crowns-score-keeper/">How to score Five Crowns</a>
     </li>
     <li data-also="queen spades shoot moon tricks">
       <a class="game-row" href="/builder/#hearts">
@@ -161,6 +169,7 @@
         <span class="what"><b>Hearts</b><small>Points are bad: when anyone reaches 100, the lowest score wins. One tap for the Queen of spades or shooting the moon.</small></span>
         <span class="room-tag parlor-tag">Cards</span>
       </a>
+      <a class="guide" href="/hearts-score-keeper/">How to score Hearts</a>
     </li>
     <li data-also="mtg life counter commander edh poison planeswalker">
       <a class="game-row" href="/magic/">
@@ -174,6 +183,7 @@
         <span class="what"><b>Magic</b><small>A life counter for 20 or 40: life, poison and commander damage.</small></span>
         <span class="room-tag living-tag">Tabletop</span>
       </a>
+      <a class="guide" href="/mtg-life-counter/">How to track life in Magic</a>
     </li>
     <li data-also="oh heck up and down the river blackout bids tricks exact">
       <a class="game-row" href="/builder/#oh-hell">
@@ -186,6 +196,7 @@
         <span class="what"><b>Oh Hell</b><small>Everyone bids, and only an exact bid scores: 10 and 1 a trick. Thirteen hands, up and down the river.</small></span>
         <span class="room-tag parlor-tag">Cards</span>
       </a>
+      <a class="guide" href="/oh-hell-score-keeper/">How to score Oh Hell</a>
     </li>
     <li data-also="phase ten cards">
       <a class="game-row" href="/builder/#phase-10">
@@ -198,6 +209,7 @@
         <span class="what"><b>Phase 10</b><small>Cards left in hand count against you, and a counter keeps each player's phase. First through all ten wins.</small></span>
         <span class="room-tag living-tag">Cards</span>
       </a>
+      <a class="guide" href="/phase-10-score-keeper/">How to score Phase 10</a>
     </li>
     <li data-also="rummikub rummy tiles rack joker">
       <a class="game-row" href="/builder/#rummikub">
@@ -213,6 +225,23 @@
         <span class="what"><b>Rummikub</b><small>Whoever goes out takes everyone's rack, a joker 30, and the others lose theirs.</small></span>
         <span class="room-tag living-tag">Tiles</span>
       </a>
+      <a class="guide" href="/rummikub-score-sheet/">How to score Rummikub</a>
+    </li>
+    <!-- two lines of tiles meeting at a corner, each with one of Qwirkle's
+         shapes, the last one red -->
+    <li data-also="qwirkle tiles shapes colours colors line six">
+      <a class="game-row" href="/builder/#qwirkle">
+        <span class="tile tile-living"><svg viewBox="0 0 70 70" aria-hidden="true">
+          <g class="pen-line"><rect x="10" y="12" width="16" height="16" rx="2.5"/><rect x="27" y="12" width="16" height="16" rx="2.5"/><rect x="44" y="12" width="16" height="16" rx="2.5"/>
+          <rect x="44" y="29" width="16" height="16" rx="2.5"/><rect x="44" y="46" width="16" height="16" rx="2.5"/></g>
+          <g class="pen-fill"><circle cx="18" cy="20" r="4.2"/><rect x="31" y="16" width="8" height="8"/><path d="M52 14.8l5.2 5.2-5.2 5.2-5.2-5.2z"/>
+          <path d="M52 31.5l1.5 3.1 3.4.5-2.5 2.4.6 3.4-3-1.6-3 1.6.6-3.4-2.5-2.4 3.4-.5z"/></g>
+          <path class="pen-red" d="M52 49.5v9M47.5 54h9"/>
+        </svg></span>
+        <span class="what"><b>Qwirkle</b><small>A point for every tile in each line you make, 12 for a Qwirkle of six, and 6 for going out first.</small></span>
+        <span class="room-tag living-tag">Tiles</span>
+      </a>
+      <a class="guide" href="/qwirkle-score-sheet/">How to score Qwirkle</a>
     </li>
     <li data-also="rummy 500 melds 500 rum">
       <a class="game-row" href="/builder/#rummy-500">
@@ -225,6 +254,7 @@
         <span class="what"><b>Rummy 500</b><small>First to 500. Melds count for you and cards left in hand against, so a hand can go below nothing.</small></span>
         <span class="room-tag parlor-tag">Cards</span>
       </a>
+      <a class="guide" href="/rummy-500-score-keeper/">How to score Rummy 500</a>
     </li>
     <li data-also="sky jo skyjo cards grid doubled 100">
       <a class="game-row" href="/builder/#skyjo">
@@ -238,6 +268,7 @@
         <span class="what"><b>Skyjo</b><small>The cards left count against you, and whoever ends the round is doubled unless they're lowest. Lowest wins at 100.</small></span>
         <span class="room-tag living-tag">Cards</span>
       </a>
+      <a class="guide" href="/skyjo-score-keeper/">How to score Skyjo</a>
     </li>
     <li data-also="spades bids tricks bags nil partners">
       <a class="game-row" href="/builder/#spades">
@@ -249,6 +280,7 @@
         <span class="what"><b>Spades</b><small>Two teams of two, first to 500. Enter the bid and tricks taken, and the bags and nils are scored for you.</small></span>
         <span class="room-tag parlor-tag">Cards · Teams</span>
       </a>
+      <a class="guide" href="/spades-score-keeper/">How to score Spades</a>
     </li>
     <li data-also="uno cards 500 draw wild">
       <a class="game-row" href="/builder/#uno">
@@ -261,6 +293,7 @@
         <span class="what"><b>UNO</b><small>First to 500. Tap who went out, then the cards left in everyone's hands.</small></span>
         <span class="room-tag parlor-tag">Cards</span>
       </a>
+      <a class="guide" href="/uno-score-keeper/">How to score UNO</a>
     </li>
     <li data-also="dice scoresheet yacht">
       <a class="game-row" href="/yahtzee/">
@@ -273,6 +306,7 @@
         <span class="what"><b>Yahtzee</b><small>The paper scoresheet, filled in for you, for up to ten players.</small></span>
         <span class="room-tag living-tag">Dice</span>
       </a>
+      <a class="guide" href="/yahtzee-score-sheet/">How to score Yahtzee</a>
     </li>
     <!-- always last, and always shown: whatever was searched for, it can be built -->
     <li class="any" data-also="builder custom build other own">
@@ -285,6 +319,7 @@
         <span class="what"><b>Any other game</b><small>Not here yet? Build its scorekeeper: how it ends, which way it scores, teams or not, and your own scoring buttons.</small></span>
         <span class="room-tag workshop-tag">Builder</span>
       </a>
+      <a class="guide" href="/score-keeper/">Keeping score for any game</a>
     </li>
   </ul>
   <p class="none" id="none" hidden>No game by that name yet. The last one on the list can keep score for it.</p>

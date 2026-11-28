@@ -15,6 +15,10 @@ changing those areas.
 - **Run `npm test` before deploying.** It's the whole suite, about 4 minutes,
   driving real browsers. When changing an interface, add or update a test the
   way the existing ones are written, as a person would use it.
+- **Pull before deploying.** Cloud sessions push to `main` and deploy with the
+  Deploy workflow, so a laptop's `main` can be behind the live site, and
+  deploying it would take their work off the site. Run `git pull --rebase`
+  first, and deploy only from an up-to-date `main`.
 - **Deploy with `npm run deploy`**, not `wrangler deploy`: it rebuilds the
   sitemap's dates from git first, and afterwards tells IndexNow (Bing and
   others) which pages changed. Commit before deploying (the dates come from
@@ -38,6 +42,37 @@ changing those areas.
   against the new live site.
 - **Run the full suite only before a deploy**, not after every small local
   change; check those in the browser on `npm run dev` instead.
+
+## The work board
+
+Everything to be done on the site is on the work board at `/admin/#work`
+(`worker/work.js`). `SEO-###` items come from the SEO audit's ledger, and
+`W-###` items are bugs, ideas and tasks added by hand. From a terminal,
+`npm run work` reads and changes it on the live site. Its token is in
+`.work-token` (gitignored); never print or commit it.
+
+- **"Let's tackle SEO-012"** (or `W-003`): first `npm run work -- show SEO-012`
+  for the detail, what the audit last saw, and the owner's notes. Then
+  `npm run work -- doing SEO-012`.
+- **Once it's live**, after the deploy that ships it and the push, run
+  `npm run work -- done SEO-012 "Deployed in <short sha>: <what shipped>"`.
+  Not before: Done means it's on the live site, and the audit will go and
+  check. If only part of it shipped, leave it In progress and add a line with
+  `npm run work -- note SEO-012 "…"`.
+- **A bug or idea found along the way** that isn't being fixed now: add it with
+  `npm run work -- add bug "title" "detail"`, and mention it to the owner.
+- Statuses change on the board, never by editing `qa/seo/ledger.md`. That
+  file belongs to the audit, which reads the board each run.
+
+## What Score Chalk is
+
+The best replacement for the pen-and-paper score sheet: easy scorekeeping,
+especially for games whose scoring is a pain to track by hand (bids, bags,
+doubling, running totals, checkouts). It isn't a rules engine or a game
+platform. Copy leads with that convenience, in the positive ("easy
+scorekeeping, even for the trickiest games"), not with what's wrong with
+paper, and not with pubs or tabletops. The rooms (Parlor, Living Room,
+Workshop) are the look, not the pitch.
 
 ## How the site should behave
 
@@ -68,6 +103,11 @@ changing those areas.
   words. A link that goes somewhere other than home (a tournament, Formats)
   stays a text link. Bump `favicon.svg?v=` if the badge changes.
 - **"Score Chalk", two words**, everywhere people can read it.
+- **Every game keeps its state the same way** (README, *How a game keeps its
+  state*): what was done is the record, and scores are worked out from it;
+  `names`, `cur`, `me`, `log`, `edits`; `save()` to the device and profile.
+  Darts included: a change to games in general should need no special case
+  for it, and a new game follows the same shape.
 
 ## Style
 

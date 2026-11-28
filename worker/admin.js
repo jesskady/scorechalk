@@ -12,6 +12,7 @@
    GET    /api/admin/errors?sort=count        errors kept from pages and the Worker
    GET    /api/admin/activity?days=30         sign-ups, games and shares per day
    GET    /api/admin/log?offset=              what admins have deleted, newest first
+   ...    /api/admin/work                     the work board: see worker/work.js
    DELETE /api/admin/rows/<table>/<id>        one user, game, My game, shared game
                                               or error — and everything that hangs off it
 
@@ -22,6 +23,7 @@
    admin_log (migrations/0010) in the same batch, with what it was in words. */
 
 import { currentUserId } from './auth.js';
+import { work } from './work.js';
 
 const json = (body, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -114,6 +116,9 @@ export async function admin(request, env, url) {
   const uid = me.id;
 
   const path = url.pathname.slice('/api/admin'.length);
+
+  // the work board: see worker/work.js
+  if (path === '/work' || path.startsWith('/work/')) return work(request, env, path, me.email);
 
   if (path === '/overview' && request.method === 'GET') {
     const names = await tableNames(env);

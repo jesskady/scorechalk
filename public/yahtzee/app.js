@@ -39,7 +39,6 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 
 let S = null;          // the game; null on the setup screen
 let me = null;         // the signed-in user, for saving to the profile
-let msgTimer = null;
 
 /* ---------------- state ---------------- */
 
@@ -333,16 +332,22 @@ function render() {
   });
 }
 
-/* A passing message takes the title's place in the top bar for a moment:
-   anywhere over the sheet would cover a score, and the title's space is
-   exactly what is free. */
-function flash(text) {
-  const t = document.querySelector('.topbar h1');
+/* A message, over the foot of the sheet, in full: the title stays the
+   title (on a phone it holds a word or two, too little for a sentence).
+   It goes after a few seconds, longer for a sentence that needs reading,
+   and a tap puts it away sooner. Scores aren't said: the sheet shows them. */
+let toastTimer = null;
+function notice(text, ms = 5000) {
+  const t = $('toast');
   t.textContent = text;
-  t.classList.add('msg-on');
-  clearTimeout(msgTimer);
-  msgTimer = setTimeout(() => { t.textContent = 'Yahtzee'; t.classList.remove('msg-on'); }, 2400);
+  t.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.hidden = true; }, ms);
 }
+$('toast').onclick = () => { clearTimeout(toastTimer); $('toast').hidden = true; };
+
+// a short one: Nothing to undo, and the like
+const flash = (text) => notice(text, 2500);
 
 /* ---------------- scoring a box ----------------
 
@@ -371,7 +376,7 @@ function openEntry(p, id) {
       $('entryHint').textContent = 'Only once the Yahtzee box has scored 50.';
     } else {
       $('entryHint').textContent = `+${YAHTZEE_BONUS} for each extra Yahtzee. ${n ? `${n} so far.` : ''}`;
-      body.append(choice(`+${YAHTZEE_BONUS}`, () => { setYBonus(p, n + 1); done(`${name}: Yahtzee bonus +${YAHTZEE_BONUS}`); }, 'big'));
+      body.append(choice(`+${YAHTZEE_BONUS}`, () => { setYBonus(p, n + 1); done(); }, 'big'));
       if (n) body.append(choice('Take one off', () => { setYBonus(p, n - 1); done(); }, 'quiet'));
     }
     $('entryEmpty').classList.add('hidden');
@@ -428,16 +433,16 @@ function score(v) {
   const { p, id } = entry;
   const turnWas = S.cur;
   setBox(p, id, v);
-  done(`${S.names[p]}: ${box(id).label} ${v ? v : 'scratched'}`, turnWas);
+  done(turnWas);
 }
 
-function done(text, turnWas) {
+function done(turnWas) {
   closeEntry();
   save(); render();
   // the turn passed: bring the next player's column into view
   if (turnWas != null && S.cur !== turnWas) showColumn(S.cur);
-  // a player passed over, having played this round already, is the news
-  if (skipSaid) { flash(skipSaid); skipSaid = null; } else if (text) flash(text);
+  // a player passed over, having played this round already
+  if (skipSaid) { notice(skipSaid); skipSaid = null; }
   if (S.over) showWin();
 }
 
@@ -498,7 +503,7 @@ if (window.visualViewport) window.visualViewport.addEventListener('resize', plac
 
 $('entryClose').onclick = closeEntry;
 $('entryOverlay').addEventListener('click', (e) => { if (e.target === $('entryOverlay')) closeEntry(); });
-$('entryEmpty').onclick = () => { setBox(entry.p, entry.id, null); done('Box emptied'); };
+$('entryEmpty').onclick = () => { setBox(entry.p, entry.id, null); done(); };
 
 /* ---------------- editing the game ----------------
 
@@ -514,7 +519,7 @@ async function editGame() {
   const locked = SCStore.get(S.id)?.share
     ? 'This game is shared with other phones, which know the players by their place, so the players can’t be moved or renamed now.'
     : null;
-  const got = await SCEditGame.open({ names: S.names, locked, hint: 'Whoever’s turn it is keeps it.', warn: skipWarning });
+  const got = await SCEditGame.open({ names: S.names, locked, hint: 'Whoever’s turn it is keeps it.', warn: skipWarning, history: historyRows });
   if (!got) return;
   const moved = got.order.some((from, i) => from !== i);
   const renamed = got.names.some((name, i) => name !== S.names[got.order[i]]);
@@ -523,6 +528,47 @@ async function editGame() {
   S.names = got.names;
   save(); buildSheet(); render();
   flash(moved ? `${S.names[S.cur]}'s turn` : 'Names changed');
+}
+
+/* The game's history for Edit's History (see /editgame.js), from Undo's
+   list: every box filled, changed or emptied, and the extra Yahtzees, in
+   the order they came. A box filled is that player's next turn. The latest
+   line for a box still filled can be tapped to change it (see fixBox). */
+function historyRows() {
+  const turns = S.names.map(() => 0);
+  const latest = {};
+  S.log.forEach((e, i) => { latest[`${e.p}:${e.id}`] = i; });
+  const fixable = (e, i) => latest[`${e.p}:${e.id}`] === i && !SCShare.watching && SCShare.canScore(e.p)
+    && (e.id === 'ybonus' || filled(e.p, e.id));
+  return S.log.map((e, i) => {
+    const who = S.names[e.p];
+    const edit = fixable(e, i) ? () => fixBox(e.p, e.id) : null;
+    if (e.id === 'ybonus') {
+      const d = (e.v - e.prev) * YAHTZEE_BONUS;
+      return { who, what: 'Yahtzee bonus', pts: d > 0 ? `+${d}` : `−${-d}`, neg: d < 0, edit };
+    }
+    const label = box(e.id).label;
+    if (e.prev == null) {
+      turns[e.p] += 1;
+      return { who, what: label, when: `turn ${turns[e.p]}`, pts: e.v ? e.v : 'scratched', edit };
+    }
+    if (e.v == null) {
+      turns[e.p] -= 1;
+      return { who, what: `${label} emptied`, pts: '—', neg: true };
+    }
+    return { who, what: `${label} changed`, pts: `${e.prev || 'scratched'} → ${e.v || 'scratched'}`, edit };
+  });
+}
+
+/* Changing a box from the history: its own bubble, by the box, saying what
+   is being changed. Like changing any box on the sheet, it leaves the turn
+   where it is; the bubble holds the game until a value is picked or it is
+   put away. A finished game can be put right this way too, and the result
+   follows. */
+function fixBox(p, id) {
+  showColumn(p);
+  openEntry(p, id);
+  $('entryWho').textContent = `Changing ${S.names[p]}'s ${id === 'ybonus' ? 'Yahtzee bonus' : box(id).label}`;
 }
 
 // Who a new order would pass over for the rest of this round (see

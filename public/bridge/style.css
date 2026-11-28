@@ -4,7 +4,7 @@
 
 .screen{
   max-width:560px;margin:0 auto;
-  padding:10px 10px calc(16px + var(--pad));
+  padding:calc(10px + var(--top)) 10px calc(16px + var(--pad));
   display:flex;flex-direction:column;gap:8px;min-height:100%;
 }
 

@@ -73,6 +73,58 @@ anything else. Create them if they don't exist yet (first run).
   run explored, grouped by date. Use it to steer away from ground already
   covered.
 
+# The work board
+
+The owner tracks everything to be done on the site on a work board
+(scorechalk.com/admin/#work). Your ledger feeds it: every row becomes an item
+with the same ID. The owner's decisions live on the board, so read it at the
+start of every run, right after the ledger:
+
+    curl -s https://scorechalk.com/api/work -H 'X-Work-By: seo audit'
+
+The sandbox holds the board's token as a network secret for scorechalk.com,
+so the proxy adds the `Authorization` header itself. Don't add one, and never
+print or store any credential. The answer is JSON:
+`{"items": [{"id", "source", "title", "status", "agent_status", "notes", ...}]}`.
+`status` is the board's: `new`, `todo`, `doing` (In progress), `done`, or
+`dismissed` (Won't do). `notes` are the owner's own.
+
+For each SEO item, the board's status and the owner's notes come before your
+own view:
+
+- **dismissed** (Won't do): the owner has rejected it. Set the ledger row to
+  Dismissed, quoting the owner's note if there is one. Don't check it again,
+  and don't suggest it or anything close to it again.
+- **done**: the owner says it has shipped. Check the live site. If it's
+  there, mark the row Done with the evidence. If you can't see it yet, keep
+  the row's status, say "board says done; not seen live: …" in its Evidence,
+  and list it in the report's "Done or changed since last run" as not yet
+  confirmed.
+- **doing**: being worked on now. Check it as usual, but don't put it in a
+  Top 3 as something to start.
+- **The owner's notes** are context for the row ("only darts for now",
+  "waiting on the Play Store account"). Read them before re-checking, and
+  don't suggest what a note has ruled out.
+
+Items whose `source` is `me` are the owner's own bugs, ideas and tasks
+(`W-001`, …). Before adding a new suggestion, check both the ledger and the
+board's items for one that already covers it. If an item covers it, mention
+that item's ID in the report instead of adding a row.
+
+If the board can't be read (a 403 or a blocked connection), work from the
+ledger alone and say so in the report's At a glance.
+
+Never change statuses on the board directly: the ledger is how you speak to
+it. As soon as qa/seo is pushed, send the board the ledger you just
+committed, so it's up to date at once and not only after the nightly sync:
+
+    jq -Rs '{source: "seo", markdown: .}' qa/seo/ledger.md |
+      curl -s -X POST https://scorechalk.com/api/work/import \
+        -H 'X-Work-By: seo audit' -H 'Content-Type: application/json' --data @-
+
+It answers with how many rows were read and added. If it fails, say so in
+your final message; the nightly sync will pick the ledger up from GitHub.
+
 # How to assess
 
 Check the **live site** (https://scorechalk.com) and the **source** in

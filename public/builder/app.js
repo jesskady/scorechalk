@@ -1449,7 +1449,10 @@ function buildPad() {
   }
   $('typedRow').classList.toggle('hidden', !S.cfg.typed);
   const rule = ruleOn();
-  for (const id of ['quickpad', 'signRow', 'clearBtn']) $(id).classList.toggle('hidden', rule);
+  for (const id of ['quickpad', 'clearBtn']) $(id).classList.toggle('hidden', rule);
+  // the + and − switch: not for a rule's pad, nor a game whose scores only
+  // go one way (Farkle, Qwirkle); built after the board, so it decides here
+  $('signRow').classList.toggle('hidden', rule || S.cfg.signs === false);
   if (rule) $('typedRow').classList.add('hidden');
   $('rulePad').classList.toggle('hidden', !rule);
   if (rule) buildRulePad();
@@ -1609,16 +1612,7 @@ function render() {
   // The last few things done, newest first: each score, and any change made
   // to one since, in its place among them. A score is tapped to change it.
   // Counter changes go in among them too, by when they were made.
-  const rounds = roundsOfLog(), items = [];
-  const since = (n) => [
-    ...(S.edits || []).filter((x) => x.after === n).map((x) => ({ x, ts: x.ts || 0 })),
-    ...(S.clog || []).filter((y) => y.after === n).map((y) => ({ y, ts: y.ts || 0 })),
-  ].sort((a, b) => a.ts - b.ts);
-  items.push(...since(0));
-  S.log.forEach((e, i) => {
-    items.push({ e, i });
-    items.push(...since(i + 1));
-  });
+  const rounds = roundsOfLog(), items = historyItems();
   const ks = countersOf(S);
   $('history').innerHTML = items.slice(-6).map(({ e, i, x, y }) => {
     if (y) {
@@ -1638,6 +1632,58 @@ function render() {
   renderCounters();
   renderTiles();
   if (sheetOn()) renderSheet();
+}
+
+/* Everything done, oldest first: each score as { e, i }, and any change made
+   to one since (x) or to a counter (y), in its place among them, by when. */
+function historyItems() {
+  const items = [];
+  const since = (n) => [
+    ...(S.edits || []).filter((x) => x.after === n).map((x) => ({ x, ts: x.ts || 0 })),
+    ...(S.clog || []).filter((y) => y.after === n).map((y) => ({ y, ts: y.ts || 0 })),
+  ].sort((a, b) => a.ts - b.ts);
+  items.push(...since(0));
+  S.log.forEach((e, i) => {
+    items.push({ e, i });
+    items.push(...since(i + 1));
+  });
+  return items;
+}
+
+/* The whole history for Edit's History (see /editgame.js), in the words of
+   the last few shown under the scores. */
+function historyRows() {
+  const c = S.cfg, rounds = roundsOfLog(), ks = countersOf(S);
+  return historyItems().map(({ e, i, x, y }) => {
+    if (y) {
+      const k = ks.find((z) => z.id === y.id), diff = y.to - y.from;
+      return { who: c.names[y.p], what: (k && k.name) || 'Counter', when: `${fmt(y.from)} → ${fmt(y.to)}`, pts: signed(diff), neg: diff < 0 };
+    }
+    if (x) {
+      const diff = x.to - x.from;
+      return { who: c.names[x.p], what: `${c.turns ? `round ${x.r} ` : ''}changed`, when: `${turnText(x.from)} → ${turnText(x.to)}`, pts: signed(diff), neg: diff < 0 };
+    }
+    const edit = !SCShare.watching && SCShare.canScore(e.p) ? () => fixTurn(i) : null;
+    return { who: c.names[e.p], what: partsText(e.parts), when: c.turns ? `round ${rounds[i]}` : '', pts: signed(e.d), neg: e.d < 0, edit };
+  });
+}
+
+/* Changing a score from the history: the same bubble as tapping it on the
+   sheet (see openEdit), pointing at it there, or at its player on the
+   board. It asks before changing, keeps the change in the history, and
+   leaves the turn where it is. */
+function fixTurn(i) {
+  const e = S.log[i];
+  if (!e) return;
+  const r = roundsOfLog()[i];
+  const at = [
+    sheetOn() && `#sheet button.cell[data-p="${e.p}"][data-r="${r}"]`,
+    `#history [data-i="${i}"]`,
+    `#scoreboard .player:nth-child(${e.p + 1})`,
+    `#tiles .tile[data-p="${e.p}"]`,
+  ].find((sel) => { const x = sel && document.querySelector(sel); return x && x.offsetParent; });
+  if (at) document.querySelector(at).scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  openEdit(i, at || undefined);
 }
 
 // The leader: only once someone is actually ahead, and never in a solo game.
@@ -1793,11 +1839,15 @@ $('undoBtn').onclick = () => {
 // A game that only keeps score never ends by itself, so Finish ends it: the
 // standings go up, and a signed-in game is saved to the profile like any
 // other. The highest score is credited as the winner, unless it is shared.
+// A game with no ending of its own: Finish shows the final scores, or,
+// for a game whose highest wins at the end (finishWins: Rummikub,
+// Qwirkle), names the winner.
 $('finishBtn').onclick = async () => {
   if (!S.log.length) { flash('Nothing scored yet'); return; }
-  if (!(await askConfirm('End the game here and show the final scores?', 'Finish'))) return;
+  const wins = !!S.cfg.finishWins;
+  if (!(await askConfirm(wins ? 'End the game here? The highest score wins.' : 'End the game here and show the final scores?', 'Finish'))) return;
   const top = best(Math.max);
-  showWin({ ...top, final: true });
+  showWin({ ...top, final: !wins });
 };
 
 /* ---------------- editing the game ----------------
@@ -1823,7 +1873,7 @@ async function editGame() {
     const out = list(c.names.map((_, i) => isOut(i)));
     return SCEditGame.skipWarning({ names, counts: list(turnCounts()), cur: place(S.cur), playing: (i) => !out[i] });
   };
-  const got = await SCEditGame.open({ names: c.names, locked, hint: c.turns ? 'Whoever’s turn it is keeps it.' : null, warn });
+  const got = await SCEditGame.open({ names: c.names, locked, hint: c.turns ? 'Whoever’s turn it is keeps it.' : null, warn, history: historyRows });
   if (!got) return;
   const moved = got.order.some((from, i) => from !== i);
   if (!moved && got.names.every((n, i) => n === c.names[i])) return;

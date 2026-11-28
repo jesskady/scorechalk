@@ -327,8 +327,9 @@ export async function previewFor(env, t, type) {
   const found = await resolve(env, t);
   if (!found || found.row.game_type !== type) return null;
   const st = parse(found.row.state) || {};
+  // a darts game kept in its first shape has players, not names
   const names = type === 'builder' ? (st.cfg && st.cfg.names) || []
-    : type === 'darts' ? (st.players || []).map((p) => p.name) : st.names || [];
+    : st.names || (st.players || []).map((p) => p.name);
   const game = type === 'builder' ? ((st.cfg && st.cfg.name) || 'scorekeeping').trim() : GAME_LABEL[type];
   const who = whoPlays(names);
   const what = who ? `${who}'s ${game} game` : `a ${game} game`;
